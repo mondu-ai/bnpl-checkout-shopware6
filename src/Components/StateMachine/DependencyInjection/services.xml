@@ -1,0 +1,16 @@
+<?xml version="1.0" ?>
+<container xmlns="http://symfony.com/schema/dic/services"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+    <services>
+        <defaults autowire="true" />
+
+        <service id="Mondu\MonduPayment\Components\StateMachine\Service\StateMachineRegistryDecorator"
+                 decorates="Shopware\Core\System\StateMachine\StateMachineRegistry">
+            <argument key="$innerService" id="Mondu\MonduPayment\Components\StateMachine\Service\StateMachineRegistryDecorator.inner" type="service"/>
+            <argument key="$orderRepository" id="order.repository" type="service" />
+            <argument key="$orderDeliveryRepository" id="order_delivery.repository" type="service" />
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
+        </service>
+    </services>
+</container>

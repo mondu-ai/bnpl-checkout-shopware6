@@ -1,0 +1,37 @@
+{
+  "name": "mondu/shopware6-payment",
+  "description": "Mondu payment for Shopware 6",
+  "version": "1.0.0",
+  "type": "shopware-platform-plugin",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Mondu"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Mondu\\MonduPayment\\": "src/"
+    }
+  },
+  "require": {
+    "shopware/core": "6.4.*",
+    "ext-json": "*"
+  },
+  "extra": {
+    "shopware-plugin-class": "Mondu\\MonduPayment\\MonduPayment",
+    "plugin-icon": "src/Resources/public/plugin.png",
+    "label": {
+      "de-DE": "Mondu-Rechnungskauf",
+      "en-GB": "Mondu-invoicing"
+    },
+    "description": {
+      "de-DE": "Mondu-Rechnungskauf",
+      "en-GB": "Mondu-invoicing"
+    },
+    "manufacturerLink": {
+      "de-DE": "https://mondu.ai",
+      "en-GB": "https://mondu.ai"
+    }
+  }
+}

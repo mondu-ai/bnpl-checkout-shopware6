@@ -1,0 +1,65 @@
+<?xml version="1.0" ?>
+<container xmlns="http://symfony.com/schema/dic/services"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+
+    <imports>
+        <import resource="../../Components/*/DependencyInjection/services.xml"/>
+        <import resource="../../Components/*/DependencyInjection/subscriber.xml"/>
+        <import resource="../../Components/*/DependencyInjection/controllers.xml"/>
+    </imports>
+
+    <services>
+        <defaults autowire="true">
+            <tag name="controller.service_arguments"/>
+        </defaults>
+
+        <service id="Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduHandler">
+            <argument type="service" id="Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler"/>
+            <argument type="service" id="mondu.mondu_api"/>
+            <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
+            <argument key="$repository" type="service" id="order.repository"/>
+            <tag name="shopware.payment.method.sync" />
+            <!--            <tag name="shopware.payment.method.async" />-->
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\Checkout\Controller\CheckoutController" public="true">
+            <argument type="service" id="mondu.mondu_api"/>
+            <call method="setContainer">
+                <argument type="service" id="service_container"/>
+            </call>
+        </service>
+
+<!--        <service id="Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService">-->
+<!--            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>-->
+<!--        </service>-->
+
+        <service id="mondu.mondu_api" class="Mondu\MonduPayment\Components\MonduApi\Service\MonduClient" public="true">
+            <argument type="service" id="mondu.mondu_config"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\MonduApi\Service\MonduOperationService">
+            <argument type="service" id="mondu.mondu_api"/>
+            <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
+        </service>
+<!--        <service id="Mondu\MonduPayment\Components\MonduApi\Factory\MonduClientFactory" public="false"/>-->
+
+<!--        <service id="Mondu\MonduPayment\Components\MonduApi\MonduClient" public="false">-->
+<!--            <factory service="Mondu\MonduPayment\Components\MonduApi\Factory\MonduClientFactory" method="createMonduClient"/>-->
+<!--        </service>-->
+        <service id="Mondu\MonduPayment\Components\Order\Model\Extension\OrderExtension">
+            <tag name="shopware.entity.extension"/>
+        </service>
+        <service id="Mondu\MonduPayment\Components\Order\Model\Definition\OrderDataDefinition">
+            <tag name="shopware.entity.definition"/>
+        </service>
+        <service id="Mondu\MonduPayment\Components\Order\Util\DocumentUrlHelper">
+            <argument type="service" id="mondu.mondu_config"/>
+        </service>
+        <service id="Mondu\MonduPayment\Components\Checkout\Subscriber\CheckoutSubscriber" >
+            <tag name="kernel.event_subscriber" />
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
+        </service>
+
+    </services>
+</container>

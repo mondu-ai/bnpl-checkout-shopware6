@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/shopware/platform/master/src/Core/System/SystemConfig/Schema/config.xsd">
+
+    <card>
+        <title>API Mode</title>
+        <title lang="de-DE">API Modus</title>
+
+        <input-field type="bool">
+            <name>sandbox</name>
+            <label>Sandbox</label>
+            <label lang="de-DE">Testmodus</label>
+            <value>0</value>
+        </input-field>
+    </card>
+
+    <card>
+        <title>Mondu api key</title>
+
+        <input-field type="password">
+            <name>apiToken</name>
+            <label>Api key</label>
+        </input-field>
+
+        <component name="mondu-test-credentials-button">
+            <name>testLiveClientCredentialsButton</name>
+            <apiMode>live</apiMode>
+        </component>
+    </card>
+</config>

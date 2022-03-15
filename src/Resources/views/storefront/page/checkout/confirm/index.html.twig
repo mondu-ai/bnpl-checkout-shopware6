@@ -1,0 +1,20 @@
+{% sw_extends '@Storefront/storefront/page/checkout/confirm/index.html.twig' %}
+
+{% block page_checkout_aside_actions_csrf %}
+    {{ parent() }}
+
+    {% if page.extensions.mondu_checkout.config %}
+        {% set monduPluginOptions = page.extensions.mondu_checkout.config %}
+
+        <input
+                id="mondu-order-id-input"
+                name="mondu_payment[order-id]"
+                type="hidden"
+                data-mondu-checkout="true"
+                data-mondu-plugin-options="{{ monduPluginOptions|json_encode }}"
+                form="confirmOrderForm"
+        />
+    {% endif %}
+
+    <div id="mondu-checkout-widget" style="display: none; position: fixed; top: 0;right: 0;left: 0;bottom: 0; z-index: 99999999;"></div>
+{% endblock %}
