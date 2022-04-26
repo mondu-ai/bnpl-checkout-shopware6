@@ -3,17 +3,22 @@ import HttpClient from 'src/service/http-client.service';
 
 export default class MonduCheckoutPlugin extends Plugin {
     static options = {
-        src: '',
+        src: 'http://localhost:3002/widget.js',
         csrfToken: ''
     };
 
     init() {
         this._isWidgetLoaded = this._initWidget(this.options.src);
         this._registerEvents();
+        this._registerProperties();
     }
 
     _registerEvents() {
-        this.el.form.addEventListener('submit', this._submitForm.bind(this))
+        this.el.form.addEventListener('submit', this._submitForm.bind(this));
+    }
+
+    _registerProperties() {
+        this._checkoutConfirmPage = this.el.getAttribute('data-checkout-confirm-page');
     }
 
     async _initWidget(src) {
@@ -44,7 +49,7 @@ export default class MonduCheckoutPlugin extends Plugin {
             const removeWidgetContainer = this._removeWidgetContainer.bind(this);
 
             function submitForm() {
-                this.el.form.requestSubmit();
+                this.el.form.submit();
             }
 
             function monduComplete() {
@@ -57,12 +62,10 @@ export default class MonduCheckoutPlugin extends Plugin {
                 token,
                 onClose() {
                     removeWidgetContainer();
-                    if(that._isWidgetComplete() || true) {
-                        //TODO bug workaround
-                        monduComplete.apply(that);
+                    if(that._isWidgetComplete()) {
                         submitForm.apply(that);
                     } else {
-                        location.reload();
+                      window.location.href = that._checkoutConfirmPage;
                     }
                 },
                 onSuccess() {
