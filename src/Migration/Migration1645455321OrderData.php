@@ -24,7 +24,7 @@ class Migration1645455321OrderData extends MigrationStep
               `order_version_id` binary(16) NOT NULL,
               `reference_id` varchar(255) NOT NULL,
               `order_state` VARCHAR(20) NOT NULL,
-              `viban` varchar(255) nullable,
+              `viban` varchar(255) NULL,
               `duration` int NOT NULL,
               `external_invoice_number` VARCHAR(255) NULL,
               `external_invoice_url` TEXT NULL,

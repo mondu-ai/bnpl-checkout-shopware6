@@ -153,17 +153,8 @@ class TransitionSubscriber implements EventSubscriberInterface
             $invoice = $this->monduClient->invoiceOrder(
                 $monduData->getReferenceId(),
                 $order->getOrderNumber(),
-                (int) $order->getPrice()->getTotalPrice() * 100,
+                (float) $order->getPrice()->getTotalPrice() * 100,
                 $invoiceUrl
-            );
-
-            $this->updateOrder(
-                $context,
-                $monduData,
-                [
-                    OrderDataEntity::FIELD_ORDER_STATE => $invoice['order']['state'],
-                    OrderDataEntity::FIELD_VIBAN => $invoice['order']['buyer']['viban']
-                ]
             );
         } catch (\Exception $e) {
             $this->logger->critical(

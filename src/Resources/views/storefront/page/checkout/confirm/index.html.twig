@@ -12,6 +12,7 @@
                 type="hidden"
                 data-mondu-checkout="true"
                 data-mondu-plugin-options="{{ monduPluginOptions|json_encode }}"
+                data-checkout-confirm-page="{{ path('frontend.checkout.confirm.page') }}"
                 form="confirmOrderForm"
         />
     {% endif %}
