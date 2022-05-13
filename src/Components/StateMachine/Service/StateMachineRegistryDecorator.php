@@ -74,8 +74,14 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
             $order = $this->getOrder($orderDelivery->getOrderId(), $context);
             $transaction = $order ? $order->getTransactions()->first() : null;
             $paymentMethod = $transaction ? $transaction->getPaymentMethod() : null;
-            if($paymentMethod && MethodHelper::isMonduPayment($paymentMethod) && !$this->canShipOrder($order)) {
-                throw new MonduException('Cant ship the order');
+            $transitionName = $transition->getTransitionName();
+
+            if($paymentMethod &&
+                MethodHelper::isMonduPayment($paymentMethod) &&
+                !$this->canShipOrder($order) &&
+                ($transitionName == 'ship' || $transitionName == 'ship_partially')
+            ) {
+                throw new MonduException('Order can not be shipped.');
             }
         }
 

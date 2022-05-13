@@ -15,11 +15,16 @@
     </card>
 
     <card>
-        <title>Mondu api key</title>
+        <title>Mondu API Configuration</title>
 
         <input-field type="password">
             <name>apiToken</name>
-            <label>Api key</label>
+            <label>API Key</label>
+        </input-field>
+
+        <input-field type="password">
+            <name>webhooksSecret</name>
+            <label>Webhooks Secret</label>
         </input-field>
 
         <component name="mondu-test-credentials-button">

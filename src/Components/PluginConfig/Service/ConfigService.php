@@ -6,10 +6,10 @@ namespace Mondu\MonduPayment\Components\PluginConfig\Service;
 use Shopware\Core\System\SystemConfig\SystemConfigService;
 
 class ConfigService {
-    const API_URL = 'http://localhost:3000/api/v1';
-    const WIDGET_URL = 'http://checkout-sandbox.mondu.local/widget.js';
-    const SANDBOX_API_URL = 'http://localhost:3000/api/v1';
-    const SANDBOX_WIDGET_URL = 'http://checkout-sandbox.mondu.local/widget.js';
+    const API_URL = 'http://api.demo.mondu.ai/api/v1';
+    const WIDGET_URL = 'http://checkout.demo.mondu.ai/widget.js';
+    const SANDBOX_API_URL = 'http://host.docker.internal:3000/api/v1';
+    const SANDBOX_WIDGET_URL = 'http://localhost:3002/widget.js'; // host.docker.internal IP
     /**
      * @var SystemConfigService
      */
@@ -50,6 +50,12 @@ class ConfigService {
         $config = $this->getPluginConfiguration();
 
         return $config['apiToken'] ?? null;
+    }
+
+    public function getWebhooksSecret() {
+      $config = $this->getPluginConfiguration();
+
+      return $config['webhooksSecret'] ?? null;
     }
 
     public function isStateWatchingEnabled(): bool {

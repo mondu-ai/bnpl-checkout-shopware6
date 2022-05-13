@@ -15,17 +15,17 @@ class PaymentMethods extends AbstractBootstrap
     public const PAYMENT_METHODS = [
         MonduHandler::class => [
             'handlerIdentifier' => MonduHandler::class,
-            'name' => 'Mondu Invoice',
-            'description' => 'Mondu invoice description',
+            'name' => 'Mondu',
+            'description' => 'Buy now, pay later.',
             'afterOrderEnabled' => false,
             'translations' => [
                 'de-DE' => [
                     'name' => 'Mondu Rechnungskauf',
-                    'description' => 'Mondu invoice description',
+                    'description' => 'Buy now, pay later.',
                 ],
                 'en-GB' => [
                     'name' => 'Mondu invoice',
-                    'description' => 'Mondu invoice description',
+                    'description' => 'Buy now, pay later.',
                 ],
             ],
         ],
