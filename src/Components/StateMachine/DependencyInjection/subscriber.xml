@@ -14,6 +14,7 @@
             <argument key="$configService" type="service" id="mondu.mondu_config"/>
             <argument key="$monduClient" type="service" id="mondu.mondu_api"/>
             <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
+            <argument key="$invoiceDataRepository" type="service" id="mondu_invoice_data.repository"/>
         </service>
 
     </services>

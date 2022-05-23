@@ -1,0 +1,10 @@
+{
+  "sw-order-mondu": {
+    "documentCard": {
+      "labelCancelInvoice": "Cancel Invoice",
+      "cancelSuccessTitle": "Success!",
+      "cancelSuccessMessage": "Invoice is successfully cancelled.",
+      "cancelErrorMessage": "Error ocurred. Invoice could not be cancelled."
+    }
+  }
+}

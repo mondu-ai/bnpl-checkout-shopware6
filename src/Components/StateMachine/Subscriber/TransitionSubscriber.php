@@ -22,12 +22,15 @@ use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\System\StateMachine\Event\StateMachineTransitionEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Mondu\MonduPayment\Components\Invoice\InvoiceDataEntity;
+
 
 class TransitionSubscriber implements EventSubscriberInterface
 {
     private ConfigService $configService;
     private EntityRepositoryInterface $orderDeliveryRepository;
     private EntityRepositoryInterface $orderRepository;
+    private EntityRepositoryInterface $invoiceDataRepisotry;
     private $operationService;
     private $monduClient;
     private $orderDataRepository;
@@ -40,6 +43,7 @@ class TransitionSubscriber implements EventSubscriberInterface
         ConfigService $configService,
         MonduClient $monduClient,
         EntityRepositoryInterface $orderDataRepository,
+        EntityRepositoryInterface $invoiceDataRepository,
         DocumentUrlHelper $documentUrlHelper,
         LoggerInterface $logger
     ) {
@@ -48,6 +52,7 @@ class TransitionSubscriber implements EventSubscriberInterface
         $this->configService = $configService;
         $this->monduClient = $monduClient;
         $this->orderDataRepository = $orderDataRepository;
+        $this->invoiceDataRepository = $invoiceDataRepository;
         $this->documentUrlHelper = $documentUrlHelper;
         $this->logger = $logger;
     }
@@ -88,9 +93,11 @@ class TransitionSubscriber implements EventSubscriberInterface
                 }
                 break;
             case 'shipped':
+            case 'shipped_partially':
                 $this->shipOrder($order, $event->getContext(), $monduOrder);
                 break;
         }
+
     }
 
     protected function getOrder(string $orderId, Context $context): OrderEntity
@@ -131,31 +138,43 @@ class TransitionSubscriber implements EventSubscriberInterface
         $invoiceUrl = $monduData->getExternalInvoiceUrl();
         $shippingUrl = $monduData->getExternalDeliveryNoteUrl();
 
-        if (!$invoiceNumber || !$shippingUrl) {
-            foreach ($order->getDocuments() as $document) {
-                if ($invoiceNumber === null &&
-                    $document->getDocumentType()->getTechnicalName() === InvoiceGenerator::INVOICE
-                ) {
-                    $config = $document->getConfig();
-                    $invoiceNumber = $config['custom']['invoiceNumber'] ?? null;
-                    $invoiceUrl = $this->documentUrlHelper->generateRouteForDocument($document);
-                }
+        $attachedDocument = $context->getExtensions()['mail-attachments']->getDocumentIds()[0];
 
-                if ($shippingUrl === null &&
-                    $document->getDocumentType()->getTechnicalName() === DeliveryNoteGenerator::DELIVERY_NOTE
-                ) {
-                    $shippingUrl = $this->documentUrlHelper->generateRouteForDocument($document);
+        foreach ($order->getDocuments() as $document) {
+            if ($document->getId() == $attachedDocument){
+                if ($document->getDocumentType()->getTechnicalName() === InvoiceGenerator::INVOICE) {
+                  $config = $document->getConfig();
+                  $invoiceNumber = $config['custom']['invoiceNumber'] ?? null;
+                  $invoiceUrl = $this->documentUrlHelper->generateRouteForDocument($document);
                 }
+            }
+
+            if ($document->getDocumentType()->getTechnicalName() === DeliveryNoteGenerator::DELIVERY_NOTE) {
+              $shippingUrl = $this->documentUrlHelper->generateRouteForDocument($document);
             }
         }
 
         try {
             $invoice = $this->monduClient->invoiceOrder(
                 $monduData->getReferenceId(),
-                $order->getOrderNumber(),
-                (float) $order->getPrice()->getTotalPrice() * 100,
-                $invoiceUrl
+                $invoiceNumber,
+                (int) strval((float) $order->getPrice()->getTotalPrice() * 100),
+                $invoiceUrl,
+                $this->getLineItems($order, $context)
             );
+
+            if ($invoice) {
+              $this->invoiceDataRepository->upsert([
+                [
+                    InvoiceDataEntity::FIELD_ORDER_ID => $order->getId(),
+                    InvoiceDataEntity::FIELD_ORDER_VERSION_ID => $order->getVersionId(),
+                    InvoiceDataEntity::FIELD_DOCUMENT_ID => $document->getId(),
+                    InvoiceDataEntity::FIELD_INVOICE_NUMBER => $invoiceNumber,
+                    InvoiceDataEntity::FIELD_EXTERNAL_INVOICE_UUID => $invoice['uuid'],
+                ]
+              ], $context);
+            }
+
         } catch (\Exception $e) {
             $this->logger->critical(
                 'Exception during shipment. (Exception: '. $e->getMessage().')',
@@ -164,9 +183,32 @@ class TransitionSubscriber implements EventSubscriberInterface
                     'mondu-reference-id' => $monduData->getReferenceId()
                 ]
             );
-            throw new MonduException('Error shipping an order, check application logs for more details');
+            throw new MonduException('Error shipping an order, check application logs for more details ' . $e->getMessage());
         }
 
         return true;
     }
+
+    protected function getLineItems($order, Context $context): array
+    {
+        $collection = $order->getLineItems();
+
+        $lineItems = [];
+        /** @var \Shopware\Core\Checkout\Cart\LineItem\LineItem|OrderLineItemEntity $lineItem */
+        foreach ($collection->getIterator() as $lineItem) {
+            if ($lineItem->getType() !== \Shopware\Core\Checkout\Cart\LineItem\LineItem::PRODUCT_LINE_ITEM_TYPE) {
+                continue;
+            }
+
+            $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - $lineItem->getPrice()->getCalculatedTaxes()->getAmount()) * 100;
+            $lineItems[] = [
+                'external_reference_id' => $lineItem->getReferencedId(),
+                'quantity' => $lineItem->getQuantity()
+            ];
+        }
+
+        return $lineItems;
+    }
+
+
 }

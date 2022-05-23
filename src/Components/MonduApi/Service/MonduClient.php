@@ -59,11 +59,25 @@ class MonduClient {
         }
     }
 
-    public function invoiceOrder($orderUid, $referenceId, $grossAmount, $invoiceUrl) {
+    public function cancelInvoice($orderUuid, $invoiceUuid): ?array
+    {
+        $request = $this->getRequestObject('orders/'. $orderUuid.'/invoices/' . $invoiceUuid . '/cancel', 'POST');
+        try {
+            $response = $this->restClient->send($request);
+            $body = json_decode($response->getBody()->getContents(), true);
+            return @$body;
+        } catch (GuzzleException $e) {
+            //not implemented
+            return null;
+        }
+    }
+
+    public function invoiceOrder($orderUid, $referenceId, $grossAmount, $invoiceUrl, $line_items = []) {
         $body = json_encode([
             'external_reference_id' => $referenceId,
             'invoice_url' => $invoiceUrl,
-            'gross_amount_cents' => $grossAmount
+            'gross_amount_cents' => $grossAmount,
+            'line_items' => $line_items
         ]);
 
         $request = $this->getRequestObject('orders/'.$orderUid.'/invoices','POST', $body);
