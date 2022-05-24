@@ -76,12 +76,19 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
             $paymentMethod = $transaction ? $transaction->getPaymentMethod() : null;
             $transitionName = $transition->getTransitionName();
 
-            if($paymentMethod &&
-                MethodHelper::isMonduPayment($paymentMethod) &&
-                !$this->canShipOrder($order) &&
-                ($transitionName == 'ship' || $transitionName == 'ship_partially')
-            ) {
-                throw new MonduException('Order can not be shipped.');
+            if ($transitionName == 'ship' || $transitionName == 'ship_partially') {
+              if($paymentMethod &&
+                  MethodHelper::isMonduPayment($paymentMethod) &&
+                  !$this->canShipOrder($order)
+              ) {
+                  throw new MonduException('Order can not be shipped.');
+              }
+
+              $documentIds = $context->getExtensions()['mail-attachments']->getDocumentIds();
+
+              if (count($documentIds) != 1) {
+                throw new MonduException('Please select one document to attach.');
+              }
             }
         }
 

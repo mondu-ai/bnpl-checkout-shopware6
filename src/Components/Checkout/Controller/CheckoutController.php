@@ -71,7 +71,7 @@ class CheckoutController extends StorefrontController
                 'external_reference_id' => $lineItem->getReferencedId(),
                 'quantity' => $lineItem->getQuantity(),
                 'title' => $lineItem->getLabel(),
-                'net_price_per_item_cents' => (int) $unitNetPrice
+                'net_price_per_item_cents' => (int) strval($unitNetPrice)
             ];
         }
 
@@ -87,22 +87,23 @@ class CheckoutController extends StorefrontController
                 'email' => $customer->getEmail(),
                 'first_name' => $customer->getFirstname(),
                 'last_name' => $customer-> getLastName(),
-                'company_name' => 'mondu',
+                'company_name' => $customer->getCompany(),
                 'phone' => $customer->getDefaultBillingAddress()->getPhoneNumber(),
-                'address_line1' => 'todo',
+                'address_line1' => $customer->getDefaultBillingAddress()->getStreet(),
                 'zip_code' => $customer->getDefaultBillingAddress()->getZipCode(),
+                'is_registered' => !$customer->getGuest()
             ],
             'billing_address' => [
-                'address_line1' => 'todo',
+                'address_line1' => $customer->getDefaultBillingAddress()->getStreet(),
                 'city' => $customer->getDefaultBillingAddress()->getCity(),
                 'country_code' => $customer->getDefaultBillingAddress()->getCountry()->getIso(),
                 'zip_code' => $customer->getDefaultBillingAddress()->getZipCode(),
             ],
             'shipping_address' => [
-                'address_line1' => 'todo',
-                'city' => $customer->getDefaultBillingAddress()->getCity(),
-                'country_code' => $customer->getDefaultBillingAddress()->getCountry()->getIso(),
-                'zip_code' => $customer->getDefaultBillingAddress()->getZipCode(),
+                'address_line1' => $customer->getDefaultShippingAddress()->getStreet(),
+                'city' => $customer->getDefaultShippingAddress()->getCity(),
+                'country_code' => $customer->getDefaultShippingAddress()->getCountry()->getIso(),
+                'zip_code' => $customer->getDefaultShippingAddress()->getZipCode(),
             ],
             'lines' => [
                 [

@@ -15,5 +15,14 @@
             </call>
         </service>
 
+         <service id="Mondu\MonduPayment\Components\Order\Controller\InvoiceController">
+         <argument key="$monduClient" type="service" id="mondu.mondu_api" />
+         <argument key="$invoiceDataRepository" type="service" id="mondu_invoice_data.repository"/>
+         <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
+            <call method="setContainer">
+                <argument id="service_container" type="service"/>
+            </call>
+        </service>
+
     </services>
 </container>

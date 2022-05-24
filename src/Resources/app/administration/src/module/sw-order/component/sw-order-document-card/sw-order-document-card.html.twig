@@ -1,0 +1,9 @@
+{% block sw_order_document_card_grid_action_download %}
+    {% parent %}
+
+      <sw-context-menu-item v-if="item.documentType.technicalName == 'invoice'" @click="onCancelInvoice(item.id, item.orderId)">
+        {% block sw_order_document_card_grid_action_cancel_invoice_label %}
+          {{ $tc('sw-order-mondu.documentCard.labelCancelInvoice') }}
+        {% endblock %}
+      </sw-context-menu-item>
+{% endblock %}

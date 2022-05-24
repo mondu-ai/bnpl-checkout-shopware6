@@ -56,6 +56,11 @@
         <service id="Mondu\MonduPayment\Components\Order\Util\DocumentUrlHelper">
             <argument type="service" id="mondu.mondu_config"/>
         </service>
+
+        <service id="Mondu\MonduPayment\Components\Invoice\InvoiceDataDefinition">
+            <tag name="shopware.entity.definition"/>
+        </service>
+
         <service id="Mondu\MonduPayment\Components\Checkout\Subscriber\CheckoutSubscriber" >
             <tag name="kernel.event_subscriber" />
             <argument key="$configService" type="service" id="mondu.mondu_config"/>
