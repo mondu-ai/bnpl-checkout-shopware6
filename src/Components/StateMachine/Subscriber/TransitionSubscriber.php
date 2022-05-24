@@ -158,7 +158,7 @@ class TransitionSubscriber implements EventSubscriberInterface
             $invoice = $this->monduClient->invoiceOrder(
                 $monduData->getReferenceId(),
                 $invoiceNumber,
-                (int) strval((float) $order->getPrice()->getTotalPrice() * 100),
+                round((float) $order->getPrice()->getTotalPrice() * 100),
                 $invoiceUrl,
                 $this->getLineItems($order, $context)
             );
@@ -200,7 +200,7 @@ class TransitionSubscriber implements EventSubscriberInterface
                 continue;
             }
 
-            $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - $lineItem->getPrice()->getCalculatedTaxes()->getAmount()) * 100;
+            $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - ($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity())) * 100;
             $lineItems[] = [
                 'external_reference_id' => $lineItem->getReferencedId(),
                 'quantity' => $lineItem->getQuantity()

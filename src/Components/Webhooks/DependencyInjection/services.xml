@@ -5,6 +5,8 @@
     <services>
         <defaults autowire="true"/>
 
-        <service id="mondu.webhook_service" class="Mondu\MonduPayment\Components\Webhooks\Service\WebhookService"/>
+        <service id="mondu.webhook_service" class="Mondu\MonduPayment\Components\Webhooks\Service\WebhookService">
+          <argument key="$logger" type="service" id="mondu.logger"/>
+        </service>
     </services>
 </container>

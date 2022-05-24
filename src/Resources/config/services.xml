@@ -36,6 +36,7 @@
 
         <service id="mondu.mondu_api" class="Mondu\MonduPayment\Components\MonduApi\Service\MonduClient" public="true">
             <argument type="service" id="mondu.mondu_config"/>
+            <argument key="$logger" type="service" id="mondu.logger"/>
         </service>
 
         <service id="Mondu\MonduPayment\Components\MonduApi\Service\MonduOperationService">
@@ -64,6 +65,19 @@
         <service id="Mondu\MonduPayment\Components\Checkout\Subscriber\CheckoutSubscriber" >
             <tag name="kernel.event_subscriber" />
             <argument key="$configService" type="service" id="mondu.mondu_config"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\Order\Subscriber\AdjustOrderSubscriber" >
+            <tag name="kernel.event_subscriber" />
+            <argument key="$orderRepository" id="order.repository" type="service" />
+            <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
+            <argument key="$monduClient" type="service" id="mondu.mondu_api"/>
+            <argument key="$logger" type="service" id="mondu.logger"/>
+        </service>
+
+        <service id="mondu.logger" class="Monolog\Logger">
+            <factory service="Shopware\Core\Framework\Log\LoggerFactory" method="createRotating"/>
+            <argument type="string">mondu_payment</argument>
         </service>
 
     </services>
