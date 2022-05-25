@@ -20,7 +20,7 @@
   },
   "extra": {
     "shopware-plugin-class": "Mondu\\MonduPayment\\MonduPayment",
-    "plugin-icon": "src/Resources/public/plugin.png",
+    "plugin-icon": "src/Resources/public/mondu-logo.png",
     "label": {
       "de-DE": "Mondu Rechnungskauf",
       "en-GB": "Mondu Payment"
