@@ -1,0 +1,20 @@
+{% sw_extends '@Storefront/storefront/component/payment/payment-method.html.twig' %}
+
+{% block component_payment_method_description %}
+    {% if payment.shortname == 'mondu_handler' %}
+      <div class="payment-method-description">
+        <strong>{{ payment.translated.name }}</strong>
+        {% if payment.translated.description %}
+            {% set paymentDescription = payment.translated.description|replace({ "[url=": "<a target=\"_blank\" href=\"", "]": "\" >", "[/url]": "</a>" }) %}
+
+            {% if not payment.id is same as(selectedPaymentMethodId) %}
+                {% set paymentDescription = (paymentDescription|length > 75 ? payment.translated.description[:75] ~ ' ...' : paymentDescription) %}
+            {% endif %}
+
+            <p>{{ paymentDescription | raw }}</p>
+        {% endif %}
+      </div>
+    {% else %}
+      {{ parent() }}
+    {% endif %}
+{% endblock %}

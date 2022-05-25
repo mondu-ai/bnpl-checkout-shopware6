@@ -10,7 +10,7 @@
             <name>sandbox</name>
             <label>Sandbox</label>
             <label lang="de-DE">Testmodus</label>
-            <value>0</value>
+            <value>1</value>
         </input-field>
     </card>
 

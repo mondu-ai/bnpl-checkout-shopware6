@@ -22,12 +22,12 @@
     "shopware-plugin-class": "Mondu\\MonduPayment\\MonduPayment",
     "plugin-icon": "src/Resources/public/plugin.png",
     "label": {
-      "de-DE": "Mondu-Rechnungskauf",
-      "en-GB": "Mondu-invoicing"
+      "de-DE": "Mondu Rechnungskauf",
+      "en-GB": "Mondu Payment"
     },
     "description": {
-      "de-DE": "Mondu-Rechnungskauf",
-      "en-GB": "Mondu-invoicing"
+      "de-DE": "Jetzt kaufen, später bezahlen",
+      "en-GB": "Buy Now, Pay Later."
     },
     "manufacturerLink": {
       "de-DE": "https://mondu.ai",
