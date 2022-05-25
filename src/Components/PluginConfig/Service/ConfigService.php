@@ -6,10 +6,10 @@ namespace Mondu\MonduPayment\Components\PluginConfig\Service;
 use Shopware\Core\System\SystemConfig\SystemConfigService;
 
 class ConfigService {
-    const API_URL = 'http://api.demo.mondu.ai/api/v1';
-    const WIDGET_URL = 'http://checkout.demo.mondu.ai/widget.js';
-    const SANDBOX_API_URL = 'http://host.docker.internal:3000/api/v1';
-    const SANDBOX_WIDGET_URL = 'http://localhost:3002/widget.js'; // host.docker.internal IP
+    const API_URL = 'https://api.mondu.ai/api/v1';
+    const WIDGET_URL = 'https://checkout.mondu.ai/widget.js';
+    const SANDBOX_API_URL = 'https://api.stage.mondu.ai/api/v1';
+    const SANDBOX_WIDGET_URL = 'https://checkout.stage.mondu.ai/widget.js';
     /**
      * @var SystemConfigService
      */
@@ -34,7 +34,7 @@ class ConfigService {
     }
 
     public function getWidgetUrl() {
-        return $this->isSandbox() ? self::SANDBOX_WIDGET_URL : self::API_URL;
+        return $this->isSandbox() ? self::SANDBOX_WIDGET_URL : self::WIDGET_URL;
     }
 
     public function getApiUrl($url): string
