@@ -17,6 +17,8 @@ use Shopware\Core\Framework\DataAbstractionLayer\Write\Command\InsertCommand;
 use Shopware\Core\Framework\DataAbstractionLayer\Write\Command\UpdateCommand;
 use Shopware\Core\Framework\DataAbstractionLayer\Write\Validation\PreWriteValidationEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Mondu\MonduPayment\Components\StateMachine\Exception\MonduException;
+
 
 class CreditNoteSubscriber implements EventSubscriberInterface
 {
@@ -74,7 +76,7 @@ class CreditNoteSubscriber implements EventSubscriberInterface
                     }
 
                     if ($invoiceEntity != null) {
-                        $this->monduClient->createCreditNote(
+                        $response = $this->monduClient->createCreditNote(
                             $invoiceEntity->getExternalInvoiceUuid(),
                             [
                                 'external_reference_id' => $creditNoteNumber,
@@ -82,11 +84,15 @@ class CreditNoteSubscriber implements EventSubscriberInterface
                                 'tax_cents' => $taxCents
                             ]
                         );
+
+                        if ($response == null) {
+                          $this->log('Credit Credit Note Response Failed', [$event]);
+                        }
                     }
                 }
             }
         } catch (\Exception $e) {
-            $this->log('Create Credit Note Failed', [$params], $e);
+            $this->log('Create Credit Note Failed', [$event], $e);
         }
     }
 
@@ -110,5 +116,7 @@ class CreditNoteSubscriber implements EventSubscriberInterface
             $message . '. (Exception: ' . $exceptionMessage . ')',
             $data
         );
+
+        throw new MonduException('Creating credit note failed. Please contact Mondu Support.');
     }
 }
