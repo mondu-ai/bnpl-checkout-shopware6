@@ -64,20 +64,6 @@ class PaymentMethods extends AbstractBootstrap
     public function uninstall(bool $keepUserData = false): void
     {
         $this->setActiveFlags(false);
-
-        if ($keepUserData) {
-          return;
-        }
-
-        $tables = [
-            OrderDataDefinition::ENTITY_NAME,
-            InvoiceDataDefinition::ENTITY_NAME
-        ];
-        $connection = $this->container->get(Connection::class);
-        foreach ($tables as $table) {
-            $connection->executeUpdate(\sprintf('DROP TABLE IF EXISTS `%s`', $table));
-        }
-
     }
 
     public function activate(): void
