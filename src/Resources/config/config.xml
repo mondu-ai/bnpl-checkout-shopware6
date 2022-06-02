@@ -11,6 +11,7 @@
             <label>Sandbox</label>
             <label lang="de-DE">Testmodus</label>
             <value>0</value>
+            <defaultValue>1</defaultValue>
         </input-field>
     </card>
 

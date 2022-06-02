@@ -12,6 +12,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\Write\Validation\PreWriteValida
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityWriteResult;
 use Mondu\MonduPayment\Util\CriteriaHelper;
+use Mondu\MonduPayment\Components\StateMachine\Exception\MonduException;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
@@ -89,6 +90,7 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                         'external_reference_id' => $lineItem->getReferencedId(),
                         'quantity' => $lineItem->getQuantity(),
                         'title' => $lineItem->getLabel(),
+                        'net_price_cents' => round($unitNetPrice * $lineItem->getQuantity()),
                         'net_price_per_item_cents' => round($unitNetPrice)
                     ];
                 }
@@ -148,5 +150,7 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
         $message . '. (Exception: '. $exceptionMessage .')',
         $data
       );
+
+      throw new MonduException('Adjusting an order failed. Please contact Mondu Support.');
     }
 }
