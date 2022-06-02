@@ -71,6 +71,7 @@ class CheckoutController extends StorefrontController
                 'external_reference_id' => $lineItem->getReferencedId(),
                 'quantity' => $lineItem->getQuantity(),
                 'title' => $lineItem->getLabel(),
+                'net_price_cents' => round($unitNetPrice * $lineItem->getQuantity()),
                 'net_price_per_item_cents' => round($unitNetPrice)
             ];
         }

@@ -163,6 +163,10 @@ class TransitionSubscriber implements EventSubscriberInterface
                 $this->getLineItems($order, $context)
             );
 
+            if ($invoice == null) {
+              throw new MonduException('Error ocurred while shipping an order. Please contact Mondu Support.');
+            }
+
             if ($invoice) {
               $this->invoiceDataRepository->upsert([
                 [
@@ -183,7 +187,7 @@ class TransitionSubscriber implements EventSubscriberInterface
                     'mondu-reference-id' => $monduData->getReferenceId()
                 ]
             );
-            throw new MonduException('Error shipping an order, check application logs for more details ' . $e->getMessage());
+            throw new MonduException('Error: ' . $e->getMessage());
         }
 
         return true;
