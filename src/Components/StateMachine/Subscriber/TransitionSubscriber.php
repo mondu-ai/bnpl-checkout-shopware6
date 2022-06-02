@@ -158,10 +158,14 @@ class TransitionSubscriber implements EventSubscriberInterface
             $invoice = $this->monduClient->invoiceOrder(
                 $monduData->getReferenceId(),
                 $invoiceNumber,
-                (int) strval((float) $order->getPrice()->getTotalPrice() * 100),
+                round((float) $order->getPrice()->getTotalPrice() * 100),
                 $invoiceUrl,
                 $this->getLineItems($order, $context)
             );
+
+            if ($invoice == null) {
+              throw new MonduException('Error ocurred while shipping an order. Please contact Mondu Support.');
+            }
 
             if ($invoice) {
               $this->invoiceDataRepository->upsert([
@@ -183,7 +187,7 @@ class TransitionSubscriber implements EventSubscriberInterface
                     'mondu-reference-id' => $monduData->getReferenceId()
                 ]
             );
-            throw new MonduException('Error shipping an order, check application logs for more details ' . $e->getMessage());
+            throw new MonduException('Error: ' . $e->getMessage());
         }
 
         return true;
@@ -200,7 +204,7 @@ class TransitionSubscriber implements EventSubscriberInterface
                 continue;
             }
 
-            $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - $lineItem->getPrice()->getCalculatedTaxes()->getAmount()) * 100;
+            $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - ($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity())) * 100;
             $lineItems[] = [
                 'external_reference_id' => $lineItem->getReferencedId(),
                 'quantity' => $lineItem->getQuantity()

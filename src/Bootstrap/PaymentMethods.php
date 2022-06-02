@@ -9,23 +9,26 @@ use Shopware\Core\Checkout\Payment\PaymentMethodEntity;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
+use Mondu\MonduPayment\Components\Order\Model\Definition\OrderDataDefinition;
+use Mondu\MonduPayment\Components\Invoice\InvoiceDataDefinition;
+use Doctrine\DBAL\Connection;
 
 class PaymentMethods extends AbstractBootstrap
 {
     public const PAYMENT_METHODS = [
         MonduHandler::class => [
             'handlerIdentifier' => MonduHandler::class,
-            'name' => 'Mondu',
-            'description' => 'Buy now, pay later.',
+            'name' => 'Mondu Rechnungskauf - jetzt kaufen, später bezahlen',
+            'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
             'afterOrderEnabled' => false,
             'translations' => [
                 'de-DE' => [
                     'name' => 'Mondu Rechnungskauf',
-                    'description' => 'Buy now, pay later.',
+                    'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
                 ],
                 'en-GB' => [
-                    'name' => 'Mondu invoice',
-                    'description' => 'Buy now, pay later.',
+                    'name' => 'Mondu Payment',
+                    'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
                 ],
             ],
         ],
@@ -61,6 +64,20 @@ class PaymentMethods extends AbstractBootstrap
     public function uninstall(bool $keepUserData = false): void
     {
         $this->setActiveFlags(false);
+
+        if ($keepUserData) {
+          return;
+        }
+
+        $tables = [
+            OrderDataDefinition::ENTITY_NAME,
+            InvoiceDataDefinition::ENTITY_NAME
+        ];
+        $connection = $this->container->get(Connection::class);
+        foreach ($tables as $table) {
+            $connection->executeUpdate(\sprintf('DROP TABLE IF EXISTS `%s`', $table));
+        }
+
     }
 
     public function activate(): void

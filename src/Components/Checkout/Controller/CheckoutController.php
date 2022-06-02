@@ -66,12 +66,13 @@ class CheckoutController extends StorefrontController
                 continue;
             }
 
-            $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - $lineItem->getPrice()->getCalculatedTaxes()->getAmount()) * 100;
+            $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - ($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity())) * 100;
             $lineItems[] = [
                 'external_reference_id' => $lineItem->getReferencedId(),
                 'quantity' => $lineItem->getQuantity(),
                 'title' => $lineItem->getLabel(),
-                'net_price_per_item_cents' => (int) strval($unitNetPrice)
+                'net_price_cents' => round($unitNetPrice * $lineItem->getQuantity()),
+                'net_price_per_item_cents' => round($unitNetPrice)
             ];
         }
 
@@ -107,7 +108,7 @@ class CheckoutController extends StorefrontController
             ],
             'lines' => [
                 [
-                    'tax_cents' => (int) ($cart->getPrice()->getCalculatedTaxes()->getAmount() * 100),
+                    'tax_cents' => round($cart->getPrice()->getCalculatedTaxes()->getAmount() * 100),
                     'shipping_price_cents' => $cart->getDeliveries()->getShippingCosts()->sum()->getTotalPrice() * 100,
                     'line_items' => $lineItems
                 ]
