@@ -18,16 +18,16 @@ class PaymentMethods extends AbstractBootstrap
     public const PAYMENT_METHODS = [
         MonduHandler::class => [
             'handlerIdentifier' => MonduHandler::class,
-            'name' => 'Mondu Rechnungskauf - jetzt kaufen, später bezahlen',
+            'name' => 'Rechnungskauf - jetzt kaufen, später bezahlen',
             'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
             'afterOrderEnabled' => false,
             'translations' => [
                 'de-DE' => [
-                    'name' => 'Mondu Rechnungskauf',
+                    'name' => 'Rechnungskauf - jetzt kaufen, später bezahlen',
                     'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
                 ],
                 'en-GB' => [
-                    'name' => 'Mondu Payment',
+                    'name' => 'Rechnungskauf - jetzt kaufen, später bezahlen',
                     'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
                 ],
             ],
