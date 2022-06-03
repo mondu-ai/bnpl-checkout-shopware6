@@ -84,6 +84,11 @@
             <argument key="$logger" type="service" id="mondu.logger"/>
         </service>
 
+        <service id="Mondu\MonduPayment\Bootstrap\MediaProvider" public="true">
+            <argument type="service" key="$mediaService" id="Shopware\Core\Content\Media\MediaService"/>
+            <argument type="service" key="$mediaRepository" id="media.repository"/>
+        </service>
+
         <service id="mondu.logger" class="Monolog\Logger">
             <factory service="Shopware\Core\Framework\Log\LoggerFactory" method="createRotating"/>
             <argument type="string">mondu_payment</argument>

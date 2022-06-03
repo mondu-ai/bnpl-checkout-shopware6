@@ -12,6 +12,9 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Mondu\MonduPayment\Components\Order\Model\Definition\OrderDataDefinition;
 use Mondu\MonduPayment\Components\Invoice\InvoiceDataDefinition;
 use Doctrine\DBAL\Connection;
+use Mondu\MonduPayment\Bootstrap\MediaProvider;
+use Shopware\Core\Framework\Context;
+
 
 class PaymentMethods extends AbstractBootstrap
 {
@@ -69,6 +72,8 @@ class PaymentMethods extends AbstractBootstrap
     public function activate(): void
     {
         $this->setActiveFlags(true);
+
+        $this->updatePaymentMethodImage();
     }
 
     public function deactivate(): void
@@ -111,5 +116,29 @@ class PaymentMethods extends AbstractBootstrap
         }, $paymentEntities->getElements());
 
         $this->paymentRepository->update(array_values($updateData), $this->defaultContext);
+    }
+
+    protected function updatePaymentMethodImage() {
+        $mediaProvider = $this->container->get(MediaProvider::class);
+
+        foreach (self::PAYMENT_METHODS as $paymentMethod) {
+
+          $mediaId = $mediaProvider->getLogoMediaId($this->defaultContext);
+
+          $paymentSearchResult = $this->paymentRepository->search(
+            ((new Criteria())
+                ->addFilter(new EqualsFilter('handlerIdentifier', $paymentMethod['handlerIdentifier']))
+                ->setLimit(1)
+            ),
+              $this->defaultContext
+          );
+
+          $paymentMethodData = [
+            'id' => $paymentSearchResult->first()->getId(),
+            'mediaId' => $mediaId
+          ];
+
+          $this->paymentRepository->update([$paymentMethodData], $this->defaultContext);
+        }
     }
 }
