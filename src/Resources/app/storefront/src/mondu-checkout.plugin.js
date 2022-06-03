@@ -19,6 +19,7 @@ export default class MonduCheckoutPlugin extends Plugin {
 
     _registerProperties() {
         this._checkoutConfirmPage = this.el.getAttribute('data-checkout-confirm-page');
+        this._monduTokenUrl = this.el.getAttribute('data-mondu-token-url');
     }
 
     async _initWidget(src) {
@@ -77,18 +78,16 @@ export default class MonduCheckoutPlugin extends Plugin {
 
     async _getMonduToken() {
         return new Promise(resolve => {
-            let url = "/mondu-payment/token";
-
             const client = new HttpClient(window.accessKey, window.contextToken);
 
-            client.get(url, (response) => {
+            client.get(this._monduTokenUrl, (response) => {
                 try {
                     resolve(JSON.parse(response));
                 } catch {
                     resolve(null);
                 }
             });
-        })
+        }) 
     }
 
     _appendWidgetContainer() {
