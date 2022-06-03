@@ -26,13 +26,15 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
 {
     private EntityRepositoryInterface $orderRepository;
     private EntityRepositoryInterface $orderDataRepository;
+    private EntityRepositoryInterface $invoiceDataRepository;
     private MonduClient $monduClient;
     private LoggerInterface $logger;
 
-    public function __construct(EntityRepositoryInterface $orderRepository, EntityRepositoryInterface $orderDataRepository, MonduClient $monduClient, LoggerInterface $logger)
+    public function __construct(EntityRepositoryInterface $orderRepository, EntityRepositoryInterface $orderDataRepository, EntityRepositoryInterface $invoiceDataRepository, MonduClient $monduClient, LoggerInterface $logger)
     {
         $this->orderRepository = $orderRepository;
         $this->orderDataRepository = $orderDataRepository;
+        $this->invoiceDataRepository = $invoiceDataRepository;
         $this->monduClient = $monduClient;
         $this->logger = $logger;
     }
@@ -78,6 +80,10 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
 
                 $orderId = $result->getPrimaryKey();
                 $order = $this->getOrder($orderId, $context);
+
+                if ($this->hasInvoices($orderId, $context)) { 
+                    return;
+                }
 
                 $lineItems = [];
                 foreach ($order->getLineItems() as $lineItem) {
@@ -152,5 +158,12 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
       );
 
       throw new MonduException('Adjusting an order failed. Please contact Mondu Support.');
+    }
+
+    protected function hasInvoices(string $orderId, $context) {
+        $invoiceCriteria = new Criteria();
+        $invoiceCriteria->addFilter(new EqualsFilter('orderId', $orderId));
+        
+        return $this->invoiceDataRepository->search($invoiceCriteria, $context)->getTotal() > 0;
     }
 }
