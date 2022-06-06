@@ -172,7 +172,7 @@ class TransitionSubscriber implements EventSubscriberInterface
                 [
                     InvoiceDataEntity::FIELD_ORDER_ID => $order->getId(),
                     InvoiceDataEntity::FIELD_ORDER_VERSION_ID => $order->getVersionId(),
-                    InvoiceDataEntity::FIELD_DOCUMENT_ID => $document->getId(),
+                    InvoiceDataEntity::FIELD_DOCUMENT_ID => $attachedDocument,
                     InvoiceDataEntity::FIELD_INVOICE_NUMBER => $invoiceNumber,
                     InvoiceDataEntity::FIELD_EXTERNAL_INVOICE_UUID => $invoice['uuid'],
                 ]
