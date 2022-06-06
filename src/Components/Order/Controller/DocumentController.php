@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-
 namespace Mondu\MonduPayment\Components\Order\Controller;
 
 use Mondu\MonduPayment\Components\Order\Util\DocumentUrlHelper;

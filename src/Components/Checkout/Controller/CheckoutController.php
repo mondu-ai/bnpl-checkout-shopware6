@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Mondu\MonduPayment\Components\Checkout\Controller;
@@ -18,6 +19,7 @@ use Symfony\Component\Routing\Annotation\Route;
 use Shopware\Storefront\Controller\StorefrontController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
+
 /**
  * @Route(path="/mondu-payment")
  * @RouteScope(scopes={"storefront"})
@@ -26,7 +28,8 @@ class CheckoutController extends StorefrontController
 {
     private MonduClient $monduClient;
 
-    public function __construct(MonduClient $monduClient) {
+    public function __construct(MonduClient $monduClient)
+    {
         $this->monduClient = $monduClient;
     }
     /**
@@ -79,7 +82,8 @@ class CheckoutController extends StorefrontController
         return $lineItems;
     }
 
-    protected function getOrderData($cart, $collection, Context $context, $customer, $orderNumber) {
+    protected function getOrderData($cart, $collection, Context $context, $customer, $orderNumber)
+    {
         $lineItems = $this->getLineItems($collection, $context);
         return [
             'currency' => 'EUR',

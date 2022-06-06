@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace Mondu\MonduPayment\Components\Webhooks\Controller;
 
@@ -11,40 +13,39 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
-
 /**
  * @RouteScope(scopes={"storefront"})
  */
 class WebhooksController extends StorefrontController
 {
-  private ConfigService $configService;
-  private WebhookService $webhookService;
+    private ConfigService $configService;
+    private WebhookService $webhookService;
 
-  public function __construct(
-      ConfigService $configService,
-      WebhookService $webhookService
-  ) {
-      $this->configService = $configService;
-      $this->webhookService = $webhookService;
-  }
+    public function __construct(
+        ConfigService $configService,
+        WebhookService $webhookService
+    ) {
+        $this->configService = $configService;
+        $this->webhookService = $webhookService;
+    }
 
-  /**
-    * @Route("/mondu/webhooks", name="mondu-payment.webhooks", defaults={"csrf_protected"=false}, methods={"POST"})
-    */
+    /**
+      * @Route("/mondu/webhooks", name="mondu-payment.webhooks", defaults={"csrf_protected"=false}, methods={"POST"})
+      */
     public function process(Request $request, Context $context): Response
     {
-      $content = $request->getContent();
-      $headers = $request->headers;
+        $content = $request->getContent();
+        $headers = $request->headers;
 
-      $signature = hash_hmac('sha256',$content, $this->configService->getWebhooksSecret());
-      if($signature !== @$headers->get('X-Mondu-Signature')) {
-          throw new \Exception('Signature mismatch');
-      }
+        $signature = hash_hmac('sha256', $content, $this->configService->getWebhooksSecret());
+        if ($signature !== @$headers->get('X-Mondu-Signature')) {
+            throw new \Exception('Signature mismatch');
+        }
 
-      $params = json_decode($content, true);
-      $topic = $params['topic'];
+        $params = json_decode($content, true);
+        $topic = $params['topic'];
 
-      switch ($topic) {
+        switch ($topic) {
         case 'order/confirmed':
             [$resBody, $resStatus] = $this->webhookService->handleConfirmed($params, $context);
             break;
@@ -60,10 +61,10 @@ class WebhooksController extends StorefrontController
       }
 
 
-      return new Response(
-        json_encode($resBody),
-        $resStatus,
-        ['content-type' => 'application/json']
-      );
+        return new Response(
+            json_encode($resBody),
+            $resStatus,
+            ['content-type' => 'application/json']
+        );
     }
 }

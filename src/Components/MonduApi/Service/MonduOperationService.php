@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Mondu\MonduPayment\Components\MonduApi\Service;
@@ -7,16 +8,19 @@ use Mondu\MonduPayment\Components\Order\Model\OrderDataEntity;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 
-class MonduOperationService {
+class MonduOperationService
+{
     private MonduClient $monduClient;
     private EntityRepositoryInterface $orderDataRepository;
 
-    public function __construct(MonduClient $monduClient, EntityRepositoryInterface $orderDataRepository) {
+    public function __construct(MonduClient $monduClient, EntityRepositoryInterface $orderDataRepository)
+    {
         $this->monduClient = $monduClient;
         $this->orderDataRepository = $orderDataRepository;
     }
 
-    public function syncOrder(OrderDataEntity $orderData) {
+    public function syncOrder(OrderDataEntity $orderData)
+    {
         $order = $this->monduClient->getMonduOrder($orderData->getReferenceId());
         $this->orderDataRepository->update([
             [

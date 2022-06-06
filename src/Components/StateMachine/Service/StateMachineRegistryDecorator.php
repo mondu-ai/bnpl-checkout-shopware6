@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-
 namespace Mondu\MonduPayment\Components\StateMachine\Service;
 
 use Mondu\MonduPayment\Components\MonduApi\Service\MonduOperationService;
@@ -69,7 +68,7 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
 
     public function transition(Transition $transition, Context $context): StateMachineStateCollection
     {
-        if($transition->getEntityName() === OrderDeliveryDefinition::ENTITY_NAME) {
+        if ($transition->getEntityName() === OrderDeliveryDefinition::ENTITY_NAME) {
             $orderDelivery = $this->orderDeliveryRepository->search(new Criteria([$transition->getEntityId()]), $context)->first();
             $order = $this->getOrder($orderDelivery->getOrderId(), $context);
             $transaction = $order ? $order->getTransactions()->first() : null;
@@ -81,49 +80,49 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
             }
 
             if ($transitionName == 'ship' || $transitionName == 'ship_partially') {
-              if($paymentMethod &&
+                if ($paymentMethod &&
                   MethodHelper::isMonduPayment($paymentMethod) &&
                   !$this->canShipOrder($order)
               ) {
-                  throw new MonduException('Order can not be shipped.');
-              }
+                    throw new MonduException('Order can not be shipped.');
+                }
 
-              $documentIds = $context->getExtensions()['mail-attachments']->getDocumentIds();
+                $documentIds = $context->getExtensions()['mail-attachments']->getDocumentIds();
 
-              if (count($documentIds) != 1) {
-                throw new MonduException('Please select one document to attach.');
-              }
+                if (count($documentIds) != 1) {
+                    throw new MonduException('Please select one document to attach.');
+                }
             }
         }
 
         return $this->innerService->transition($transition, $context);
     }
 
-    protected function canCancelOrder(OrderEntity $order): bool {
-      /** @var OrderDataEntity $monduData */
-      $monduData = $order->getExtension(OrderExtension::EXTENSION_NAME);
-      if(!$monduData) {
-          throw new MonduException('Corrupt order');
-      }
+    protected function canCancelOrder(OrderEntity $order): bool
+    {
+        /** @var OrderDataEntity $monduData */
+        $monduData = $order->getExtension(OrderExtension::EXTENSION_NAME);
+        if (!$monduData) {
+            throw new MonduException('Corrupt order');
+        }
 
-      if($monduData->getOrderState() === 'canceled') {
-        return false;
-      }
+        if ($monduData->getOrderState() === 'canceled') {
+            return false;
+        }
 
-      return true;
-
+        return true;
     }
 
     protected function canShipOrder(OrderEntity $order): bool
     {
         /** @var OrderDataEntity $monduData */
         $monduData = $order->getExtension(OrderExtension::EXTENSION_NAME);
-        if(!$monduData) {
+        if (!$monduData) {
             throw new MonduException('Corrupt order');
         }
         /**if ($monduData->getOrderState() === 'partially_shipped' || $monduData->getOrderState() === 'confirmed') {
          *
-        } else */if($monduData->getOrderState() === 'pending') {
+        } else */if ($monduData->getOrderState() === 'pending') {
             $newState = $this->monduOperationService->syncOrder($monduData);
             if ($newState !=='partially_shipped' && $newState !== 'confirmed') {
                 throw new MonduException('Mondu Order state must be confirmed or partially_shipped');

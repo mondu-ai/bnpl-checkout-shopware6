@@ -106,7 +106,7 @@ class OrderDataEntity extends Entity
     /**
      * @var string|null
      */
-    protected  $viban;
+    protected $viban;
 
     public function getOrderId(): string
     {

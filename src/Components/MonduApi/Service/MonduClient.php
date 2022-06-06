@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Mondu\MonduPayment\Components\MonduApi\Service;
@@ -9,30 +10,32 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Request;
 use Psr\Log\LoggerInterface;
 
-
-class MonduClient {
+class MonduClient
+{
     private ConfigService $config;
     private $restClient;
     private LoggerInterface $logger;
 
-    public function __construct(ConfigService $configService, LoggerInterface $logger) {
+    public function __construct(ConfigService $configService, LoggerInterface $logger)
+    {
         $this->config = $configService;
         $this->restClient = new Client();
         $this->logger = $logger;
     }
 
-    static function getMonduClientInstance($config) {
+    public static function getMonduClientInstance($config)
+    {
         return new MonduClient($config);
     }
 
-    public function createOrder($order) {
+    public function createOrder($order)
+    {
         $body = json_encode($order);
         $request = $this->getRequestObject('orders', 'POST', $body);
         try {
             $response = $this->restClient->send($request);
             $body = json_decode($response->getBody()->getContents(), true);
             return $body['order'];
-
         } catch (GuzzleException $e) {
             $this->logger->alert('MonduClient::createOrder Failed with an exception message: ' . $e->getMessage());
             return null;
@@ -104,7 +107,8 @@ class MonduClient {
         }
     }
 
-    public function invoiceOrder($orderUid, $referenceId, $grossAmount, $invoiceUrl, $line_items = []) {
+    public function invoiceOrder($orderUid, $referenceId, $grossAmount, $invoiceUrl, $line_items = [])
+    {
         try {
             $body = json_encode([
                 'external_reference_id' => $referenceId,
@@ -113,17 +117,16 @@ class MonduClient {
                 'line_items' => $line_items
             ]);
 
-            $request = $this->getRequestObject('orders/'.$orderUid.'/invoices','POST', $body);
+            $request = $this->getRequestObject('orders/'.$orderUid.'/invoices', 'POST', $body);
 
             $response = $this->restClient->send($request);
 
             $responseBody = json_decode($response->getBody()->getContents(), true);
 
             return @$responseBody['invoice'];
-
         } catch (GuzzleException $e) {
-          $this->logger->alert('MonduClient::invoiceOrder Failed with an exception message: ' . $e->getMessage());
-          return null;
+            $this->logger->alert('MonduClient::invoiceOrder Failed with an exception message: ' . $e->getMessage());
+            return null;
         }
     }
 

@@ -14,7 +14,8 @@ use Shopware\Core\Framework\Plugin\Context\UninstallContext;
 use Shopware\Core\Framework\Plugin\Context\UpdateContext;
 use Shopware\Core\Framework\Plugin\Context\ActivateContext;
 
-class MonduPayment extends Plugin {
+class MonduPayment extends Plugin
+{
     public function install(InstallContext $installContext): void
     {
         $bootstrapper = $this->getBootstrapClasses($installContext);
@@ -39,7 +40,7 @@ class MonduPayment extends Plugin {
         $bootstrapper = $this->getBootstrapClasses($activateContext);
 
         foreach ($bootstrapper as $bootstrap) {
-          $bootstrap->activate();
+            $bootstrap->activate();
         }
     }
 
@@ -61,11 +62,12 @@ class MonduPayment extends Plugin {
         }
 
         if (!$keepUserData) {
-          $this->removeMigrations();
+            $this->removeMigrations();
         }
     }
 
-    protected function getBootstrapClasses(InstallContext $installContext) {
+    protected function getBootstrapClasses(InstallContext $installContext)
+    {
         $bootstrapper = [
             new PaymentMethods(),
             new Database()
