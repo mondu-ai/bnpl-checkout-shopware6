@@ -76,6 +76,10 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
             $paymentMethod = $transaction ? $transaction->getPaymentMethod() : null;
             $transitionName = $transition->getTransitionName();
 
+            if ($transitionName == 'reopen' && !$this->canCancelOrder($order)) {
+                throw new MonduException('Order was canceled.');
+            }
+
             if ($transitionName == 'ship' || $transitionName == 'ship_partially') {
               if($paymentMethod &&
                   MethodHelper::isMonduPayment($paymentMethod) &&
@@ -93,6 +97,21 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
         }
 
         return $this->innerService->transition($transition, $context);
+    }
+
+    protected function canCancelOrder(OrderEntity $order): bool {
+      /** @var OrderDataEntity $monduData */
+      $monduData = $order->getExtension(OrderExtension::EXTENSION_NAME);
+      if(!$monduData) {
+          throw new MonduException('Corrupt order');
+      }
+
+      if($monduData->getOrderState() === 'canceled') {
+        return false;
+      }
+
+      return true;
+
     }
 
     protected function canShipOrder(OrderEntity $order): bool
