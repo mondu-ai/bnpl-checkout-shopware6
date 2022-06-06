@@ -4,6 +4,9 @@ namespace Mondu\MonduPayment\Components\Order\Subscriber;
 
 use Shopware\Core\Checkout\Order\OrderDefinition;
 use Shopware\Core\Checkout\Order\OrderEvents;
+use Shopware\Core\System\StateMachine\StateMachineRegistry;
+use Shopware\Core\Checkout\Order\Aggregate\OrderDelivery\OrderDeliveryDefinition;
+use Shopware\Core\System\StateMachine\Transition;
 use Shopware\Core\Framework\DataAbstractionLayer\Event\EntityWrittenEvent;
 use Shopware\Core\Framework\DataAbstractionLayer\Write\Command\ChangeSetAware;
 use Shopware\Core\Framework\DataAbstractionLayer\Write\Command\InsertCommand;
@@ -24,14 +27,16 @@ use Psr\Log\LoggerInterface;
 
 class AdjustOrderSubscriber implements EventSubscriberInterface
 {
+    private StateMachineRegistry $stateMachineRegistry;
     private EntityRepositoryInterface $orderRepository;
     private EntityRepositoryInterface $orderDataRepository;
     private EntityRepositoryInterface $invoiceDataRepository;
     private MonduClient $monduClient;
     private LoggerInterface $logger;
 
-    public function __construct(EntityRepositoryInterface $orderRepository, EntityRepositoryInterface $orderDataRepository, EntityRepositoryInterface $invoiceDataRepository, MonduClient $monduClient, LoggerInterface $logger)
+    public function __construct(StateMachineRegistry $stateMachineRegistry, EntityRepositoryInterface $orderRepository, EntityRepositoryInterface $orderDataRepository, EntityRepositoryInterface $invoiceDataRepository, MonduClient $monduClient, LoggerInterface $logger)
     {
+        $this->stateMachineRegistry = $stateMachineRegistry;
         $this->orderRepository = $orderRepository;
         $this->orderDataRepository = $orderDataRepository;
         $this->invoiceDataRepository = $invoiceDataRepository;
@@ -77,9 +82,16 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
             ) 
             {
                 $context = $event->getContext();
-
                 $orderId = $result->getPrimaryKey();
                 $order = $this->getOrder($orderId, $context);
+
+                $criteria = new Criteria();
+                $criteria->addFilter(new EqualsFilter('orderId', $orderId));
+                $monduOrderEntity = $this->orderDataRepository->search($criteria, $context)->first();
+
+                if ($monduOrderEntity->getOrderState() == 'canceled') {
+                    $this->transitionDeliveryState($orderId, 'cancel', $context);
+                }
 
                 if ($this->hasInvoices($orderId, $context)) { 
                     return;
@@ -116,11 +128,6 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                     ]
                   ]
                 ];
-
-                $criteria = new Criteria();
-                $criteria->addFilter(new EqualsFilter('orderId', $orderId));
-            
-                $monduOrderEntity = $this->orderDataRepository->search($criteria, $context)->first();
 
                 $response = $this->monduClient->adjustOrder(
                   $monduOrderEntity->getReferenceId(),
@@ -165,5 +172,27 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
         $invoiceCriteria->addFilter(new EqualsFilter('orderId', $orderId));
         
         return $this->invoiceDataRepository->search($invoiceCriteria, $context)->getTotal() > 0;
+    }
+
+    protected function transitionDeliveryState($orderId, $state, $context) {
+      try {
+        $criteria = new Criteria([$orderId]);
+        $criteria->addAssociation('deliveries');
+
+        /** @var OrderEntity $orderEntity */
+        $orderEntity = $this->orderRepository->search($criteria, $context)->first();
+        $orderDeliveryId = $orderEntity->getDeliveries()->first()->getId();
+    
+        return $this->stateMachineRegistry->transition(new Transition(
+            OrderDeliveryDefinition::ENTITY_NAME,
+            $orderDeliveryId,
+            $state,
+            'stateId'
+        ), $context);
+      }
+      catch (\Exception $e) {
+        $this->log('Adjust Order: transitionDeliveryState Failed', [$orderId, $state], $e);
+        throw new MonduException($e->getMessage());
+      }
     }
 }
