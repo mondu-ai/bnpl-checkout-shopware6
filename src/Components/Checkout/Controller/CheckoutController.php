@@ -92,7 +92,7 @@ class CheckoutController extends StorefrontController
                 'email' => $customer->getEmail(),
                 'first_name' => $customer->getFirstname(),
                 'last_name' => $customer-> getLastName(),
-                'company_name' => $customer->getCompany(),
+                'company_name' => $customer->getCompany() ?? $customer->getDefaultBillingAddress()->getCompany(),
                 'phone' => $customer->getDefaultBillingAddress()->getPhoneNumber(),
                 'address_line1' => $customer->getDefaultBillingAddress()->getStreet(),
                 'zip_code' => $customer->getDefaultBillingAddress()->getZipCode(),
