@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Mondu\MonduPayment\Components\Checkout\Controller;
@@ -18,6 +19,7 @@ use Symfony\Component\Routing\Annotation\Route;
 use Shopware\Storefront\Controller\StorefrontController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
+
 /**
  * @Route(path="/mondu-payment")
  * @RouteScope(scopes={"storefront"})
@@ -26,7 +28,8 @@ class CheckoutController extends StorefrontController
 {
     private MonduClient $monduClient;
 
-    public function __construct(MonduClient $monduClient) {
+    public function __construct(MonduClient $monduClient)
+    {
         $this->monduClient = $monduClient;
     }
     /**
@@ -79,7 +82,8 @@ class CheckoutController extends StorefrontController
         return $lineItems;
     }
 
-    protected function getOrderData($cart, $collection, Context $context, $customer, $orderNumber) {
+    protected function getOrderData($cart, $collection, Context $context, $customer, $orderNumber)
+    {
         $lineItems = $this->getLineItems($collection, $context);
         return [
             'currency' => 'EUR',
@@ -88,7 +92,7 @@ class CheckoutController extends StorefrontController
                 'email' => $customer->getEmail(),
                 'first_name' => $customer->getFirstname(),
                 'last_name' => $customer-> getLastName(),
-                'company_name' => $customer->getCompany(),
+                'company_name' => $customer->getCompany() ?? $customer->getDefaultBillingAddress()->getCompany(),
                 'phone' => $customer->getDefaultBillingAddress()->getPhoneNumber(),
                 'address_line1' => $customer->getDefaultBillingAddress()->getStreet(),
                 'zip_code' => $customer->getDefaultBillingAddress()->getZipCode(),

@@ -1,11 +1,13 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace Mondu\MonduPayment\Components\Invoice;
+
 use Shopware\Core\Framework\DataAbstractionLayer\Entity;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityIdTrait;
 use Shopware\Core\Checkout\Order\OrderEntity;
 use Shopware\Core\Checkout\Document\DocumentEntity;
-
 
 class InvoiceDataEntity extends Entity
 {

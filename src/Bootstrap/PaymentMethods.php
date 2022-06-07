@@ -15,7 +15,6 @@ use Doctrine\DBAL\Connection;
 use Mondu\MonduPayment\Bootstrap\MediaProvider;
 use Shopware\Core\Framework\Context;
 
-
 class PaymentMethods extends AbstractBootstrap
 {
     public const PAYMENT_METHODS = [
@@ -84,7 +83,8 @@ class PaymentMethods extends AbstractBootstrap
     protected function upsertPaymentMethod(array $paymentMethod): void
     {
         $paymentSearchResult = $this->paymentRepository->search(
-            ((new Criteria())
+            (
+                (new Criteria())
                 ->addFilter(new EqualsFilter('handlerIdentifier', $paymentMethod['handlerIdentifier']))
                 ->setLimit(1)
             ),
@@ -118,27 +118,28 @@ class PaymentMethods extends AbstractBootstrap
         $this->paymentRepository->update(array_values($updateData), $this->defaultContext);
     }
 
-    protected function updatePaymentMethodImage() {
+    protected function updatePaymentMethodImage()
+    {
         $mediaProvider = $this->container->get(MediaProvider::class);
 
         foreach (self::PAYMENT_METHODS as $paymentMethod) {
+            $mediaId = $mediaProvider->getLogoMediaId($this->defaultContext);
 
-          $mediaId = $mediaProvider->getLogoMediaId($this->defaultContext);
-
-          $paymentSearchResult = $this->paymentRepository->search(
-            ((new Criteria())
+            $paymentSearchResult = $this->paymentRepository->search(
+                (
+                (new Criteria())
                 ->addFilter(new EqualsFilter('handlerIdentifier', $paymentMethod['handlerIdentifier']))
                 ->setLimit(1)
             ),
-              $this->defaultContext
-          );
+                $this->defaultContext
+            );
 
-          $paymentMethodData = [
+            $paymentMethodData = [
             'id' => $paymentSearchResult->first()->getId(),
             'mediaId' => $mediaId
           ];
 
-          $this->paymentRepository->update([$paymentMethodData], $this->defaultContext);
+            $this->paymentRepository->update([$paymentMethodData], $this->defaultContext);
         }
     }
 }

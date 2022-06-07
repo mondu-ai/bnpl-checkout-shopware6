@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace Mondu\MonduPayment\Migration;
 
@@ -14,7 +16,7 @@ class Migration1652857810CreateMonduOrderInvoicesTable extends MigrationStep
 
     public function update(Connection $connection): void
     {
-      $query = <<<SQL
+        $query = <<<SQL
           CREATE TABLE IF NOT EXISTS `mondu_invoice_data` (
           `id` binary(16) NOT NULL,
           `version_id` binary(16) NOT NULL,
@@ -30,8 +32,8 @@ class Migration1652857810CreateMonduOrderInvoicesTable extends MigrationStep
           FOREIGN KEY (`order_id`,`order_version_id`) REFERENCES `order` (`id`, `version_id`) ON UPDATE CASCADE ON DELETE CASCADE
         ) ENGINE='InnoDB' COLLATE 'utf8mb4_bin';
       SQL;
-      
-      $connection->executeStatement($query);
+
+        $connection->executeStatement($query);
     }
 
     public function updateDestructive(Connection $connection): void

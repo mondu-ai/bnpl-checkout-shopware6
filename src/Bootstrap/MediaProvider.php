@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Mondu\MonduPayment\Bootstrap;
@@ -12,7 +13,8 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 /**
  * MediaProvider Class.
  */
-class MediaProvider {
+class MediaProvider
+{
     /**
      * @var MediaService
      */
@@ -21,7 +23,7 @@ class MediaProvider {
     /** @var EntityRepositoryInterface */
 
     private $mediaRepository;
-    
+
     /**
      * Constructs a `MediaProvider`
      *
@@ -33,33 +35,35 @@ class MediaProvider {
         $this->mediaRepository = $mediaRepository;
     }
 
-    public function getLogoMediaId(Context $context): string {
-
+    public function getLogoMediaId(Context $context): string
+    {
         $existingMedia = $this->hasMediaAlreadyInstalled($context);
 
         if ($existingMedia) {
-          return $existingMedia->getId();
+            return $existingMedia->getId();
         }
 
         $file = file_get_contents(dirname(__DIR__, 1).'/Resources/public/plugin.png');
         $mediaId = '';
-        
+
         if ($file) {
             $mediaId = $this->mediaService->saveFile($file, 'png', 'image/png', 'mondu-payment-logo', $context, 'payment_method', null, false);
         }
-        
+
         return $mediaId;
     }
 
-    public function removePaymentLogo(Context $context): void {
+    public function removePaymentLogo(Context $context): void
+    {
         $existingMedia = $this->hasMediaAlreadyInstalled($context);
 
         if ($existingMedia) {
-          $this->mediaRepository->delete([['id' => $existingMedia->getId()]], $context);
+            $this->mediaRepository->delete([['id' => $existingMedia->getId()]], $context);
         }
     }
 
-    protected function hasMediaAlreadyInstalled(Context $context) {
+    protected function hasMediaAlreadyInstalled(Context $context)
+    {
         $criteria = (new Criteria())->addFilter(
             new EqualsFilter(
                 'fileName',
@@ -72,4 +76,3 @@ class MediaProvider {
         return $media;
     }
 }
-

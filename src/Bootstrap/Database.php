@@ -12,7 +12,6 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\ContainsFilter;
 use Shopware\Core\Framework\Context;
 
-
 class Database extends AbstractBootstrap
 {
     /**
@@ -62,7 +61,6 @@ class Database extends AbstractBootstrap
             return ['id' => $id];
         }, $idSearchResult->getIds());
         $systemConfigRepository->delete($ids, Context::createDefaultContext());
-
     }
 
     public function activate(): void
