@@ -12,22 +12,24 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Mondu\MonduPayment\Components\Order\Model\Definition\OrderDataDefinition;
 use Mondu\MonduPayment\Components\Invoice\InvoiceDataDefinition;
 use Doctrine\DBAL\Connection;
+use Mondu\MonduPayment\Bootstrap\MediaProvider;
+use Shopware\Core\Framework\Context;
 
 class PaymentMethods extends AbstractBootstrap
 {
     public const PAYMENT_METHODS = [
         MonduHandler::class => [
             'handlerIdentifier' => MonduHandler::class,
-            'name' => 'Mondu Rechnungskauf - jetzt kaufen, später bezahlen',
+            'name' => 'Rechnungskauf - jetzt kaufen, später bezahlen',
             'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
             'afterOrderEnabled' => false,
             'translations' => [
                 'de-DE' => [
-                    'name' => 'Mondu Rechnungskauf',
+                    'name' => 'Rechnungskauf - jetzt kaufen, später bezahlen',
                     'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
                 ],
                 'en-GB' => [
-                    'name' => 'Mondu Payment',
+                    'name' => 'Rechnungskauf - jetzt kaufen, später bezahlen',
                     'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
                 ],
             ],
@@ -64,25 +66,13 @@ class PaymentMethods extends AbstractBootstrap
     public function uninstall(bool $keepUserData = false): void
     {
         $this->setActiveFlags(false);
-
-        if ($keepUserData) {
-          return;
-        }
-
-        $tables = [
-            OrderDataDefinition::ENTITY_NAME,
-            InvoiceDataDefinition::ENTITY_NAME
-        ];
-        $connection = $this->container->get(Connection::class);
-        foreach ($tables as $table) {
-            $connection->executeUpdate(\sprintf('DROP TABLE IF EXISTS `%s`', $table));
-        }
-
     }
 
     public function activate(): void
     {
         $this->setActiveFlags(true);
+
+        $this->updatePaymentMethodImage();
     }
 
     public function deactivate(): void
@@ -93,7 +83,8 @@ class PaymentMethods extends AbstractBootstrap
     protected function upsertPaymentMethod(array $paymentMethod): void
     {
         $paymentSearchResult = $this->paymentRepository->search(
-            ((new Criteria())
+            (
+                (new Criteria())
                 ->addFilter(new EqualsFilter('handlerIdentifier', $paymentMethod['handlerIdentifier']))
                 ->setLimit(1)
             ),
@@ -125,5 +116,30 @@ class PaymentMethods extends AbstractBootstrap
         }, $paymentEntities->getElements());
 
         $this->paymentRepository->update(array_values($updateData), $this->defaultContext);
+    }
+
+    protected function updatePaymentMethodImage()
+    {
+        $mediaProvider = $this->container->get(MediaProvider::class);
+
+        foreach (self::PAYMENT_METHODS as $paymentMethod) {
+            $mediaId = $mediaProvider->getLogoMediaId($this->defaultContext);
+
+            $paymentSearchResult = $this->paymentRepository->search(
+                (
+                (new Criteria())
+                ->addFilter(new EqualsFilter('handlerIdentifier', $paymentMethod['handlerIdentifier']))
+                ->setLimit(1)
+            ),
+                $this->defaultContext
+            );
+
+            $paymentMethodData = [
+            'id' => $paymentSearchResult->first()->getId(),
+            'mediaId' => $mediaId
+          ];
+
+            $this->paymentRepository->update([$paymentMethodData], $this->defaultContext);
+        }
     }
 }

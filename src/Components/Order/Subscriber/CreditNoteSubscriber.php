@@ -1,4 +1,6 @@
-<?php declare (strict_types = 1);
+<?php
+
+declare(strict_types=1);
 
 namespace Mondu\MonduPayment\Components\Order\Subscriber;
 
@@ -18,7 +20,6 @@ use Shopware\Core\Framework\DataAbstractionLayer\Write\Command\UpdateCommand;
 use Shopware\Core\Framework\DataAbstractionLayer\Write\Validation\PreWriteValidationEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Mondu\MonduPayment\Components\StateMachine\Exception\MonduException;
-
 
 class CreditNoteSubscriber implements EventSubscriberInterface
 {
@@ -86,7 +87,7 @@ class CreditNoteSubscriber implements EventSubscriberInterface
                         );
 
                         if ($response == null) {
-                          $this->log('Credit Credit Note Response Failed', [$event]);
+                            $this->log('Credit Credit Note Response Failed', [$event]);
                         }
                     }
                 }

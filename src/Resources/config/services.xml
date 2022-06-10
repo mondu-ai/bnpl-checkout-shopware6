@@ -71,6 +71,7 @@
             <tag name="kernel.event_subscriber" />
             <argument key="$orderRepository" id="order.repository" type="service" />
             <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
+            <argument key="$invoiceDataRepository" type="service" id="mondu_invoice_data.repository"/>
             <argument key="$monduClient" type="service" id="mondu.mondu_api"/>
             <argument key="$logger" type="service" id="mondu.logger"/>
         </service>
@@ -82,6 +83,11 @@
             <argument key="$invoiceDataRepository" type="service" id="mondu_invoice_data.repository"/>
             <argument key="$monduClient" type="service" id="mondu.mondu_api"/>
             <argument key="$logger" type="service" id="mondu.logger"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Bootstrap\MediaProvider" public="true">
+            <argument type="service" key="$mediaService" id="Shopware\Core\Content\Media\MediaService"/>
+            <argument type="service" key="$mediaRepository" id="media.repository"/>
         </service>
 
         <service id="mondu.logger" class="Monolog\Logger">

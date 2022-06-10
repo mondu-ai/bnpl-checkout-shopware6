@@ -1,9 +1,14 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace Mondu\MonduPayment\Components\Order\Subscriber;
 
 use Shopware\Core\Checkout\Order\OrderDefinition;
 use Shopware\Core\Checkout\Order\OrderEvents;
+use Shopware\Core\System\StateMachine\StateMachineRegistry;
+use Shopware\Core\Checkout\Order\Aggregate\OrderDelivery\OrderDeliveryDefinition;
+use Shopware\Core\System\StateMachine\Transition;
 use Shopware\Core\Framework\DataAbstractionLayer\Event\EntityWrittenEvent;
 use Shopware\Core\Framework\DataAbstractionLayer\Write\Command\ChangeSetAware;
 use Shopware\Core\Framework\DataAbstractionLayer\Write\Command\InsertCommand;
@@ -21,18 +26,21 @@ use Shopware\Core\Framework\Context;
 use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
 use Psr\Log\LoggerInterface;
 
-
 class AdjustOrderSubscriber implements EventSubscriberInterface
 {
+    private StateMachineRegistry $stateMachineRegistry;
     private EntityRepositoryInterface $orderRepository;
     private EntityRepositoryInterface $orderDataRepository;
+    private EntityRepositoryInterface $invoiceDataRepository;
     private MonduClient $monduClient;
     private LoggerInterface $logger;
 
-    public function __construct(EntityRepositoryInterface $orderRepository, EntityRepositoryInterface $orderDataRepository, MonduClient $monduClient, LoggerInterface $logger)
+    public function __construct(StateMachineRegistry $stateMachineRegistry, EntityRepositoryInterface $orderRepository, EntityRepositoryInterface $orderDataRepository, EntityRepositoryInterface $invoiceDataRepository, MonduClient $monduClient, LoggerInterface $logger)
     {
+        $this->stateMachineRegistry = $stateMachineRegistry;
         $this->orderRepository = $orderRepository;
         $this->orderDataRepository = $orderDataRepository;
+        $this->invoiceDataRepository = $invoiceDataRepository;
         $this->monduClient = $monduClient;
         $this->logger = $logger;
     }
@@ -59,43 +67,52 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
 
             $command->requestChangeSet();
         }
-
     }
 
     public function onOrderWritten(EntityWrittenEvent $event): void
     {
-      try {
-        foreach ($event->getWriteResults() as $result) {
-            $changeSet = $result->getChangeSet();
+        try {
+            foreach ($event->getWriteResults() as $result) {
+                $changeSet = $result->getChangeSet();
 
-            if ($result->getOperation() === EntityWriteResult::OPERATION_UPDATE
+                if ($result->getOperation() === EntityWriteResult::OPERATION_UPDATE
                 && $changeSet != null
                 && $changeSet->hasChanged('price')
                 && count($event->getWriteResults()) > 1
-            ) 
-            {
-                $context = $event->getContext();
+            ) {
+                    $context = $event->getContext();
+                    $orderId = $result->getPrimaryKey();
+                    $order = $this->getOrder($orderId, $context);
 
-                $orderId = $result->getPrimaryKey();
-                $order = $this->getOrder($orderId, $context);
+                    $criteria = new Criteria();
+                    $criteria->addFilter(new EqualsFilter('orderId', $orderId));
+                    $monduOrderEntity = $this->orderDataRepository->search($criteria, $context)->first();
 
-                $lineItems = [];
-                foreach ($order->getLineItems() as $lineItem) {
-                    if ($lineItem->getType() !== \Shopware\Core\Checkout\Cart\LineItem\LineItem::PRODUCT_LINE_ITEM_TYPE) {
-                        continue;
+                    if ($monduOrderEntity->getOrderState() == 'canceled') {
+                        $this->transitionDeliveryState($orderId, 'cancel', $context);
                     }
 
-                    $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - ($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity())) * 100;
-                    $lineItems[] = [
+                    if ($this->hasInvoices($orderId, $context)) {
+                        return;
+                    }
+
+                    $lineItems = [];
+                    foreach ($order->getLineItems() as $lineItem) {
+                        if ($lineItem->getType() !== \Shopware\Core\Checkout\Cart\LineItem\LineItem::PRODUCT_LINE_ITEM_TYPE) {
+                            continue;
+                        }
+
+                        $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - ($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity())) * 100;
+                        $lineItems[] = [
                         'external_reference_id' => $lineItem->getReferencedId(),
                         'quantity' => $lineItem->getQuantity(),
                         'title' => $lineItem->getLabel(),
                         'net_price_cents' => round($unitNetPrice * $lineItem->getQuantity()),
                         'net_price_per_item_cents' => round($unitNetPrice)
                     ];
-                }
+                    }
 
-                $adjustParams = [
+                    $adjustParams = [
                   'currency' => 'EUR',
                   'external_reference_id' => $order->getOrderNumber(),
                   'amount' => [
@@ -111,24 +128,19 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                   ]
                 ];
 
-                $criteria = new Criteria();
-                $criteria->addFilter(new EqualsFilter('orderId', $orderId));
-            
-                $monduOrderEntity = $this->orderDataRepository->search($criteria, $context)->first();
+                    $response = $this->monduClient->adjustOrder(
+                        $monduOrderEntity->getReferenceId(),
+                        $adjustParams
+                    );
 
-                $response = $this->monduClient->adjustOrder(
-                  $monduOrderEntity->getReferenceId(),
-                  $adjustParams
-                );
-
-                if ($response == null) {
-                  $this->log('Adjust Order Response Failed', [$event]);
+                    if ($response == null) {
+                        $this->log('Adjust Order Response Failed', [$event]);
+                    }
                 }
             }
+        } catch (\Exception $e) {
+            $this->log('Adjust Order Failed', [$event], $e);
         }
-      } catch (\Exception $e) {
-        $this->log('Adjust Order Failed', [$event], $e);
-      }
     }
 
     protected function getOrder(string $orderId, Context $context): OrderEntity
@@ -139,18 +151,49 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
         return $this->orderRepository->search($criteria, $context)->first();
     }
 
-    protected function log($message, $data, $exception = null) {
-      $exceptionMessage = "";
+    protected function log($message, $data, $exception = null)
+    {
+        $exceptionMessage = "";
 
-      if ($exception != null) {
-        $exceptionMessage = $exception->getMessage();
-      }
+        if ($exception != null) {
+            $exceptionMessage = $exception->getMessage();
+        }
 
-      $this->logger->critical(
-        $message . '. (Exception: '. $exceptionMessage .')',
-        $data
-      );
+        $this->logger->critical(
+            $message . '. (Exception: '. $exceptionMessage .')',
+            $data
+        );
 
-      throw new MonduException('Adjusting an order failed. Please contact Mondu Support.');
+        throw new MonduException('Adjusting an order failed. Please contact Mondu Support.');
+    }
+
+    protected function hasInvoices(string $orderId, $context)
+    {
+        $invoiceCriteria = new Criteria();
+        $invoiceCriteria->addFilter(new EqualsFilter('orderId', $orderId));
+
+        return $this->invoiceDataRepository->search($invoiceCriteria, $context)->getTotal() > 0;
+    }
+
+    protected function transitionDeliveryState($orderId, $state, $context)
+    {
+        try {
+            $criteria = new Criteria([$orderId]);
+            $criteria->addAssociation('deliveries');
+
+            /** @var OrderEntity $orderEntity */
+            $orderEntity = $this->orderRepository->search($criteria, $context)->first();
+            $orderDeliveryId = $orderEntity->getDeliveries()->first()->getId();
+
+            return $this->stateMachineRegistry->transition(new Transition(
+                OrderDeliveryDefinition::ENTITY_NAME,
+                $orderDeliveryId,
+                $state,
+                'stateId'
+            ), $context);
+        } catch (\Exception $e) {
+            $this->log('Adjust Order: transitionDeliveryState Failed', [$orderId, $state], $e);
+            throw new MonduException($e->getMessage());
+        }
     }
 }

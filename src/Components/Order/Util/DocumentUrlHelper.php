@@ -8,7 +8,8 @@ use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 use Shopware\Core\Checkout\Document\DocumentEntity;
 use Shopware\Storefront\Framework\Routing\Router;
 
-class DocumentUrlHelper {
+class DocumentUrlHelper
+{
     private ConfigService $configService;
     private Router $router;
 

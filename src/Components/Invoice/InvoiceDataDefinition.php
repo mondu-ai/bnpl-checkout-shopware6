@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace Mondu\MonduPayment\Components\Invoice;
 
@@ -20,7 +22,6 @@ use Shopware\Core\Checkout\Document\DocumentDefinition;
 use Mondu\MonduPayment\Components\Invoice\InvoiceDataEntity;
 use Mondu\MonduPayment\Components\Invoice\InvoiceDataCollection;
 use Shopware\Core\Checkout\Order\OrderDefinition;
-
 
 class InvoiceDataDefinition extends EntityDefinition
 {
@@ -72,23 +73,23 @@ class InvoiceDataDefinition extends EntityDefinition
             (new ReferenceVersionField(OrderDefinition::class))->addFlags(new Required()),
 
             (new FkField(
-              'document_id',
-              InvoiceDataEntity::FIELD_DOCUMENT_ID,
-              DocumentDefinition::class
+                'document_id',
+                InvoiceDataEntity::FIELD_DOCUMENT_ID,
+                DocumentDefinition::class
             ))->addFlags(new Required()),
 
             (new StringField(
-              'invoice_number',
-              InvoiceDataEntity::FIELD_INVOICE_NUMBER
+                'invoice_number',
+                InvoiceDataEntity::FIELD_INVOICE_NUMBER
             )),
 
             (new StringField(
-              'external_invoice_uuid',
-              InvoiceDataEntity::FIELD_EXTERNAL_INVOICE_UUID
+                'external_invoice_uuid',
+                InvoiceDataEntity::FIELD_EXTERNAL_INVOICE_UUID
             )),
 
             new OneToOneAssociationField('order', 'order_id', 'id', OrderDefinition::class, false),
-            new OneToOneAssociationField('document', 'document_id', 'id', DocumentDefinition::class, false),   
+            new OneToOneAssociationField('document', 'document_id', 'id', DocumentDefinition::class, false),
         ]);
     }
 }

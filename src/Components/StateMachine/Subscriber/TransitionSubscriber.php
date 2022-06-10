@@ -24,7 +24,6 @@ use Shopware\Core\System\StateMachine\Event\StateMachineTransitionEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Mondu\MonduPayment\Components\Invoice\InvoiceDataEntity;
 
-
 class TransitionSubscriber implements EventSubscriberInterface
 {
     private ConfigService $configService;
@@ -64,15 +63,16 @@ class TransitionSubscriber implements EventSubscriberInterface
         ];
     }
 
-    public function onTransition(StateMachineTransitionEvent $event) {
+    public function onTransition(StateMachineTransitionEvent $event)
+    {
         //TODO config service stuff idk what?
-        if(false) {
+        if (false) {
             return;
         }
 
         $eventName = $event->getEntityName();
 
-        if($eventName === OrderDeliveryDefinition::ENTITY_NAME) {
+        if ($eventName === OrderDeliveryDefinition::ENTITY_NAME) {
             $orderDelivery = $this->orderDeliveryRepository->search(new Criteria([$event->getEntityId()]), $event->getContext())->first();
             $order = $this->getOrder($orderDelivery->getOrderId(), $event->getContext());
         } elseif ($eventName === OrderDefinition::ENTITY_NAME) {
@@ -86,7 +86,7 @@ class TransitionSubscriber implements EventSubscriberInterface
         switch ($event->getToPlace()->getTechnicalName()) {
             case 'cancelled': //$this->configService->getStateCancel():
                 $state = $this->monduClient->cancelOrder($monduOrder->getReferenceId());
-                if($state) {
+                if ($state) {
                     $this->updateOrder($event->getContext(), $monduOrder, [
                         OrderDataEntity::FIELD_ORDER_STATE => $state
                     ]);
@@ -97,7 +97,6 @@ class TransitionSubscriber implements EventSubscriberInterface
                 $this->shipOrder($order, $event->getContext(), $monduOrder);
                 break;
         }
-
     }
 
     protected function getOrder(string $orderId, Context $context): OrderEntity
@@ -108,7 +107,8 @@ class TransitionSubscriber implements EventSubscriberInterface
         return $this->orderRepository->search($criteria, $context)->first();
     }
 
-    private function getMonduDataFromOrder(OrderEntity $order): OrderDataEntity {
+    private function getMonduDataFromOrder(OrderEntity $order): OrderDataEntity
+    {
         $monduData = $order->getExtension(OrderExtension::EXTENSION_NAME);
 
         if (!$monduData instanceof OrderDataEntity) {
@@ -118,7 +118,8 @@ class TransitionSubscriber implements EventSubscriberInterface
         return $monduData;
     }
 
-    private function updateOrder(Context $context, OrderDataEntity $monduData, array $data): void {
+    private function updateOrder(Context $context, OrderDataEntity $monduData, array $data): void
+    {
         $updateData = $data;
         $updateData[OrderDataEntity::FIELD_ID] = $monduData->getId();
 
@@ -127,10 +128,11 @@ class TransitionSubscriber implements EventSubscriberInterface
         ], $context);
     }
 
-    private function shipOrder(OrderEntity $order, Context $context, OrderDataEntity $monduData): bool {
+    private function shipOrder(OrderEntity $order, Context $context, OrderDataEntity $monduData): bool
+    {
         $monduData = $this->getMonduDataFromOrder($order);
 
-        if($monduData->getOrderState() === 'shipped') {
+        if ($monduData->getOrderState() === 'shipped') {
             return true;
         }
 
@@ -141,16 +143,16 @@ class TransitionSubscriber implements EventSubscriberInterface
         $attachedDocument = $context->getExtensions()['mail-attachments']->getDocumentIds()[0];
 
         foreach ($order->getDocuments() as $document) {
-            if ($document->getId() == $attachedDocument){
+            if ($document->getId() == $attachedDocument) {
                 if ($document->getDocumentType()->getTechnicalName() === InvoiceGenerator::INVOICE) {
-                  $config = $document->getConfig();
-                  $invoiceNumber = $config['custom']['invoiceNumber'] ?? null;
-                  $invoiceUrl = $this->documentUrlHelper->generateRouteForDocument($document);
+                    $config = $document->getConfig();
+                    $invoiceNumber = $config['custom']['invoiceNumber'] ?? null;
+                    $invoiceUrl = $this->documentUrlHelper->generateRouteForDocument($document);
                 }
             }
 
             if ($document->getDocumentType()->getTechnicalName() === DeliveryNoteGenerator::DELIVERY_NOTE) {
-              $shippingUrl = $this->documentUrlHelper->generateRouteForDocument($document);
+                $shippingUrl = $this->documentUrlHelper->generateRouteForDocument($document);
             }
         }
 
@@ -164,21 +166,20 @@ class TransitionSubscriber implements EventSubscriberInterface
             );
 
             if ($invoice == null) {
-              throw new MonduException('Error ocurred while shipping an order. Please contact Mondu Support.');
+                throw new MonduException('Error ocurred while shipping an order. Please contact Mondu Support.');
             }
 
             if ($invoice) {
-              $this->invoiceDataRepository->upsert([
+                $this->invoiceDataRepository->upsert([
                 [
                     InvoiceDataEntity::FIELD_ORDER_ID => $order->getId(),
                     InvoiceDataEntity::FIELD_ORDER_VERSION_ID => $order->getVersionId(),
-                    InvoiceDataEntity::FIELD_DOCUMENT_ID => $document->getId(),
+                    InvoiceDataEntity::FIELD_DOCUMENT_ID => $attachedDocument,
                     InvoiceDataEntity::FIELD_INVOICE_NUMBER => $invoiceNumber,
                     InvoiceDataEntity::FIELD_EXTERNAL_INVOICE_UUID => $invoice['uuid'],
                 ]
               ], $context);
             }
-
         } catch (\Exception $e) {
             $this->logger->critical(
                 'Exception during shipment. (Exception: '. $e->getMessage().')',
@@ -213,6 +214,4 @@ class TransitionSubscriber implements EventSubscriberInterface
 
         return $lineItems;
     }
-
-
 }

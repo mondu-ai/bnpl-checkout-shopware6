@@ -39,7 +39,7 @@ class MonduHandler implements SynchronousPaymentHandlerInterface
 
         $order = $transaction->getOrder();
         $monduOrder = $this->monduClient->getMonduOrder($monduData->get('order-id'));
-        if(!$monduOrder) {
+        if (!$monduOrder) {
             throw new SyncPaymentProcessException($transaction->getOrderTransaction()->getId(), 'unknown error during payment');
         }
         $this->orderRepository->update([
