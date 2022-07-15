@@ -96,6 +96,7 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                         return;
                     }
 
+                    $netPrice = 0;
                     $lineItems = [];
                     foreach ($order->getLineItems() as $lineItem) {
                         if ($lineItem->getType() !== \Shopware\Core\Checkout\Cart\LineItem\LineItem::PRODUCT_LINE_ITEM_TYPE) {
@@ -104,29 +105,46 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
 
                         $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - ($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity())) * 100;
                         $lineItems[] = [
-                        'external_reference_id' => $lineItem->getReferencedId(),
-                        'quantity' => $lineItem->getQuantity(),
-                        'title' => $lineItem->getLabel(),
-                        'net_price_cents' => round($unitNetPrice * $lineItem->getQuantity()),
-                        'net_price_per_item_cents' => round($unitNetPrice)
-                    ];
+                            'external_reference_id' => $lineItem->getReferencedId(),
+                            'quantity' => $lineItem->getQuantity(),
+                            'title' => $lineItem->getLabel(),
+                            'net_price_cents' => round($unitNetPrice * $lineItem->getQuantity()),
+                            'net_price_per_item_cents' => round($unitNetPrice)
+                        ];
+
+                        $netPrice += $unitNetPrice * $lineItem->getQuantity();
                     }
 
+                    $discountAmount = 0;
+
+                    foreach ($order->getLineItems() as $lineItem) {
+                        if ($lineItem->getType() !== \Shopware\Core\Checkout\Cart\LineItem\LineItem::PROMOTION_LINE_ITEM_TYPE &&
+                            $lineItem->getType() !== \Shopware\Core\Checkout\Cart\LineItem\LineItem::DISCOUNT_LINE_ITEM) {
+                            continue;
+                        }
+
+                        $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - ($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity())) * 100;
+                        $discountAmount += abs($unitNetPrice);
+                    }
+
+                    $shipping = ($order->getShippingCosts()->getUnitPrice() - ($order->getShippingCosts()->getCalculatedTaxes()->getAmount() / $order->getShippingCosts()->getQuantity()));
+
                     $adjustParams = [
-                  'currency' => 'EUR',
-                  'external_reference_id' => $order->getOrderNumber(),
-                  'amount' => [
-                    'net_price_cents' => round($order->getPrice()->getNetPrice() * 100),
-                    'tax_cents' => round($order->getPrice()->getCalculatedTaxes()->getAmount() * 100)
-                  ],
-                  'lines' => [
-                    [
-                      'tax_cents' => round($order->getPrice()->getCalculatedTaxes()->getAmount() * 100),
-                      'shipping_price_cents' => round($order->getShippingCosts()->getTotalPrice() * 100),
-                      'line_items' => $lineItems
-                    ]
-                  ]
-                ];
+                        'currency' => 'EUR',
+                        'external_reference_id' => $order->getOrderNumber(),
+                        'amount' => [
+                            'net_price_cents' => round($netPrice),
+                            'tax_cents' => round($order->getPrice()->getCalculatedTaxes()->getAmount() * 100)
+                        ],
+                        'lines' => [
+                            [
+                                'tax_cents' => round($order->getPrice()->getCalculatedTaxes()->getAmount() * 100),
+                                'shipping_price_cents' => round($shipping * 100),
+                                'discount_cents' => $discountAmount,
+                                'line_items' => $lineItems
+                            ]
+                        ]
+                    ];
 
                     $response = $this->monduClient->adjustOrder(
                         $monduOrderEntity->getReferenceId(),

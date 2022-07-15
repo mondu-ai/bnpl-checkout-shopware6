@@ -156,13 +156,17 @@ class TransitionSubscriber implements EventSubscriberInterface
             }
         }
 
+        $shipping = ($order->getShippingCosts()->getUnitPrice() - ($order->getShippingCosts()->getCalculatedTaxes()->getAmount() / $order->getShippingCosts()->getQuantity()));
+
         try {
             $invoice = $this->monduClient->invoiceOrder(
                 $monduData->getReferenceId(),
                 $invoiceNumber,
                 round((float) $order->getPrice()->getTotalPrice() * 100),
                 $invoiceUrl,
-                $this->getLineItems($order, $context)
+                $this->getLineItems($order, $context),
+                $this->getDiscount($order, $context),
+                round($shipping * 100)
             );
 
             if ($invoice == null) {
@@ -213,5 +217,24 @@ class TransitionSubscriber implements EventSubscriberInterface
         }
 
         return $lineItems;
+    }
+
+    protected function getDiscount($order, Context $context): float
+    {
+        $collection = $order->getLineItems();
+
+        $discountAmount = 0;
+        /** @var \Shopware\Core\Checkout\Cart\LineItem\LineItem|OrderLineItemEntity $lineItem */
+        foreach ($collection->getIterator() as $lineItem) {
+            if ($lineItem->getType() !== \Shopware\Core\Checkout\Cart\LineItem\LineItem::PROMOTION_LINE_ITEM_TYPE &&
+                $lineItem->getType() !== \Shopware\Core\Checkout\Cart\LineItem\LineItem::DISCOUNT_LINE_ITEM) {
+                continue;
+            }
+
+            $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - ($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity())) * 100;
+            $discountAmount += abs($unitNetPrice);
+        }
+
+        return $discountAmount;
     }
 }
