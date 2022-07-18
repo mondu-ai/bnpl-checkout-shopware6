@@ -82,9 +82,30 @@ class CheckoutController extends StorefrontController
         return $lineItems;
     }
 
+    protected function getDiscount($collection, Context $context): float
+    {
+        $discountAmount = 0;
+        /** @var \Shopware\Core\Checkout\Cart\LineItem\LineItem|OrderLineItemEntity $lineItem */
+        foreach ($collection->getIterator() as $lineItem) {
+            if ($lineItem->getType() !== \Shopware\Core\Checkout\Cart\LineItem\LineItem::PROMOTION_LINE_ITEM_TYPE &&
+                $lineItem->getType() !== \Shopware\Core\Checkout\Cart\LineItem\LineItem::DISCOUNT_LINE_ITEM) {
+                continue;
+            }
+
+            $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - ($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity())) * 100;
+            $discountAmount += abs($unitNetPrice);
+        }
+
+        return $discountAmount;
+    }
+
     protected function getOrderData($cart, $collection, Context $context, $customer, $orderNumber)
     {
         $lineItems = $this->getLineItems($collection, $context);
+        $shipping = ($cart->getDeliveries()->getShippingCosts()->sum()->getUnitPrice() - ($cart->getDeliveries()->getShippingCosts()->sum()->getCalculatedTaxes()->getAmount() / $cart->getDeliveries()->getShippingCosts()->sum()->getQuantity()));
+
+        $discount = $this->getDiscount($collection, $context);
+
         return [
             'currency' => 'EUR',
             'external_reference_id' => $orderNumber,
@@ -113,7 +134,8 @@ class CheckoutController extends StorefrontController
             'lines' => [
                 [
                     'tax_cents' => round($cart->getPrice()->getCalculatedTaxes()->getAmount() * 100),
-                    'shipping_price_cents' => $cart->getDeliveries()->getShippingCosts()->sum()->getTotalPrice() * 100,
+                    'shipping_price_cents' => round($shipping * 100),
+                    'discount_cents' => round($discount),
                     'line_items' => $lineItems
                 ]
             ]

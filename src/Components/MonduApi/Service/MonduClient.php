@@ -107,13 +107,15 @@ class MonduClient
         }
     }
 
-    public function invoiceOrder($orderUid, $referenceId, $grossAmount, $invoiceUrl, $line_items = [])
+    public function invoiceOrder($orderUid, $referenceId, $grossAmount, $invoiceUrl, $line_items = [], $discount = 0, $shipping = 0)
     {
         try {
             $body = json_encode([
                 'external_reference_id' => $referenceId,
                 'invoice_url' => $invoiceUrl,
                 'gross_amount_cents' => $grossAmount,
+                'discount_cents' => $discount,
+                'shipping_price_cents' => $shipping,
                 'line_items' => $line_items
             ]);
 
