@@ -14,19 +14,43 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Mondu\MonduPayment\Components\StateMachine\Exception\MonduException;
 use Shopware\Core\Checkout\Order\Aggregate\OrderDelivery\OrderDeliveryDefinition;
 use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionDefinition;
+use Mondu\MonduPayment\Components\Webhooks\Model\Webhook;
 use Psr\Log\LoggerInterface;
+use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
+
 
 class WebhookService
 {
+    private MonduClient $monduClient;
     private StateMachineRegistry $stateMachineRegistry;
     private EntityRepositoryInterface $orderRepository;
     private LoggerInterface $logger;
 
-    public function __construct(StateMachineRegistry $stateMachineRegistry, EntityRepositoryInterface $orderRepository, LoggerInterface $logger)
+    public function __construct(StateMachineRegistry $stateMachineRegistry, EntityRepositoryInterface $orderRepository, LoggerInterface $logger, MonduClient $monduClient)
     {
         $this->stateMachineRegistry = $stateMachineRegistry;
         $this->orderRepository = $orderRepository;
         $this->logger = $logger;
+        $this->monduClient = $monduClient;
+    }
+
+    public function register($context): bool
+    {
+        try {
+            $webhooks = [
+                (new Webhook('order'))->getData(),
+                (new Webhook('invoice'))->getData()
+            ];
+
+            foreach ($webhooks as $webhook) {
+                $this->monduClient->registerWebhook($webhook);
+            }
+            
+            return true;
+        } catch (MonduException $e) {
+            $this->log('register Webhook Failed', [], $e);
+            return false;
+        }
     }
 
     public function handleConfirmed($params = [], $context): array
@@ -40,7 +64,7 @@ class WebhookService
                 throw new MonduException('Missing params.');
             }
 
-            $transitionResult = $this->transitionOrderState($externalReferenceId, 'process', $context);
+            $transitionResult = $this->transitionTransactionState($externalReferenceId, 'paid', $context);
 
             return [[ 'status' => $transitionResult->last()->getTechnicalName(), 'error' => 0 ], Response::HTTP_OK];
         } catch (MonduException $e) {
@@ -60,6 +84,7 @@ class WebhookService
             }
 
             $transitionResult = $this->transitionOrderState($externalReferenceId, 'process', $context);
+            $transitionResult = $this->transitionTransactionState($externalReferenceId, 'reopen', $context);
 
             return [[ 'status' => $transitionResult->last()->getTechnicalName(), 'error' => 0 ], Response::HTTP_OK];
         } catch (MonduException $e) {

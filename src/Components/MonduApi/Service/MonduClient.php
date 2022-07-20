@@ -132,6 +132,19 @@ class MonduClient
         }
     }
 
+    public function registerWebhook($body = []): ?array
+    {
+        $request = $this->getRequestObject('webhooks', 'POST', json_encode($body));
+        try {
+            $response = $this->restClient->send($request);
+            $body = json_decode($response->getBody()->getContents(), true);
+            return @$body;
+        } catch (GuzzleException $e) {
+            $this->logger->alert('MonduClient::registerWebhooks Failed with an exception message: ' . $e->getMessage());
+            return null;
+        }
+    }
+
     private function getRequestObject($url, $method = 'GET', $body = ''): Request
     {
         return new Request(

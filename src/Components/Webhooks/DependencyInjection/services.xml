@@ -7,6 +7,12 @@
 
         <service id="mondu.webhook_service" class="Mondu\MonduPayment\Components\Webhooks\Service\WebhookService">
           <argument key="$logger" type="service" id="mondu.logger"/>
+          <argument key="$monduClient" type="service" id="mondu.mondu_api"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\Webhooks\Subscriber\ConfigSubscriber">
+            <tag name="kernel.event_subscriber"/>
+            <argument key="$webhookService" type="service" id="mondu.webhook_service"/>
         </service>
     </services>
 </container>
