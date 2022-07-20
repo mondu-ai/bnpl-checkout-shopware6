@@ -25,13 +25,15 @@ class WebhookService
     private StateMachineRegistry $stateMachineRegistry;
     private EntityRepositoryInterface $orderRepository;
     private LoggerInterface $logger;
+    private $orderDataRepository;
 
-    public function __construct(StateMachineRegistry $stateMachineRegistry, EntityRepositoryInterface $orderRepository, LoggerInterface $logger, MonduClient $monduClient)
+    public function __construct(StateMachineRegistry $stateMachineRegistry, EntityRepositoryInterface $orderRepository, LoggerInterface $logger, MonduClient $monduClient, $orderDataRepository)
     {
         $this->stateMachineRegistry = $stateMachineRegistry;
         $this->orderRepository = $orderRepository;
         $this->logger = $logger;
         $this->monduClient = $monduClient;
+        $this->orderDataRepository = $orderDataRepository;
     }
 
     public function register($context): bool
@@ -56,13 +58,27 @@ class WebhookService
     public function handleConfirmed($params = [], $context): array
     {
         try {
-            $viban = @$params['bank_account']['iban'];
+            $viban = @$params['viban'];
             $monduId = @$params['order_uuid'];
             $externalReferenceId = @$params['external_reference_id'];
 
             if (!$viban || !$externalReferenceId) {
                 throw new MonduException('Missing params.');
             }
+
+            // Update vIBAN
+
+            $criteria = new Criteria();
+            $criteria->addFilter(new EqualsFilter('referenceId', $monduId));
+
+            $orderDataId = $this->orderDataRepository->searchIds($criteria, $context)->firstId();
+
+            $this->orderDataRepository->update([
+                [
+                    'id' => $orderDataId,
+                    'viban' => $viban
+                ]
+            ], $context);
 
             $transitionResult = $this->transitionTransactionState($externalReferenceId, 'paid', $context);
 
