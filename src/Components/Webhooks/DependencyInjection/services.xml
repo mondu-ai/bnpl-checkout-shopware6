@@ -8,6 +8,7 @@
         <service id="mondu.webhook_service" class="Mondu\MonduPayment\Components\Webhooks\Service\WebhookService">
           <argument key="$logger" type="service" id="mondu.logger"/>
           <argument key="$monduClient" type="service" id="mondu.mondu_api"/>
+          <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
         </service>
 
         <service id="Mondu\MonduPayment\Components\Webhooks\Subscriber\ConfigSubscriber">
