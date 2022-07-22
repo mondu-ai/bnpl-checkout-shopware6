@@ -56,9 +56,11 @@ class ConfigSubscriber implements EventSubscriberInterface
         foreach ($event->getWriteResults() as $result) {
             $changeSet = $result->getChangeSet();
 
-            if ($changeSet != null
-                && $changeSet->hasChanged('configuration_value')
-                && $changeSet->getBefore('configuration_key') == 'MonduPayment.config.apiToken') {  
+            if ($result->getProperty('configurationKey') == 'MonduPayment.config.apiToken')
+            {  
+                    $key = $result->getProperty('configurationValue');
+
+                    $this->webhookService->getSecret($key, $event->getContext());
                     $this->webhookService->register($event->getContext());
             }
 

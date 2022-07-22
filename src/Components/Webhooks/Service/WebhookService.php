@@ -17,6 +17,8 @@ use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionDefi
 use Mondu\MonduPayment\Components\Webhooks\Model\Webhook;
 use Psr\Log\LoggerInterface;
 use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
+use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
+
 
 
 class WebhookService
@@ -26,14 +28,33 @@ class WebhookService
     private EntityRepositoryInterface $orderRepository;
     private LoggerInterface $logger;
     private $orderDataRepository;
+    private ConfigService $configService;
 
-    public function __construct(StateMachineRegistry $stateMachineRegistry, EntityRepositoryInterface $orderRepository, LoggerInterface $logger, MonduClient $monduClient, $orderDataRepository)
+    public function __construct(StateMachineRegistry $stateMachineRegistry, EntityRepositoryInterface $orderRepository, LoggerInterface $logger, MonduClient $monduClient, $orderDataRepository, ConfigService $configService)
     {
         $this->stateMachineRegistry = $stateMachineRegistry;
         $this->orderRepository = $orderRepository;
         $this->logger = $logger;
         $this->monduClient = $monduClient;
         $this->orderDataRepository = $orderDataRepository;
+        $this->configService = $configService;
+    }
+
+    public function getSecret($key, $context)
+    {
+        try {
+
+            $keys = $this->monduClient->getWebhooksSecret($key);
+
+            if (isset($keys['webhook_secret']))
+            {
+                $this->configService->setWebhooksSecret($keys['webhook_secret']);
+            }
+            
+        } catch (MonduException $e) {
+            $this->log('Get Webhook Secret Failed', [], $e);
+            return false;
+        }
     }
 
     public function register($context): bool
