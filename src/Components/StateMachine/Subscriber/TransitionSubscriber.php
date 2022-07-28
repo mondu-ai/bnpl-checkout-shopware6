@@ -65,11 +65,6 @@ class TransitionSubscriber implements EventSubscriberInterface
 
     public function onTransition(StateMachineTransitionEvent $event)
     {
-        //TODO config service stuff idk what?
-        if (false) {
-            return;
-        }
-
         $eventName = $event->getEntityName();
 
         if ($eventName === OrderDeliveryDefinition::ENTITY_NAME) {

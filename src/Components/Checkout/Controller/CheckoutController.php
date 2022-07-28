@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mondu\MonduPayment\Components\Checkout\Controller;
 
 use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
+use Mondu\MonduPayment\Components\PaymentMethod\Util\MethodHelper;
 use Shopware\Core\Checkout\Cart\Order\OrderConversionContext;
 use Shopware\Core\Checkout\Cart\Order\OrderConverter;
 use Shopware\Core\Checkout\Cart\SalesChannel\CartService;
@@ -39,6 +40,8 @@ class CheckoutController extends StorefrontController
      */
     public function getToken(Request $request, SalesChannelContext $salesChannelContext, CartService $cartService, OrderConverter $orderConverter, NumberRangeValueGeneratorInterface $numberRangeValueGenerator): JsonResponse
     {
+        $paymentMethod = MethodHelper::monduPaymentMethodOrDefault($request->get('payment_method'));
+
         $orderNumber = $numberRangeValueGenerator->getValue(
             'order',
             $salesChannelContext->getContext(),
@@ -51,7 +54,7 @@ class CheckoutController extends StorefrontController
             // handle
         }
 
-        $order = $this->getOrderData($cart, $cart->getLineItems(), $salesChannelContext->getContext(), $salesChannelContext->getCustomer(), $orderNumber);
+        $order = $this->getOrderData($cart, $cart->getLineItems(), $salesChannelContext->getContext(), $salesChannelContext->getCustomer(), $orderNumber, $paymentMethod);
 
         $monduOrder = $this->monduClient->createOrder($order);
 
@@ -99,7 +102,7 @@ class CheckoutController extends StorefrontController
         return $discountAmount;
     }
 
-    protected function getOrderData($cart, $collection, Context $context, $customer, $orderNumber)
+    protected function getOrderData($cart, $collection, Context $context, $customer, $orderNumber, $paymentMethod)
     {
         $lineItems = $this->getLineItems($collection, $context);
         $shipping = ($cart->getDeliveries()->getShippingCosts()->sum()->getUnitPrice() - ($cart->getDeliveries()->getShippingCosts()->sum()->getCalculatedTaxes()->getAmount() / $cart->getDeliveries()->getShippingCosts()->sum()->getQuantity()));
@@ -108,6 +111,7 @@ class CheckoutController extends StorefrontController
 
         return [
             'currency' => 'EUR',
+            'payment_method' => $paymentMethod,
             'external_reference_id' => $orderNumber,
             'buyer' => [
                 'email' => $customer->getEmail(),

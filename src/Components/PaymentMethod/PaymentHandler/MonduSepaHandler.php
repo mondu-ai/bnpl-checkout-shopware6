@@ -15,7 +15,7 @@ use Shopware\Core\System\SalesChannel\SalesChannelContext;
 use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler;
 use Symfony\Component\HttpFoundation\ParameterBag;
 
-class MonduHandler implements SynchronousPaymentHandlerInterface
+class MonduSepaHandler implements SynchronousPaymentHandlerInterface
 {
     private OrderTransactionStateHandler $transactionStateHandler;
     private MonduClient $monduClient;
@@ -32,7 +32,6 @@ class MonduHandler implements SynchronousPaymentHandlerInterface
     public function pay(SyncPaymentTransactionStruct $transaction, RequestDataBag $dataBag, SalesChannelContext $salesChannelContext): void
     {
         $monduData = $dataBag->get('mondu_payment', new ParameterBag([]));
-
         if ($monduData->count() === 0 || $monduData->has('order-id') === false || !$monduData->get('order-id')) {
             throw new SyncPaymentProcessException($transaction->getOrderTransaction()->getId(), 'unknown error during payment');
         }
@@ -42,15 +41,13 @@ class MonduHandler implements SynchronousPaymentHandlerInterface
         if (!$monduOrder) {
             throw new SyncPaymentProcessException($transaction->getOrderTransaction()->getId(), 'unknown error during payment');
         }
+
         $this->orderRepository->update([
             [
                 'id' => $order->getId(),
                 'orderNumber' => $monduOrder['external_reference_id']
             ]
         ], $salesChannelContext->getContext());
-
-//        $context = $salesChannelContext->getContext();
-//        $this->transactionStateHandler->paid($transaction->getOrderTransaction()->getId(), $context);
 
         $this->orderDataRepository->upsert([
             [
