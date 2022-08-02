@@ -37,16 +37,16 @@ class PaymentMethods extends AbstractBootstrap
         ],
         MonduSepaHandler::class => [
             'handlerIdentifier' => MonduSepaHandler::class,
-            'name' => 'SEPA-Lastschrift - jetz kaufen, später per Bankeinzug bezahlen',
+            'name' => 'SEPA-Lastschrift - jetzt kaufen, später per Bankeinzug bezahlen',
             'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
             'afterOrderEnabled' => false,
             'translations' => [
                 'de-DE' => [
-                    'name' => 'SEPA-Lastschrift - jetz kaufen, später per Bankeinzug bezahlen',
+                    'name' => 'SEPA-Lastschrift - jetzt kaufen, später per Bankeinzug bezahlen',
                     'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
                 ],
                 'en-GB' => [
-                    'name' => 'SEPA-Lastschrift - jetz kaufen, später per Bankeinzug bezahlen',
+                    'name' => 'SEPA-Lastschrift - jetzt kaufen, später per Bankeinzug bezahlen',
                     'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
                 ],
             ],
