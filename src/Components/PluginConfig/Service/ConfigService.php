@@ -68,6 +68,11 @@ class ConfigService
         return $config['webhooksSecret'] ?? null;
     }
 
+    public function setWebhooksSecret($secret = '')
+    {
+        return $this->systemConfigService->set('MonduPayment.config.webhooksSecret', $secret);
+    }
+
     public function isStateWatchingEnabled(): bool
     {
         $config = $this->getPluginConfiguration();

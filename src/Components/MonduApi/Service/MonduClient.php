@@ -15,6 +15,7 @@ class MonduClient
     private ConfigService $config;
     private $restClient;
     private LoggerInterface $logger;
+    private string $key;
 
     public function __construct(ConfigService $configService, LoggerInterface $logger)
     {
@@ -145,12 +146,27 @@ class MonduClient
         }
     }
 
+    public function getWebhooksSecret($key): ?array
+    {
+        $this->key = $key;
+
+        $request = $this->getRequestObject('webhooks/keys', 'GET');
+        try {
+            $response = $this->restClient->send($request);
+            $body = json_decode($response->getBody()->getContents(), true);
+            return @$body;
+        } catch (GuzzleException $e) {
+            $this->logger->alert('MonduClient::getWebhooksSecret Failed with an exception message: ' . $e->getMessage());
+            return null;
+        }
+    }
+
     private function getRequestObject($url, $method = 'GET', $body = ''): Request
     {
         return new Request(
             $method,
             $this->config->getApiUrl($url),
-            ['Content-Type' => 'application/json', 'Api-Token' => $this->config->getApiToken()],
+            ['Content-Type' => 'application/json', 'Api-Token' => $this->key ?? $this->config->getApiToken()],
             $body
         );
     }
