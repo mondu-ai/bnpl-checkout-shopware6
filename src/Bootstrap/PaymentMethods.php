@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mondu\MonduPayment\Bootstrap;
 
 use Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduHandler;
+use Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduSepaHandler;
 use Shopware\Core\Checkout\Payment\PaymentMethodEntity;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
@@ -30,6 +31,22 @@ class PaymentMethods extends AbstractBootstrap
                 ],
                 'en-GB' => [
                     'name' => 'Rechnungskauf - jetzt kaufen, später bezahlen',
+                    'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
+                ],
+            ],
+        ],
+        MonduSepaHandler::class => [
+            'handlerIdentifier' => MonduSepaHandler::class,
+            'name' => 'SEPA-Lastschrift - jetzt kaufen, später per Bankeinzug bezahlen',
+            'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
+            'afterOrderEnabled' => false,
+            'translations' => [
+                'de-DE' => [
+                    'name' => 'SEPA-Lastschrift - jetzt kaufen, später per Bankeinzug bezahlen',
+                    'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
+                ],
+                'en-GB' => [
+                    'name' => 'SEPA-Lastschrift - jetzt kaufen, später per Bankeinzug bezahlen',
                     'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
                 ],
             ],

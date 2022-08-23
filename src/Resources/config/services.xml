@@ -23,6 +23,15 @@
             <!--            <tag name="shopware.payment.method.async" />-->
         </service>
 
+        <service id="Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduSepaHandler">
+            <argument type="service" id="Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler"/>
+            <argument type="service" id="mondu.mondu_api"/>
+            <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
+            <argument key="$repository" type="service" id="order.repository"/>
+            <tag name="shopware.payment.method.sync" />
+            <!--            <tag name="shopware.payment.method.async" />-->
+        </service>
+
         <service id="Mondu\MonduPayment\Components\Checkout\Controller\CheckoutController" public="true">
             <argument type="service" id="mondu.mondu_api"/>
             <call method="setContainer">

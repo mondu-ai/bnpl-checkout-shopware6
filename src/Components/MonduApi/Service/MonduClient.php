@@ -161,6 +161,19 @@ class MonduClient
         }
     }
 
+    public function getPaymentMethods()
+    {
+        $request = $this->getRequestObject('payment_methods');
+        try {
+            $response = $this->restClient->send($request);
+            $body = json_decode($response->getBody()->getContents(), true);
+            return @$body;
+        } catch (GuzzleException $e) {
+            $this->logger->alert('MonduClient::getPaymentMethods Failed with an excpetion message: '. $e->getMessage());
+            return null;
+        }
+    }
+
     private function getRequestObject($url, $method = 'GET', $body = ''): Request
     {
         return new Request(

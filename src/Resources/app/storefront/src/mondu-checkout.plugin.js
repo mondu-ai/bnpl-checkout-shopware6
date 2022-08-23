@@ -4,7 +4,8 @@ import HttpClient from 'src/service/http-client.service';
 export default class MonduCheckoutPlugin extends Plugin {
     static options = {
         src: 'http://localhost:3002/widget.js',
-        csrfToken: ''
+        csrfToken: '',
+        payment_method: 'invoice'
     };
 
     init() {
@@ -80,7 +81,7 @@ export default class MonduCheckoutPlugin extends Plugin {
         return new Promise(resolve => {
             const client = new HttpClient(window.accessKey, window.contextToken);
 
-            client.get(this._monduTokenUrl, (response) => {
+            client.get(this._monduTokenUrl + `?payment_method=${this.options.payment_method}`, (response) => {
                 try {
                     resolve(JSON.parse(response));
                 } catch {
