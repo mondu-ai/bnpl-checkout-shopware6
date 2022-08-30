@@ -1,7 +1,7 @@
 {% sw_extends '@Storefront/storefront/component/payment/payment-method.html.twig' %}
 
 {% block component_payment_method_description %}
-    {% if payment.shortname == 'mondu_handler' || payment.shortname == 'mondu_sepa_handler' %}
+    {% if payment.shortname == 'mondu_handler' or payment.shortname == 'mondu_sepa_handler' %}
       <div class="payment-method-description">
         <strong>{{ payment.translated.name }}</strong>
         {% if payment.translated.description %}
