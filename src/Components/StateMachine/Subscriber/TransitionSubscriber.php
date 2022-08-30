@@ -221,8 +221,13 @@ class TransitionSubscriber implements EventSubscriberInterface
         $discountAmount = 0;
         /** @var \Shopware\Core\Checkout\Cart\LineItem\LineItem|OrderLineItemEntity $lineItem */
         foreach ($collection->getIterator() as $lineItem) {
+            $discountLineItemType = 'discount';
+
+            if (defined( '\Shopware\Core\Checkout\Cart\LineItem\LineItem::DISCOUNT_LINE_ITEM'))
+                $discountLineItemType = \Shopware\Core\Checkout\Cart\LineItem\LineItem::DISCOUNT_LINE_ITEM;
+
             if ($lineItem->getType() !== \Shopware\Core\Checkout\Cart\LineItem\LineItem::PROMOTION_LINE_ITEM_TYPE &&
-                $lineItem->getType() !== \Shopware\Core\Checkout\Cart\LineItem\LineItem::DISCOUNT_LINE_ITEM) {
+                $lineItem->getType() !== $discountLineItemType) {
                 continue;
             }
 
