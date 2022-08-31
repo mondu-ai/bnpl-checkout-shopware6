@@ -56,7 +56,7 @@ class ConfigSubscriber implements EventSubscriberInterface
         foreach ($event->getWriteResults() as $result) {
             $changeSet = $result->getChangeSet();
 
-            if ($result->getProperty('configurationKey') == 'MonduPayment.config.apiToken')
+            if ($result->getProperty('configurationKey') == 'Mond1SW6.config.apiToken')
             {  
                     $key = $result->getProperty('configurationValue');
 

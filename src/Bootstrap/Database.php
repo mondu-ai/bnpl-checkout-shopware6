@@ -52,7 +52,7 @@ class Database extends AbstractBootstrap
         $systemConfigRepository = $this->container->get('system_config.repository');
         $criteria = (new Criteria())
             ->addFilter(
-                new ContainsFilter('configurationKey', 'MonduPayment.config')
+                new ContainsFilter('configurationKey', 'Mond1SW6.config')
             );
         $idSearchResult = $systemConfigRepository->searchIds($criteria, Context::createDefaultContext());
 

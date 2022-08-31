@@ -14,7 +14,7 @@ use Shopware\Core\Framework\Plugin\Context\UninstallContext;
 use Shopware\Core\Framework\Plugin\Context\UpdateContext;
 use Shopware\Core\Framework\Plugin\Context\ActivateContext;
 
-class MonduPayment extends Plugin
+class Mond1SW6 extends Plugin
 {
     public function install(InstallContext $installContext): void
     {

@@ -3,7 +3,7 @@
   "description": "Mondu payment for Shopware 6",
   "version": "1.0.1",
   "type": "shopware-platform-plugin",
-  "license": "MIT",
+  "license": "proprietary",
   "authors": [
     {
       "name": "Mondu"
@@ -19,7 +19,7 @@
     "ext-json": "*"
   },
   "extra": {
-    "shopware-plugin-class": "Mondu\\MonduPayment\\MonduPayment",
+    "shopware-plugin-class": "Mondu\\MonduPayment\\Mond1SW6",
     "plugin-icon": "src/Resources/public/mondu-logo.png",
     "label": {
       "de-DE": "Mondu Rechnungskauf",
