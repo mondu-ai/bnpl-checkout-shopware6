@@ -76,7 +76,7 @@ class WebhookService
         }
     }
 
-    public function handleConfirmed($params = [], $context): array
+    public function handleConfirmed($params, $context): array
     {
         try {
             $viban = @$params['viban'];
@@ -110,7 +110,7 @@ class WebhookService
         }
     }
 
-    public function handlePending($params = [], $context): array
+    public function handlePending($params, $context): array
     {
         try {
             $externalReferenceId = @$params['external_reference_id'];
@@ -130,7 +130,7 @@ class WebhookService
         }
     }
 
-    public function handleDeclinedOrCanceled($params = [], $context): array
+    public function handleDeclinedOrCanceled($params, $context): array
     {
         try {
             $monduId = @$params['order_uuid'];

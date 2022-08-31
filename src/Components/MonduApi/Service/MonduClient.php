@@ -24,11 +24,6 @@ class MonduClient
         $this->logger = $logger;
     }
 
-    public static function getMonduClientInstance($config)
-    {
-        return new MonduClient($config);
-    }
-
     public function createOrder($order)
     {
         $body = json_encode($order);

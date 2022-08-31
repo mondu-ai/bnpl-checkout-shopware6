@@ -20,7 +20,6 @@
             <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
             <argument key="$repository" type="service" id="order.repository"/>
             <tag name="shopware.payment.method.sync" />
-            <!--            <tag name="shopware.payment.method.async" />-->
         </service>
 
         <service id="Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduSepaHandler">
@@ -29,7 +28,6 @@
             <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
             <argument key="$repository" type="service" id="order.repository"/>
             <tag name="shopware.payment.method.sync" />
-            <!--            <tag name="shopware.payment.method.async" />-->
         </service>
 
         <service id="Mondu\MonduPayment\Components\Checkout\Controller\CheckoutController" public="true">
@@ -38,10 +36,6 @@
                 <argument type="service" id="service_container"/>
             </call>
         </service>
-
-<!--        <service id="Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService">-->
-<!--            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>-->
-<!--        </service>-->
 
         <service id="mondu.mondu_api" class="Mondu\MonduPayment\Components\MonduApi\Service\MonduClient" public="true">
             <argument type="service" id="mondu.mondu_config"/>
@@ -52,11 +46,7 @@
             <argument type="service" id="mondu.mondu_api"/>
             <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
         </service>
-<!--        <service id="Mondu\MonduPayment\Components\MonduApi\Factory\MonduClientFactory" public="false"/>-->
 
-<!--        <service id="Mondu\MonduPayment\Components\MonduApi\MonduClient" public="false">-->
-<!--            <factory service="Mondu\MonduPayment\Components\MonduApi\Factory\MonduClientFactory" method="createMonduClient"/>-->
-<!--        </service>-->
         <service id="Mondu\MonduPayment\Components\Order\Model\Extension\OrderExtension">
             <tag name="shopware.entity.extension"/>
         </service>
