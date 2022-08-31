@@ -44,7 +44,8 @@ class MonduClient
         try {
             $response = $this->restClient->send($request);
             $body = json_decode($response->getBody()->getContents(), true);
-            return @$body['order'];
+
+            return $body['order'];
         } catch (GuzzleException $e) {
             $this->logger->alert('MonduClient::getMonduOrder Failed with an exception message: ' . $e->getMessage());
             return null;
@@ -57,7 +58,7 @@ class MonduClient
         try {
             $response = $this->restClient->send($request);
             $body = json_decode($response->getBody()->getContents(), true);
-            return @$body['order']['state'];
+            return $body['order']['state'];
         } catch (GuzzleException $e) {
             $this->logger->alert('MonduClient::cancelOrder Failed with an exception message: ' . $e->getMessage());
             return null;
@@ -70,7 +71,7 @@ class MonduClient
         try {
             $response = $this->restClient->send($request);
             $body = json_decode($response->getBody()->getContents(), true);
-            return @$body;
+            return $body;
         } catch (GuzzleException $e) {
             $this->logger->alert('MonduClient::adjustOrder Failed with an exception message: ' . $e->getMessage());
             return null;
@@ -83,7 +84,7 @@ class MonduClient
         try {
             $response = $this->restClient->send($request);
             $body = json_decode($response->getBody()->getContents(), true);
-            return @$body;
+            return $body;
         } catch (GuzzleException $e) {
             $this->logger->alert('MonduClient::cancelInvoice Failed with an exception message: ' . $e->getMessage());
             return null;
@@ -96,7 +97,7 @@ class MonduClient
         try {
             $response = $this->restClient->send($request);
             $body = json_decode($response->getBody()->getContents(), true);
-            return @$body;
+            return $body;
         } catch (GuzzleException $e) {
             $this->logger->alert('MonduClient::createCreditNote Failed with an exception message: ' . $e->getMessage());
             return null;
@@ -121,7 +122,7 @@ class MonduClient
 
             $responseBody = json_decode($response->getBody()->getContents(), true);
 
-            return @$responseBody['invoice'];
+            return $responseBody['invoice'];
         } catch (GuzzleException $e) {
             $this->logger->alert('MonduClient::invoiceOrder Failed with an exception message: ' . $e->getMessage());
             return null;
@@ -134,7 +135,7 @@ class MonduClient
         try {
             $response = $this->restClient->send($request);
             $body = json_decode($response->getBody()->getContents(), true);
-            return @$body;
+            return $body;
         } catch (GuzzleException $e) {
             $this->logger->alert('MonduClient::registerWebhooks Failed with an exception message: ' . $e->getMessage());
             return null;
@@ -149,7 +150,7 @@ class MonduClient
         try {
             $response = $this->restClient->send($request);
             $body = json_decode($response->getBody()->getContents(), true);
-            return @$body;
+            return $body;
         } catch (GuzzleException $e) {
             $this->logger->alert('MonduClient::getWebhooksSecret Failed with an exception message: ' . $e->getMessage());
             return null;
@@ -162,7 +163,7 @@ class MonduClient
         try {
             $response = $this->restClient->send($request);
             $body = json_decode($response->getBody()->getContents(), true);
-            return @$body;
+            return $body;
         } catch (GuzzleException $e) {
             $this->logger->alert('MonduClient::getPaymentMethods Failed with an excpetion message: '. $e->getMessage());
             return null;

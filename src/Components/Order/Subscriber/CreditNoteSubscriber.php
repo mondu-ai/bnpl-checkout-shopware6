@@ -52,7 +52,7 @@ class CreditNoteSubscriber implements EventSubscriberInterface
 
             if (count($writeResult) > 0) {
                 $payload = $writeResult[0]->getPayload();
-                $creditNoteNumber = @$payload['config']['custom']['creditNoteNumber'];
+                $creditNoteNumber = $payload['config']['custom']['creditNoteNumber'];
 
                 if ($payload['config']['name'] == 'credit_note' && $creditNoteNumber != null) {
                     $orderId = $payload['orderId'];

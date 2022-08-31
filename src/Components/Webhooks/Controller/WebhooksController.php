@@ -38,7 +38,7 @@ class WebhooksController extends StorefrontController
         $headers = $request->headers;
 
         $signature = hash_hmac('sha256', $content, $this->configService->getWebhooksSecret());
-        if ($signature !== @$headers->get('X-Mondu-Signature')) {
+        if ($signature !== $headers->get('X-Mondu-Signature')) {
             throw new \Exception('Signature mismatch');
         }
 

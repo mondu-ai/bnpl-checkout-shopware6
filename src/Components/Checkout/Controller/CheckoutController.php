@@ -58,8 +58,9 @@ class CheckoutController extends StorefrontController
 
         $monduOrder = $this->monduClient->createOrder($order);
 
+        
         return new JsonResponse([
-            'token' => @$monduOrder['uuid']
+            'token' => isset($monduOrder['uuid']) ? $monduOrder['uuid'] : null
         ]);
     }
     protected function getLineItems($collection, Context $context): array

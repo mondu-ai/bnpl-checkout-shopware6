@@ -31,11 +31,11 @@ class ConfigService
     {
         $config = $this->getPluginConfiguration();
 
-        return @$config['sandbox'] ?? false;
+        return isset($config['sandbox']) ? $config['sandbox'] : false;
     }
 
     public function getBaseApiUrl(): string
-    {
+    {        
         return $this->isSandbox() ? self::SANDBOX_API_URL : self::API_URL;
     }
 
