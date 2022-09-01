@@ -76,12 +76,12 @@ class WebhookService
         }
     }
 
-    public function handleConfirmed($params = [], $context): array
+    public function handleConfirmed($params, $context): array
     {
         try {
-            $viban = @$params['viban'];
-            $monduId = @$params['order_uuid'];
-            $externalReferenceId = @$params['external_reference_id'];
+            $viban = $params['viban'];
+            $monduId = $params['order_uuid'];
+            $externalReferenceId = $params['external_reference_id'];
 
             if (!$viban || !$externalReferenceId) {
                 throw new MonduException('Missing params.');
@@ -110,11 +110,11 @@ class WebhookService
         }
     }
 
-    public function handlePending($params = [], $context): array
+    public function handlePending($params, $context): array
     {
         try {
-            $externalReferenceId = @$params['external_reference_id'];
-            $monduId = @$params['order_uuid'];
+            $externalReferenceId = $params['external_reference_id'];
+            $monduId = $params['order_uuid'];
 
             if (!$externalReferenceId || !$monduId) {
                 throw new MonduException('Required params missing');
@@ -130,12 +130,12 @@ class WebhookService
         }
     }
 
-    public function handleDeclinedOrCanceled($params = [], $context): array
+    public function handleDeclinedOrCanceled($params, $context): array
     {
         try {
-            $monduId = @$params['order_uuid'];
-            $externalReferenceId = @$params['external_reference_id'];
-            $orderState = @$params['order_state'];
+            $monduId = $params['order_uuid'];
+            $externalReferenceId = $params['external_reference_id'];
+            $orderState = $params['order_state'];
 
             if (!$monduId || !$externalReferenceId || !$orderState) {
                 $this->log('Required params missing', [$monduId, $externalReferenceId, $orderState]);

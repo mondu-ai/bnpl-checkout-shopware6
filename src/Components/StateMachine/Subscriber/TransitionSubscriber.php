@@ -29,7 +29,7 @@ class TransitionSubscriber implements EventSubscriberInterface
     private ConfigService $configService;
     private EntityRepositoryInterface $orderDeliveryRepository;
     private EntityRepositoryInterface $orderRepository;
-    private EntityRepositoryInterface $invoiceDataRepisotry;
+    private EntityRepositoryInterface $invoiceDataRepository;
     private $operationService;
     private $monduClient;
     private $orderDataRepository;

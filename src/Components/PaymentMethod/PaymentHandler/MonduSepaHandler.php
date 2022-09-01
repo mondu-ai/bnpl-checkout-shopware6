@@ -20,6 +20,7 @@ class MonduSepaHandler implements SynchronousPaymentHandlerInterface
     private OrderTransactionStateHandler $transactionStateHandler;
     private MonduClient $monduClient;
     private $orderDataRepository;
+    private $orderRepository;
 
     public function __construct(OrderTransactionStateHandler $transactionStateHandler, MonduClient $monduClient, $orderDataRepository, EntityRepositoryInterface $repository)
     {

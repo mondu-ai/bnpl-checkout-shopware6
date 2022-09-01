@@ -31,11 +31,11 @@ class ConfigService
     {
         $config = $this->getPluginConfiguration();
 
-        return @$config['sandbox'] ?? false;
+        return isset($config['sandbox']) ? $config['sandbox'] : false;
     }
 
     public function getBaseApiUrl(): string
-    {
+    {        
         return $this->isSandbox() ? self::SANDBOX_API_URL : self::API_URL;
     }
 
@@ -51,7 +51,7 @@ class ConfigService
 
     public function getPluginConfiguration()
     {
-        return $this->systemConfigService->get('MonduPayment.config') ?: [];
+        return $this->systemConfigService->get('Mond1SW6.config') ?: [];
     }
 
     public function getApiToken()
@@ -70,7 +70,7 @@ class ConfigService
 
     public function setWebhooksSecret($secret = '')
     {
-        return $this->systemConfigService->set('MonduPayment.config.webhooksSecret', $secret);
+        return $this->systemConfigService->set('Mond1SW6.config.webhooksSecret', $secret);
     }
 
     public function isStateWatchingEnabled(): bool

@@ -26,35 +26,35 @@ export default class MonduCheckoutPlugin extends Plugin {
     async _initWidget(src) {
         return new Promise((resolve, reject) => {
             const monduSkd = document.createElement('script');
-            monduSkd.src= src;
+            monduSkd.src = src;
             document.head.appendChild(monduSkd);
-            monduSkd.onload = function() {
+            monduSkd.onload = function () {
                 resolve(true);
             }
-            monduSkd.onerror = function() {
+            monduSkd.onerror = function () {
                 resolve(false);
             }
         })
     }
 
     async _submitForm(event) {
-        if(this._isWidgetComplete()) {
+        if (this._isWidgetComplete()) {
             return true;
         }
 
         event.preventDefault();
 
-        if(await this._isWidgetLoaded) {
+        if (await this._isWidgetLoaded) {
             this._appendWidgetContainer();
             const { token } = await this._getMonduToken();
             this._appendTokenToInput(token);
             const removeWidgetContainer = this._removeWidgetContainer.bind(this);
 
-            function submitForm() {
+            submitForm = function () {
                 this.el.form.submit();
             }
 
-            function monduComplete() {
+            monduComplete = function () {
                 this._setMonduComplete('1');
             }
 
@@ -64,10 +64,10 @@ export default class MonduCheckoutPlugin extends Plugin {
                 token,
                 onClose() {
                     removeWidgetContainer();
-                    if(that._isWidgetComplete()) {
+                    if (that._isWidgetComplete()) {
                         submitForm.apply(that);
                     } else {
-                      window.location.href = that._checkoutConfirmPage;
+                        window.location.href = that._checkoutConfirmPage;
                     }
                 },
                 onSuccess() {
@@ -88,7 +88,7 @@ export default class MonduCheckoutPlugin extends Plugin {
                     resolve(null);
                 }
             });
-        }) 
+        })
     }
 
     _appendWidgetContainer() {
@@ -97,18 +97,18 @@ export default class MonduCheckoutPlugin extends Plugin {
 
     _removeWidgetContainer() {
         const widgetContainer = document.getElementById("mondu-checkout-widget");
-        if(widgetContainer) {
+        if (widgetContainer) {
             widgetContainer.style.display = 'none';
             // window.monduCheckout.destroy();
         }
     }
 
     _setMonduComplete(flag) {
-        this.el.form.dataset.monduComplete = parseInt(flag);
+        this.el.form.dataset.monduComplete = parseInt(flag, 10);
     }
 
     _isWidgetComplete() {
-        return parseInt(this.el.form.dataset.monduComplete) === 1;
+        return parseInt(this.el.form.dataset.monduComplete, 10) === 1;
     }
 
     _appendTokenToInput(token) {

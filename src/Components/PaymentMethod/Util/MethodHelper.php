@@ -26,7 +26,7 @@ class MethodHelper
             'mondu_sepa_handler' => 'direct_debit'
         ];
 
-        return @$mapping[$paymentMethodName] ?? self::DEFAULT_MONDU_PAYMENT_METHOD;
+        return isset($mapping[$paymentMethodName]) ? $mapping[$paymentMethodName] : self::DEFAULT_MONDU_PAYMENT_METHOD;
     }
 
     public static function monduNameToHandler($paymentMethodName)
@@ -36,7 +36,7 @@ class MethodHelper
             'direct_debit' => MonduSepaHandler::class
         ];
 
-        return @$mapping[$paymentMethodName] ?? '';
+        return isset($mapping[$paymentMethodName]) ? $mapping[$paymentMethodName] : '';
     }
 
     public static function monduPaymentMethodOrDefault($paymentMethod)
