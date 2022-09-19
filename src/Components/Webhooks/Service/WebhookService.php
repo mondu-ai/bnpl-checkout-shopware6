@@ -50,7 +50,8 @@ class WebhookService
             {
                 $this->configService->setWebhooksSecret($keys['webhook_secret']);
             }
-            
+
+            return $keys['webhook_secret'] ?? false;
         } catch (MonduException $e) {
             $this->log('Get Webhook Secret Failed', [], $e);
             return false;

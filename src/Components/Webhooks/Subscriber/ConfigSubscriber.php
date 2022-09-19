@@ -2,6 +2,8 @@
 
 namespace Mondu\MonduPayment\Components\Webhooks\Subscriber;
 
+use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
+use Mondu\MonduPayment\Components\StateMachine\Exception\MonduException;
 use Shopware\Core\Framework\DataAbstractionLayer\Event\EntityLoadedEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Shopware\Core\Content\Product\ProductEvents;
@@ -17,10 +19,12 @@ class ConfigSubscriber implements EventSubscriberInterface
 {
 
     private WebhookService $webhookService;
+    private ConfigService $configService;
 
-    public function __construct(WebhookService $webhookService)
+    public function __construct(WebhookService $webhookService, ConfigService $configService)
     {
         $this->webhookService = $webhookService;
+        $this->configService = $configService;
     }
 
 
@@ -58,10 +62,17 @@ class ConfigSubscriber implements EventSubscriberInterface
 
             if ($result->getProperty('configurationKey') == 'Mond1SW6.config.apiToken')
             {  
-                    $key = $result->getProperty('configurationValue');
+                $key = $result->getProperty('configurationValue');
 
-                    $this->webhookService->getSecret($key, $event->getContext());
-                    $this->webhookService->register($event->getContext());
+                $isApiTokenValid = !!$this->webhookService->getSecret($key, $event->getContext());
+
+                if(!$isApiTokenValid) {
+                    $this->configService->setIsApiTokenValid(false);
+                    throw new MonduException('Invalid api key');
+                }
+                $this->configService->setIsApiTokenValid(true);
+
+                $this->webhookService->register($event->getContext());
             }
 
         }
