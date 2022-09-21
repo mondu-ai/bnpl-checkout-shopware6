@@ -80,7 +80,7 @@ class TransitionSubscriber implements EventSubscriberInterface
 
         switch ($event->getToPlace()->getTechnicalName()) {
             case 'cancelled': //$this->configService->getStateCancel():
-                $state = $this->monduClient->cancelOrder($monduOrder->getReferenceId());
+                $state = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->cancelOrder($monduOrder->getReferenceId());
                 if ($state) {
                     $this->updateOrder($event->getContext(), $monduOrder, [
                         OrderDataEntity::FIELD_ORDER_STATE => $state
@@ -154,7 +154,7 @@ class TransitionSubscriber implements EventSubscriberInterface
         $shipping = ($order->getShippingCosts()->getUnitPrice() - ($order->getShippingCosts()->getCalculatedTaxes()->getAmount() / $order->getShippingCosts()->getQuantity()));
 
         try {
-            $invoice = $this->monduClient->invoiceOrder(
+            $invoice = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->invoiceOrder(
                 $monduData->getReferenceId(),
                 $invoiceNumber,
                 round((float) $order->getPrice()->getTotalPrice() * 100),

@@ -52,6 +52,10 @@ class CreditNoteSubscriber implements EventSubscriberInterface
 
             if (count($writeResult) > 0) {
                 $payload = $writeResult[0]->getPayload();
+                if (!isset($payload['config']['custom']['creditNoteNumber'])){
+                    return;
+                }
+
                 $creditNoteNumber = $payload['config']['custom']['creditNoteNumber'];
 
                 if ($payload['config']['name'] == 'credit_note' && $creditNoteNumber != null) {
@@ -77,7 +81,7 @@ class CreditNoteSubscriber implements EventSubscriberInterface
                     }
 
                     if ($invoiceEntity != null) {
-                        $response = $this->monduClient->createCreditNote(
+                        $response = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->createCreditNote(
                             $invoiceEntity->getExternalInvoiceUuid(),
                             [
                                 'external_reference_id' => $creditNoteNumber,

@@ -47,7 +47,9 @@ class CheckoutSubscriber implements EventSubscriberInterface
             $extension = $event->getPage()->getExtension('mondu_checkout') ?? new ArrayStruct();
             $extension->set('config',
                 [
-                    'src' => $this->configService->getWidgetUrl(),
+                    'src' => $this->configService->setSalesChannelId(
+                                $event->getSalesChannelContext()->getSalesChannelId()
+                             )->getWidgetUrl(),
                     'payment_method' => MethodHelper::shortNameToMonduName($paymentMethod->getShortName())
                 ]
             );
@@ -56,7 +58,7 @@ class CheckoutSubscriber implements EventSubscriberInterface
     }
 
     public function filterPaymentMethods(SalesChannelProcessCriteriaEvent $event) {
-        $allowedPaymentMethods = $this->monduOperationService->getAllowedPaymentMethods();
+        $allowedPaymentMethods = $this->monduOperationService->getAllowedPaymentMethods($event->getSalesChannelContext()->getSalesChannelId());
         $disallowedPaymentMethods = [];
         $allPaymentMethods = MethodHelper::MONDU_PAYMENT_METHODS;
 

@@ -23,9 +23,9 @@ class MonduOperationService
         $this->cache = $cache;
     }
 
-    public function syncOrder(OrderDataEntity $orderData)
+    public function syncOrder(OrderDataEntity $orderData, $salesChannelId = null)
     {
-        $order = $this->monduClient->getMonduOrder($orderData->getReferenceId());
+        $order = $this->monduClient->setSalesChannelId($salesChannelId)->getMonduOrder($orderData->getReferenceId());
         $this->orderDataRepository->update([
             [
                 OrderDataEntity::FIELD_ID => $orderData->getId(),
@@ -37,14 +37,14 @@ class MonduOperationService
         return $order['state'];
     }
 
-    public function getAllowedPaymentMethods(): array
+    public function getAllowedPaymentMethods($salesChannelId = null): array
     {
         $cacheItem = $this->cache->getItem('mondu_payment_methods');
         if ($cacheItem->isHit()) {
             return $cacheItem->get();
         }
 
-        $paymentMethods = $this->monduClient->getPaymentMethods();
+        $paymentMethods = $this->monduClient->setSalesChannelId($salesChannelId)->getPaymentMethods();
         if($paymentMethods) {
             $result = [];
 

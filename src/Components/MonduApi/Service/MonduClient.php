@@ -16,12 +16,22 @@ class MonduClient
     private $restClient;
     private LoggerInterface $logger;
     private string $key;
+    private ?string $salesChannelId;
 
     public function __construct(ConfigService $configService, LoggerInterface $logger)
     {
         $this->config = $configService;
         $this->restClient = new Client();
         $this->logger = $logger;
+
+        $this->salesChannelId = null;
+    }
+
+    public function setSalesChannelId($salesChannelId = null)
+    {
+        $this->salesChannelId = $salesChannelId;
+
+        return $this;
     }
 
     public function createOrder($order)
@@ -77,7 +87,7 @@ class MonduClient
             return null;
         }
     }
-
+    // TODO: fix 
     public function cancelInvoice($orderUuid, $invoiceUuid): ?array
     {
         $request = $this->getRequestObject('orders/'. $orderUuid.'/invoices/' . $invoiceUuid . '/cancel', 'POST');
@@ -129,6 +139,7 @@ class MonduClient
         }
     }
 
+    // TODO: fix this
     public function registerWebhook($body = []): ?array
     {
         $request = $this->getRequestObject('webhooks', 'POST', json_encode($body));
@@ -142,6 +153,7 @@ class MonduClient
         }
     }
 
+    // TODO: fix this
     public function getWebhooksSecret($key): ?array
     {
         $this->key = $key;
@@ -174,8 +186,8 @@ class MonduClient
     {
         return new Request(
             $method,
-            $this->config->getApiUrl($url),
-            ['Content-Type' => 'application/json', 'Api-Token' => $this->key ?? $this->config->getApiToken()],
+            $this->config->setSalesChannelId($this->salesChannelId)->getApiUrl($url),
+            ['Content-Type' => 'application/json', 'Api-Token' => $this->key ?? $this->config->setSalesChannelId($this->salesChannelId)->getApiToken()],
             $body
         );
     }
