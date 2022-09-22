@@ -87,7 +87,7 @@ class MonduClient
             return null;
         }
     }
-    // TODO: fix 
+
     public function cancelInvoice($orderUuid, $invoiceUuid): ?array
     {
         $request = $this->getRequestObject('orders/'. $orderUuid.'/invoices/' . $invoiceUuid . '/cancel', 'POST');
@@ -139,7 +139,6 @@ class MonduClient
         }
     }
 
-    // TODO: fix this
     public function registerWebhook($body = []): ?array
     {
         $request = $this->getRequestObject('webhooks', 'POST', json_encode($body));
@@ -153,7 +152,6 @@ class MonduClient
         }
     }
 
-    // TODO: fix this
     public function getWebhooksSecret($key): ?array
     {
         $this->key = $key;
