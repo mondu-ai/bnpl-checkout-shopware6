@@ -18,6 +18,7 @@ class ConfigService
      * @var SystemConfigService
      */
     private SystemConfigService $systemConfigService;
+    private ?string $salesChannelId = null;
 
     /**
      * @param SystemConfigService $systemConfigService
@@ -25,6 +26,13 @@ class ConfigService
     public function __construct(SystemConfigService $systemConfigService)
     {
         $this->systemConfigService = $systemConfigService;
+    }
+
+    public function setSalesChannelId($salesChannelId = null)
+    {
+        $this->salesChannelId = $salesChannelId;
+
+        return $this;
     }
 
     public function isSandbox()
@@ -51,7 +59,7 @@ class ConfigService
 
     public function getPluginConfiguration()
     {
-        return $this->systemConfigService->get('Mond1SW6.config') ?: [];
+        return $this->systemConfigService->get('Mond1SW6.config', $this->salesChannelId) ?: [];
     }
 
     public function getApiToken()
@@ -70,7 +78,7 @@ class ConfigService
 
     public function setWebhooksSecret($secret = '')
     {
-        return $this->systemConfigService->set('Mond1SW6.config.webhooksSecret', $secret);
+        return $this->systemConfigService->set('Mond1SW6.config.webhooksSecret', $secret, $this->salesChannelId);
     }
 
     public function isStateWatchingEnabled(): bool

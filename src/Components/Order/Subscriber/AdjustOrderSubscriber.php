@@ -151,7 +151,7 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                         ]
                     ];
 
-                    $response = $this->monduClient->adjustOrder(
+                    $response = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->adjustOrder(
                         $monduOrderEntity->getReferenceId(),
                         $adjustParams
                     );

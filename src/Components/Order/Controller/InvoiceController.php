@@ -16,6 +16,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Mondu\MonduPayment\Components\Order\Model\Extension\OrderExtension;
 use Mondu\MonduPayment\Components\Order\Model\OrderDataEntity;
+use Mondu\MonduPayment\Util\CriteriaHelper;
 
 /**
  * @RouteScope(scopes={"api"})
@@ -50,13 +51,14 @@ class InvoiceController extends AbstractController
             $criteria->addFilter(new EqualsFilter('orderId', $orderId));
 
             $invoiceCriteria = new Criteria();
+            $order = $this->getOrder($orderId, $context);
             $invoiceCriteria->addFilter(new EqualsFilter('documentId', $invoiceId));
 
             $orderEntity = $this->orderDataRepository->search($criteria, $context)->first();
             $invoiceEntity = $this->invoiceDataRepository->search($invoiceCriteria, $context)->first();
 
             if ($orderEntity != null && $invoiceEntity != null) {
-                $cancelation = $this->monduClient->cancelInvoice(
+                $cancelation = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->cancelInvoice(
                     $orderEntity->getReferenceId(),
                     $invoiceEntity->getExternalInvoiceUuid()
                 );
@@ -72,5 +74,12 @@ class InvoiceController extends AbstractController
         } catch (\Exception $e) {
             return new Response(json_encode(['status' => 'error', 'error' => '3' ]), Response::HTTP_BAD_REQUEST);
         }
+    }
+
+    protected function getOrder(string $orderId, Context $context)
+    {
+        $criteria = CriteriaHelper::getCriteriaForOrder($orderId);
+
+        return $this->orderRepository->search($criteria, $context)->first();
     }
 }

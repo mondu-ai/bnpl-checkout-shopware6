@@ -16,12 +16,22 @@ class MonduClient
     private $restClient;
     private LoggerInterface $logger;
     private string $key;
+    private ?string $salesChannelId;
 
     public function __construct(ConfigService $configService, LoggerInterface $logger)
     {
         $this->config = $configService;
         $this->restClient = new Client();
         $this->logger = $logger;
+
+        $this->salesChannelId = null;
+    }
+
+    public function setSalesChannelId($salesChannelId = null)
+    {
+        $this->salesChannelId = $salesChannelId;
+
+        return $this;
     }
 
     public function createOrder($order)
@@ -174,8 +184,8 @@ class MonduClient
     {
         return new Request(
             $method,
-            $this->config->getApiUrl($url),
-            ['Content-Type' => 'application/json', 'Api-Token' => $this->key ?? $this->config->getApiToken()],
+            $this->config->setSalesChannelId($this->salesChannelId)->getApiUrl($url),
+            ['Content-Type' => 'application/json', 'Api-Token' => $this->key ?? $this->config->setSalesChannelId($this->salesChannelId)->getApiToken()],
             $body
         );
     }

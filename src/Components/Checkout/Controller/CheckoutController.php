@@ -56,7 +56,7 @@ class CheckoutController extends StorefrontController
 
         $order = $this->getOrderData($cart, $cart->getLineItems(), $salesChannelContext->getContext(), $salesChannelContext->getCustomer(), $orderNumber, $paymentMethod);
 
-        $monduOrder = $this->monduClient->createOrder($order);
+        $monduOrder = $this->monduClient->setSalesChannelId($salesChannelContext->getSalesChannelId())->createOrder($order);
 
         
         return new JsonResponse([

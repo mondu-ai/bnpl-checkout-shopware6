@@ -38,7 +38,7 @@ class MonduSepaHandler implements SynchronousPaymentHandlerInterface
         }
 
         $order = $transaction->getOrder();
-        $monduOrder = $this->monduClient->getMonduOrder($monduData->get('order-id'));
+        $monduOrder = $this->monduClient->setSalesChannelId($salesChannelContext->getId())->getMonduOrder($monduData->get('order-id'));
         if (!$monduOrder) {
             throw new SyncPaymentProcessException($transaction->getOrderTransaction()->getId(), 'unknown error during payment');
         }
