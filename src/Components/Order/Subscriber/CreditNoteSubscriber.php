@@ -20,6 +20,8 @@ use Shopware\Core\Framework\DataAbstractionLayer\Write\Command\UpdateCommand;
 use Shopware\Core\Framework\DataAbstractionLayer\Write\Validation\PreWriteValidationEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Mondu\MonduPayment\Components\StateMachine\Exception\MonduException;
+use Mondu\MonduPayment\Components\Invoice\InvoiceDataEntity;
+use Mondu\MonduPayment\Components\Invoice\InvoiceDataCollection;
 
 class CreditNoteSubscriber implements EventSubscriberInterface
 {
@@ -52,13 +54,16 @@ class CreditNoteSubscriber implements EventSubscriberInterface
 
             if (count($writeResult) > 0) {
                 $payload = $writeResult[0]->getPayload();
+
                 if (!isset($payload['config']['custom']['creditNoteNumber'])){
                     return;
                 }
 
                 $creditNoteNumber = $payload['config']['custom']['creditNoteNumber'];
 
-                if ($payload['config']['name'] == 'credit_note' && $creditNoteNumber != null) {
+                if ($payload['config']['name'] == 'credit_note') {
+                    $creditNoteNumber = $payload['config']['custom']['creditNoteNumber'];
+
                     $orderId = $payload['orderId'];
                     $invoiceNumber = $payload['config']['custom']['invoiceNumber'];
 
@@ -92,6 +97,18 @@ class CreditNoteSubscriber implements EventSubscriberInterface
 
                         if ($response == null) {
                             $this->log('Credit Credit Note Response Failed', [$event]);
+                        } else {
+
+                            $this->invoiceDataRepository->upsert([
+                                [
+                                    InvoiceDataEntity::FIELD_ORDER_ID => $order->getId(),
+                                    InvoiceDataEntity::FIELD_ORDER_VERSION_ID => $order->getVersionId(),
+                                    InvoiceDataEntity::FIELD_DOCUMENT_ID => $payload['id'],
+                                    InvoiceDataEntity::FIELD_INVOICE_NUMBER => $creditNoteNumber,
+                                    InvoiceDataEntity::FIELD_EXTERNAL_INVOICE_UUID => $response['credit_note']['uuid']                                    ,
+                                ]
+                              ], $event->getContext());
+
                         }
                     }
                 }

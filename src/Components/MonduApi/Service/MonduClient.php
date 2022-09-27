@@ -101,6 +101,19 @@ class MonduClient
         }
     }
 
+    public function cancelCreditNote($invoiceUuid, $creditNoteUuid): ?array
+    {
+        $request = $this->getRequestObject('invoices/' . $invoiceUuid . '/credit_notes/' . $creditNoteUuid . '/cancel', 'POST');
+        try {
+            $response = $this->restClient->send($request);
+            $body = json_decode($response->getBody()->getContents(), true);
+            return $body;
+        } catch (GuzzleException $e) {
+            $this->logger->alert('MonduClient::cancelInvoice Failed with an exception message: ' . $e->getMessage());
+            return null;
+        }
+    }
+
     public function createCreditNote($invoiceUuid, $body = []): ?array
     {
         $request = $this->getRequestObject('invoices/' . $invoiceUuid . '/credit_notes', 'POST', json_encode($body));
