@@ -15,6 +15,7 @@
         <service id="Mondu\MonduPayment\Components\Webhooks\Subscriber\ConfigSubscriber">
             <tag name="kernel.event_subscriber"/>
             <argument key="$webhookService" type="service" id="mondu.webhook_service"/>
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
         </service>
     </services>
 </container>

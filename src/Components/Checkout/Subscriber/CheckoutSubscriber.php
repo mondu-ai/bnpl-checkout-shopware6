@@ -68,6 +68,10 @@ class CheckoutSubscriber implements EventSubscriberInterface
             }
         }
 
+        if(!$this->configService->setSalesChannelId($event->getSalesChannelContext()->getSalesChannelId())->getApiTokenValid()) {
+            $disallowedPaymentMethods = $allPaymentMethods;
+        }
+
         $event->getCriteria()->addFilter(new NotFilter(
             NotFilter::CONNECTION_OR,
             array_map(function ($val) {

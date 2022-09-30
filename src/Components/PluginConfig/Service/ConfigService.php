@@ -76,9 +76,21 @@ class ConfigService
         return $config['webhooksSecret'] ?? null;
     }
 
+    public function getApiTokenValid()
+    {
+        $config = $this->getPluginConfiguration();
+
+        return $config['apiTokenValid'] ?? false;
+    }
+
     public function setWebhooksSecret($secret = '')
     {
         return $this->systemConfigService->set('Mond1SW6.config.webhooksSecret', $secret, $this->salesChannelId);
+    }
+
+    public function setIsApiTokenValid(bool $val = true)
+    {
+        $this->systemConfigService->set('Mond1SW6.config.apiTokenValid', $val);
     }
 
     public function isStateWatchingEnabled(): bool
