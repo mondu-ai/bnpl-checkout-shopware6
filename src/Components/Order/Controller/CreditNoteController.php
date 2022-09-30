@@ -57,6 +57,7 @@ class CreditNoteController extends AbstractController
             
             $documentCriteria = new Criteria();
             $documentCriteria->addFilter(new EqualsFilter('id', $creditNoteId));
+            $documentCriteria->addAssociation('order');
             $document = $this->documentRepository->search($documentCriteria, $context)->first();
             $documentInvoiceNumber = $document->getConfig()['custom']['invoiceNumber'];
 
@@ -65,7 +66,7 @@ class CreditNoteController extends AbstractController
             $invoiceEntity = $this->invoiceDataRepository->search($invoiceCriteria, $context)->first();
 
             if ($invoiceEntity != null) {
-                $cancelation = $this->monduClient->cancelCreditNote(
+                $cancelation = $this->monduClient->setSalesChannelId($document->getOrder()->getSalesChannelId())->cancelCreditNote(
                     $invoiceEntity->getExternalInvoiceUuid(),
                     $creditNoteEntity->getExternalInvoiceUuid()
                 );
