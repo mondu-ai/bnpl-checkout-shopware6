@@ -7,5 +7,15 @@
       "cancelSuccessMessage": "Successfully cancelled.",
       "cancelErrorMessage": "Error ocurred. Document could not be cancelled."
     }
+  },
+  "sw-mondu-config": {
+    "apiValidation": {
+      "apiConfigurationValidationTitle": "API Validation",
+      "apiConfigurationValidationMessage": "API Credentials validation started...",
+      "apiConfigurationSuccessTitle": "Success!",
+      "apiConfigurationSuccessMessage": "API Credentials are valid!",
+      "apiConfigurationFailureTitle": "Failure!",
+      "apiConfigurationFailureMessage": "API Credentials are invalid."
+    }
   }
 }
