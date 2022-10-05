@@ -23,8 +23,9 @@
             <label>API Key</label>
         </input-field>
 
-        <component name="mondu-test-credentials-button">
+        <component name="mondu-test-api-button">
             <name>testLiveClientCredentialsButton</name>
+            <label>Validate API Credentials</label>
             <apiMode>live</apiMode>
         </component>
     </card>
