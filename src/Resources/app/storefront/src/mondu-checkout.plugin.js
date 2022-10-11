@@ -50,14 +50,6 @@ export default class MonduCheckoutPlugin extends Plugin {
             this._appendTokenToInput(token);
             const removeWidgetContainer = this._removeWidgetContainer.bind(this);
 
-            submitForm = function () {
-                this.el.form.submit();
-            }
-
-            monduComplete = function () {
-                this._setMonduComplete('1');
-            }
-
             let that = this;
 
             window.monduCheckout.render({
@@ -65,13 +57,13 @@ export default class MonduCheckoutPlugin extends Plugin {
                 onClose() {
                     removeWidgetContainer();
                     if (that._isWidgetComplete()) {
-                        submitForm.apply(that);
+                        that.el.form.submit();
                     } else {
                         window.location.href = that._checkoutConfirmPage;
                     }
                 },
                 onSuccess() {
-                    monduComplete.apply(that);
+                    that._setMonduComplete('1');
                 }
             });
         }
