@@ -60,7 +60,7 @@ class CheckoutController extends StorefrontController
 
         
         return new JsonResponse([
-            'token' => isset($monduOrder['uuid']) ? $monduOrder['uuid'] : null
+            'token' => isset($monduOrder['uuid']) ? $monduOrder['uuid'] : 'error'
         ]);
     }
     protected function getLineItems($collection, Context $context): array

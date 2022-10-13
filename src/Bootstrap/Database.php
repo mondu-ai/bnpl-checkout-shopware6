@@ -10,6 +10,7 @@ use Doctrine\DBAL\DBALException;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\ContainsFilter;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\MultiFilter;
 use Shopware\Core\Framework\Context;
 
 class Database extends AbstractBootstrap
@@ -50,10 +51,16 @@ class Database extends AbstractBootstrap
         //Search for config keys that contain the bundle's name
         /** @var EntityRepositoryInterface $systemConfigRepository */
         $systemConfigRepository = $this->container->get('system_config.repository');
-        $criteria = (new Criteria())
-            ->addFilter(
-                new ContainsFilter('configurationKey', 'Mond1SW6.config')
-            );
+        $criteria = new Criteria();
+        $criteria->addFilter(
+            new MultiFilter(
+                MultiFilter::CONNECTION_OR,
+                [
+                    new ContainsFilter('configurationKey', 'Mond1SW6.config'),
+                    new ContainsFilter('configurationKey', 'Mond1SW6.customConfig')
+                ]
+            )
+        );
         $idSearchResult = $systemConfigRepository->searchIds($criteria, Context::createDefaultContext());
 
         //Formatting IDs array and deleting config keys

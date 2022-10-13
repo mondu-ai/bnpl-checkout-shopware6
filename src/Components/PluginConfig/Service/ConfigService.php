@@ -62,6 +62,11 @@ class ConfigService
         return $this->systemConfigService->get('Mond1SW6.config', $this->salesChannelId) ?: [];
     }
 
+    public function getPluginCustomConfiguration()
+    {
+        return $this->systemConfigService->get('Mond1SW6.customConfig', $this->salesChannelId) ?: [];
+    }
+
     public function getApiToken()
     {
         $config = $this->getPluginConfiguration();
@@ -71,26 +76,26 @@ class ConfigService
 
     public function getWebhooksSecret()
     {
-        $config = $this->getPluginConfiguration();
+        $config = $this->getPluginCustomConfiguration();
 
         return $config['webhooksSecret'] ?? null;
     }
 
     public function getApiTokenValid()
     {
-        $config = $this->getPluginConfiguration();
+        $config = $this->getPluginCustomConfiguration();
 
         return $config['apiTokenValid'] ?? false;
     }
 
     public function setWebhooksSecret($secret = '')
     {
-        return $this->systemConfigService->set('Mond1SW6.config.webhooksSecret', $secret, $this->salesChannelId);
+        return $this->systemConfigService->set('Mond1SW6.customConfig.webhooksSecret', $secret, $this->salesChannelId);
     }
 
-    public function setIsApiTokenValid(bool $val = true)
+    public function setIsApiTokenValid(bool $val = false)
     {
-        $this->systemConfigService->set('Mond1SW6.config.apiTokenValid', $val);
+        $this->systemConfigService->set('Mond1SW6.customConfig.apiTokenValid', $val, $this->salesChannelId);
     }
 
     public function isStateWatchingEnabled(): bool

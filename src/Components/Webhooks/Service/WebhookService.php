@@ -29,6 +29,7 @@ class WebhookService
     private LoggerInterface $logger;
     private $orderDataRepository;
     private ConfigService $configService;
+    private $salesChannelId;
 
     public function __construct(StateMachineRegistry $stateMachineRegistry, EntityRepositoryInterface $orderRepository, LoggerInterface $logger, MonduClient $monduClient, $orderDataRepository, ConfigService $configService)
     {
@@ -38,17 +39,25 @@ class WebhookService
         $this->monduClient = $monduClient;
         $this->orderDataRepository = $orderDataRepository;
         $this->configService = $configService;
+        $this->salesChannelId = null;
+    }
+
+    public function setSalesChannelId($salesChannelId = null)
+    {
+        $this->salesChannelId = $salesChannelId;
+
+        return $this;
     }
 
     public function getSecret($key, $context)
     {
         try {
 
-            $keys = $this->monduClient->getWebhooksSecret($key);
+            $keys = $this->monduClient->setSalesChannelId($this->salesChannelId)->getWebhooksSecret($key);
 
             if (isset($keys['webhook_secret']))
             {
-                $this->configService->setWebhooksSecret($keys['webhook_secret']);
+                $this->configService->setSalesChannelId($this->salesChannelId)->setWebhooksSecret($keys['webhook_secret']);
             }
 
             return $keys['webhook_secret'] ?? false;
@@ -67,7 +76,7 @@ class WebhookService
             ];
 
             foreach ($webhooks as $webhook) {
-                $this->monduClient->registerWebhook($webhook);
+                $this->monduClient->setSalesChannelId($this->salesChannelId)->registerWebhook($webhook);
             }
             
             return true;
