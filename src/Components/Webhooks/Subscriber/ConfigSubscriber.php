@@ -63,16 +63,15 @@ class ConfigSubscriber implements EventSubscriberInterface
             if ($result->getProperty('configurationKey') == 'Mond1SW6.config.apiToken')
             {  
                 $key = $result->getProperty('configurationValue');
-
-                $isApiTokenValid = !!$this->webhookService->getSecret($key, $event->getContext());
+                $salesChannelId = $result->getProperty('salesChannelId');
+                $isApiTokenValid = !!$this->webhookService->setSalesChannelId($salesChannelId)->getSecret($key, $event->getContext());
 
                 if(!$isApiTokenValid) {
-                    $this->configService->setIsApiTokenValid(false);
-                    throw new MonduException('Invalid api key');
+                    $this->configService->setSalesChannelId($salesChannelId)->setIsApiTokenValid(false);
+                } else {
+                    $this->configService->setSalesChannelId($salesChannelId)->setIsApiTokenValid(true);
+                    $this->webhookService->setSalesChannelId($salesChannelId)->register($event->getContext());    
                 }
-                $this->configService->setIsApiTokenValid(true);
-
-                $this->webhookService->register($event->getContext());
             }
 
         }
