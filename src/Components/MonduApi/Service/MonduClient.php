@@ -88,6 +88,19 @@ class MonduClient
         }
     }
 
+    public function updateExternalInfo($orderUuid, $body = []): ?array
+    {
+        $request = $this->getRequestObject('orders/'. $orderUuid.'/update_external_info', 'POST', json_encode($body));
+        try {
+            $response = $this->restClient->send($request);
+            $body = json_decode($response->getBody()->getContents(), true);
+            return $body;
+        } catch (GuzzleException $e) {
+            $this->logger->alert('MonduClient::updateExternalInfo Failed with an exception message: ' . $e->getMessage());
+            return null;
+        }
+    }
+
     public function cancelInvoice($orderUuid, $invoiceUuid): ?array
     {
         $request = $this->getRequestObject('orders/'. $orderUuid.'/invoices/' . $invoiceUuid . '/cancel', 'POST');
