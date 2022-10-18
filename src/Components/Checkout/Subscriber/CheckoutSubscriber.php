@@ -31,9 +31,8 @@ class CheckoutSubscriber implements EventSubscriberInterface
     public static function getSubscribedEvents(): array
     {
         return [
-            CheckoutConfirmPageLoadedEvent::class => ['addWidgetData', 310],
-            AccountEditOrderPageLoadedEvent::class => ['addWidgetData', 310],
-            CheckoutConfirmPageLoadedEvent::class => ['filterPaymentMethods', 320],
+            CheckoutConfirmPageLoadedEvent::class => 'addWidgetData',
+            AccountEditOrderPageLoadedEvent::class => 'addWidgetData'
         ];
     }
 
@@ -56,6 +55,8 @@ class CheckoutSubscriber implements EventSubscriberInterface
             );
             $event->getPage()->addExtension('mondu_checkout', $extension);
         }
+
+        $this->filterPaymentMethods($event);
     }
 
     public function filterPaymentMethods(PageLoadedEvent $event) {
