@@ -75,22 +75,24 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
             $paymentMethod = $transaction ? $transaction->getPaymentMethod() : null;
             $transitionName = $transition->getTransitionName();
 
-            if ($transitionName == 'reopen' && !$this->canCancelOrder($order)) {
-                throw new MonduException('Order was canceled.');
-            }
+            if (MethodHelper::isMonduPayment($paymentMethod)) { 
+                if (!$this->configService->skipOrderStateValidation()) {
 
-            if ($transitionName == 'ship' || $transitionName == 'ship_partially') {
-                if ($paymentMethod &&
-                  MethodHelper::isMonduPayment($paymentMethod) &&
-                  !$this->canShipOrder($order, $order->getSalesChannelId())
-              ) {
-                    throw new MonduException('Order can not be shipped.');
-                }
+                    if ($transitionName == 'reopen' && !$this->canCancelOrder($order)) {
+                        throw new MonduException('Order was canceled.');
+                    }
 
-                $documentIds = $context->getExtensions()['mail-attachments']->getDocumentIds();
+                    if ($transitionName == 'ship' || $transitionName == 'ship_partially') {
+                        if (!$this->canShipOrder($order, $order->getSalesChannelId())) {
+                            throw new MonduException('Order can not be shipped. Invoice required.');
+                        }
 
-                if (count($documentIds) != 1) {
-                    throw new MonduException('Please select one document to attach.');
+                        $documentIds = $context->getExtensions()['mail-attachments']->getDocumentIds();
+
+                        if (count($documentIds) != 1) {
+                            throw new MonduException('Please select one document to attach.');
+                        }
+                    }
                 }
             }
         }

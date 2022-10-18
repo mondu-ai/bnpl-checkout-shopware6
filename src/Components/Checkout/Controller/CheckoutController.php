@@ -42,11 +42,7 @@ class CheckoutController extends StorefrontController
     {
         $paymentMethod = MethodHelper::monduPaymentMethodOrDefault($request->get('payment_method'));
 
-        $orderNumber = $numberRangeValueGenerator->getValue(
-            'order',
-            $salesChannelContext->getContext(),
-            $salesChannelContext->getSalesChannel()->getId()
-        );
+        $orderNumber = uniqid('M_SW6_');
 
         $cart = $cartService->getCart($salesChannelContext->getToken(), $salesChannelContext);
 

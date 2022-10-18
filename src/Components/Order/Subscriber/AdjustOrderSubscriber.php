@@ -87,7 +87,11 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                     $criteria = new Criteria();
                     $criteria->addFilter(new EqualsFilter('orderId', $orderId));
                     $monduOrderEntity = $this->orderDataRepository->search($criteria, $context)->first();
-
+                    
+                    if (!isset($monduOrderEntity)) {
+                        return;
+                    }
+                        
                     if ($monduOrderEntity->getOrderState() == 'canceled') {
                         $this->transitionDeliveryState($orderId, 'cancel', $context);
                     }

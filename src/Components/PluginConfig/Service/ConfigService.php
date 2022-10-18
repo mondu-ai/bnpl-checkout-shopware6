@@ -88,6 +88,13 @@ class ConfigService
         return $config['apiTokenValid'] ?? false;
     }
 
+    public function skipOrderStateValidation()
+    {
+        $config = $this->getPluginConfiguration();
+
+        return $config['skipOrderStateValidation'] ?? false;
+    }
+
     public function setWebhooksSecret($secret = '')
     {
         return $this->systemConfigService->set('Mond1SW6.customConfig.webhooksSecret', $secret, $this->salesChannelId);

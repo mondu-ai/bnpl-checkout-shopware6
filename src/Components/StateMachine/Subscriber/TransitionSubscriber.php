@@ -78,6 +78,10 @@ class TransitionSubscriber implements EventSubscriberInterface
 
         $monduOrder = $this->getMonduDataFromOrder($order);
 
+        if (!isset($monduOrder)) {
+            return;
+        }
+
         switch ($event->getToPlace()->getTechnicalName()) {
             case 'cancelled': //$this->configService->getStateCancel():
                 $state = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->cancelOrder($monduOrder->getReferenceId());
@@ -102,13 +106,9 @@ class TransitionSubscriber implements EventSubscriberInterface
         return $this->orderRepository->search($criteria, $context)->first();
     }
 
-    private function getMonduDataFromOrder(OrderEntity $order): OrderDataEntity
+    private function getMonduDataFromOrder(OrderEntity $order)
     {
         $monduData = $order->getExtension(OrderExtension::EXTENSION_NAME);
-
-        if (!$monduData instanceof OrderDataEntity) {
-            throw new \RuntimeException('The order `' . $order->getId() . '` is not a mondu order, or the mondu order data extension has not been loaded');
-        }
 
         return $monduData;
     }
@@ -128,6 +128,10 @@ class TransitionSubscriber implements EventSubscriberInterface
         $monduData = $this->getMonduDataFromOrder($order);
 
         if ($monduData->getOrderState() === 'shipped') {
+            return true;
+        }
+
+        if ($this->configService->skipOrderStateValidation()) {
             return true;
         }
 

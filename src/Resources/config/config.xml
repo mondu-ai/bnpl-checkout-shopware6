@@ -3,8 +3,7 @@
         xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/shopware/platform/master/src/Core/System/SystemConfig/Schema/config.xsd">
 
     <card>
-        <title>API Mode</title>
-        <title lang="de-DE">API Modus</title>
+        <title>Mondu API Configuration</title>
 
         <input-field type="bool">
             <name>sandbox</name>
@@ -13,10 +12,6 @@
             <value>0</value>
             <defaultValue>1</defaultValue>
         </input-field>
-    </card>
-
-    <card>
-        <title>Mondu API Configuration</title>
 
         <input-field type="password">
             <name>apiToken</name>
@@ -28,5 +23,18 @@
             <label>Validate API Credentials</label>
             <apiMode>live</apiMode>
         </component>
+    </card>
+
+    <card>
+        <title>Mondu Configuration</title>
+        <title lang="de-DE">API Modus</title>
+
+        <input-field type="bool">
+            <name>skipOrderStateValidation</name>
+            <label>Skip order state validation?</label>
+            <value>0</value>
+            <defaultValue>0</defaultValue>
+            <helpText>When this flag is enabled, there will be no validations such as invoice validation upon changing an order state.</helpText>
+        </input-field>
     </card>
 </config>

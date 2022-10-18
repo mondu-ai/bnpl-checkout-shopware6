@@ -43,15 +43,16 @@ class MonduHandler implements SynchronousPaymentHandlerInterface
         if (!$monduOrder) {
             throw new SyncPaymentProcessException($transaction->getOrderTransaction()->getId(), 'unknown error during payment');
         }
-        $this->orderRepository->update([
-            [
-                'id' => $order->getId(),
-                'orderNumber' => $monduOrder['external_reference_id']
-            ]
-        ], $salesChannelContext->getContext());
 
-//        $context = $salesChannelContext->getContext();
-//        $this->transactionStateHandler->paid($transaction->getOrderTransaction()->getId(), $context);
+        // Update external reference id on Mondu
+
+        $this->monduClient
+                ->setSalesChannelId($salesChannelContext->getSalesChannelId())
+                ->updateExternalInfo(
+                    $monduData->get('order-id'),
+                    ['external_reference_id' => $order->getOrderNumber()]
+                );
+
 
         $this->orderDataRepository->upsert([
             [
