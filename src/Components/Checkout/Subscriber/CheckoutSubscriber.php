@@ -14,6 +14,7 @@ use Shopware\Core\System\SalesChannel\Event\SalesChannelProcessCriteriaEvent;
 use Shopware\Storefront\Page\Account\Order\AccountEditOrderPageLoadedEvent;
 use Shopware\Storefront\Page\Checkout\Confirm\CheckoutConfirmPageLoadedEvent;
 use Shopware\Storefront\Page\PageLoadedEvent;
+use Shopware\Core\Checkout\Payment\PaymentMethodEntity;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class CheckoutSubscriber implements EventSubscriberInterface
@@ -32,7 +33,7 @@ class CheckoutSubscriber implements EventSubscriberInterface
         return [
             CheckoutConfirmPageLoadedEvent::class => ['addWidgetData', 310],
             AccountEditOrderPageLoadedEvent::class => ['addWidgetData', 310],
-            'sales_channel.payment_method.process.criteria' => 'filterPaymentMethods'
+            CheckoutConfirmPageLoadedEvent::class => ['filterPaymentMethods', 320],
         ];
     }
 
@@ -57,7 +58,7 @@ class CheckoutSubscriber implements EventSubscriberInterface
         }
     }
 
-    public function filterPaymentMethods(SalesChannelProcessCriteriaEvent $event) {
+    public function filterPaymentMethods(PageLoadedEvent $event) {
         $allowedPaymentMethods = $this->monduOperationService->getAllowedPaymentMethods($event->getSalesChannelContext()->getSalesChannelId());
         $disallowedPaymentMethods = [];
         $allPaymentMethods = MethodHelper::MONDU_PAYMENT_METHODS;
@@ -72,11 +73,18 @@ class CheckoutSubscriber implements EventSubscriberInterface
             $disallowedPaymentMethods = $allPaymentMethods;
         }
 
-        $event->getCriteria()->addFilter(new NotFilter(
-            NotFilter::CONNECTION_OR,
-            array_map(function ($val) {
-                return new EqualsFilter('handlerIdentifier', MethodHelper::monduNameToHandler($val));
-            }, $disallowedPaymentMethods)
-        ));
+        $disallowedPaymentMethodsMapped = array_map(function ($val) {
+            return MethodHelper::monduNameToHandler($val);
+        }, $disallowedPaymentMethods);
+
+        $paymentMethods = $event->getPage()->getPaymentMethods();
+
+        $paymentMethods = $paymentMethods->filter(
+            static function (PaymentMethodEntity $paymentMethod) use ($disallowedPaymentMethodsMapped) {
+                return !in_array($paymentMethod->getHandlerIdentifier(), $disallowedPaymentMethodsMapped);
+            }
+        );
+
+        $event->getPage()->setPaymentMethods($paymentMethods);
     }
 }
