@@ -115,6 +115,7 @@ class CheckoutController extends StorefrontController
             'currency' => 'EUR',
             'payment_method' => $paymentMethod,
             'external_reference_id' => $orderNumber,
+            'gross_amount_cents' => round($cart->getPrice()->getTotalPrice() * 100),
             'buyer' => [
                 'email' => $customer->getEmail(),
                 'first_name' => $customer->getFirstname(),

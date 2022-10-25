@@ -143,13 +143,14 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                         'external_reference_id' => $order->getOrderNumber(),
                         'amount' => [
                             'net_price_cents' => round($netPrice),
-                            'tax_cents' => round($order->getPrice()->getCalculatedTaxes()->getAmount() * 100)
+                            'tax_cents' => round($order->getPrice()->getCalculatedTaxes()->getAmount() * 100),
+                            'gross_amount_cents' => round($order->getPrice()->getTotalPrice() * 100)
                         ],
                         'lines' => [
                             [
                                 'tax_cents' => round($order->getPrice()->getCalculatedTaxes()->getAmount() * 100),
                                 'shipping_price_cents' => round($shipping * 100),
-                                'discount_cents' => $discountAmount,
+                                'discount_cents' => round($discountAmount),
                                 'line_items' => $lineItems
                             ]
                         ]
