@@ -28,10 +28,12 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 class CheckoutController extends StorefrontController
 {
     private MonduClient $monduClient;
+    private EntityRepositoryInterface $productRepository;
 
-    public function __construct(MonduClient $monduClient)
+    public function __construct(MonduClient $monduClient, EntityRepositoryInterface $productRepository)
     {
         $this->monduClient = $monduClient;
+        $this->productRepository = $productRepository;
     }
     /**
      * @Route(path="/token", name="mondu-payment.checkout.token", methods={"GET"}, defaults={"XmlHttpRequest"=true})
@@ -69,9 +71,12 @@ class CheckoutController extends StorefrontController
                 continue;
             }
 
+            $product = $this->productRepository->search(new Criteria([$lineItem->getId()]), $context)->first();
+
             $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - ($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity())) * 100;
             $lineItems[] = [
                 'external_reference_id' => $lineItem->getReferencedId(),
+                'product_id' => $product->getProductNumber(),
                 'quantity' => $lineItem->getQuantity(),
                 'title' => $lineItem->getLabel(),
                 'net_price_cents' => round($unitNetPrice * $lineItem->getQuantity()),
