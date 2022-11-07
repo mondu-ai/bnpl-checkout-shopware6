@@ -32,10 +32,11 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
     private EntityRepositoryInterface $orderRepository;
     private EntityRepositoryInterface $orderDataRepository;
     private EntityRepositoryInterface $invoiceDataRepository;
+    private EntityRepositoryInterface $productRepository;
     private MonduClient $monduClient;
     private LoggerInterface $logger;
 
-    public function __construct(StateMachineRegistry $stateMachineRegistry, EntityRepositoryInterface $orderRepository, EntityRepositoryInterface $orderDataRepository, EntityRepositoryInterface $invoiceDataRepository, MonduClient $monduClient, LoggerInterface $logger)
+    public function __construct(StateMachineRegistry $stateMachineRegistry, EntityRepositoryInterface $orderRepository, EntityRepositoryInterface $orderDataRepository, EntityRepositoryInterface $invoiceDataRepository, MonduClient $monduClient, LoggerInterface $logger, EntityRepositoryInterface $productRepository)
     {
         $this->stateMachineRegistry = $stateMachineRegistry;
         $this->orderRepository = $orderRepository;
@@ -43,6 +44,7 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
         $this->invoiceDataRepository = $invoiceDataRepository;
         $this->monduClient = $monduClient;
         $this->logger = $logger;
+        $this->productRepository = $productRepository;
     }
 
     public static function getSubscribedEvents(): array
@@ -107,9 +109,12 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                             continue;
                         }
 
+                        $product = $this->productRepository->search(new Criteria([$lineItem->getIdentifier()]), $context)->first();
+
                         $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - ($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity())) * 100;
                         $lineItems[] = [
                             'external_reference_id' => $lineItem->getReferencedId(),
+                            'product_id' => $product->getProductNumber(),
                             'quantity' => $lineItem->getQuantity(),
                             'title' => $lineItem->getLabel(),
                             'net_price_cents' => round($unitNetPrice * $lineItem->getQuantity()),
