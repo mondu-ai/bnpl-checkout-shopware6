@@ -23,12 +23,12 @@ class PaymentMethods extends AbstractBootstrap
         MonduHandler::class => [
             'handlerIdentifier' => MonduHandler::class,
             'name' => 'Rechnungskauf - Später per Banküberweisung bezahlen',
-            'description' => 'Information on the processing of your personal data by Mondu GmbH can be found [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]here[/url].',
+            'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
             'afterOrderEnabled' => false,
             'translations' => [
                 'de-DE' => [
                     'name' => 'Rechnungskauf - Später per Banküberweisung bezahlen',
-                    'description' => 'Information on the processing of your personal data by Mondu GmbH can be found [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]here[/url].',
+                    'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
                 ],
                 'en-GB' => [
                     'name' => 'Invoice - Pay later by bank transfer',
@@ -39,12 +39,12 @@ class PaymentMethods extends AbstractBootstrap
         MonduSepaHandler::class => [
             'handlerIdentifier' => MonduSepaHandler::class,
             'name' => 'SEPA - Später zahlen per Bankeinzug',
-            'description' => 'Information on the processing of your personal data by Mondu GmbH can be found [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]here[/url].',
+            'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
             'afterOrderEnabled' => false,
             'translations' => [
                 'de-DE' => [
                     'name' => 'SEPA - Später zahlen per Bankeinzug',
-                    'description' => 'Information on the processing of your personal data by Mondu GmbH can be found [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]here[/url].',
+                    'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
                 ],
                 'en-GB' => [
                     'name' => 'SEPA - Pay later by direct debit',
@@ -55,12 +55,12 @@ class PaymentMethods extends AbstractBootstrap
         MonduInstallmentHandler::class => [
             'handlerIdentifier' => MonduInstallmentHandler::class,
             'name' => 'Ratenkauf - Bequem in Raten per Bankeinzug zahlen',
-            'description' => 'Information on the processing of your personal data by Mondu GmbH can be found [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]here[/url].',
+            'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
             'afterOrderEnabled' => false,
             'translations' => [
                 'de-DE' => [
                     'name' => 'Ratenkauf - Bequem in Raten per Bankeinzug zahlen',
-                    'description' => 'Information on the processing of your personal data by Mondu GmbH can be found [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]here[/url].',
+                    'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
                 ],
                 'en-GB' => [
                     'name' => 'Split payments - Pay conveniently in instalments by direct debit',
