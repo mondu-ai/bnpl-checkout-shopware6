@@ -4,6 +4,7 @@
 
     <card>
         <title>Mondu API Configuration</title>
+        <title lang="de-DE">Mondu API Konfiguration</title>
 
         <input-field type="bool">
             <name>sandbox</name>
@@ -16,25 +17,29 @@
         <input-field type="password">
             <name>apiToken</name>
             <label>API Key</label>
+            <label lang="de-DE">API Schlüssel</label>
         </input-field>
 
         <component name="mondu-test-api-button">
             <name>testLiveClientCredentialsButton</name>
             <label>Validate API Credentials</label>
+            <label lang="de-DE">API Zugangsdaten validieren</label>
             <apiMode>live</apiMode>
         </component>
     </card>
 
     <card>
         <title>Mondu Configuration</title>
-        <title lang="de-DE">API Modus</title>
+        <title lang="de-DE">Konfiguration</title>
 
         <input-field type="bool">
             <name>skipOrderStateValidation</name>
             <label>Skip order state validation?</label>
+            <label lang="de-DE">Validierung des Bestellstatus überspringen?</label>
             <value>0</value>
             <defaultValue>0</defaultValue>
             <helpText>When this flag is enabled, there will be no validations such as invoice validation upon changing an order state.</helpText>
+            <helpText lang="de-DE">Wenn diese Option aktiviert ist, werden bei einer Änderung des Bestellstatus keine Validierungen wie z. B. die Rechnungsvalidierung durchgeführt.</helpText>
         </input-field>
     </card>
 </config>
