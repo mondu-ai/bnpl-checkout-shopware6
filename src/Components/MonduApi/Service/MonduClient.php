@@ -17,6 +17,7 @@ class MonduClient
     private LoggerInterface $logger;
     private string $key;
     private ?string $salesChannelId;
+    private ?bool $sandboxMode = null;
 
     public function __construct(ConfigService $configService, LoggerInterface $logger)
     {
@@ -178,9 +179,10 @@ class MonduClient
         }
     }
 
-    public function getWebhooksSecret($key): ?array
+    public function getWebhooksSecret($key, $sandboxMode = null): ?array
     {
         $this->key = $key;
+        $this->sandboxMode = $sandboxMode;
 
         $request = $this->getRequestObject('webhooks/keys', 'GET');
         try {
@@ -208,9 +210,15 @@ class MonduClient
 
     private function getRequestObject($url, $method = 'GET', $body = ''): Request
     {
+        $api = $this->config->setSalesChannelId($this->salesChannelId);
+
+        if (!is_null($this->sandboxMode)) {
+            $api = $api->setOverrideSandbox($this->sandboxMode);
+        }
+
         return new Request(
             $method,
-            $this->config->setSalesChannelId($this->salesChannelId)->getApiUrl($url),
+            $api->getApiUrl($url),
             ['Content-Type' => 'application/json', 'Api-Token' => $this->key ?? $this->config->setSalesChannelId($this->salesChannelId)->getApiToken()],
             $body
         );

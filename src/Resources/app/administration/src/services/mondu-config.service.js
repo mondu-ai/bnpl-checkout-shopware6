@@ -3,9 +3,9 @@ export default class MonduConfigService extends Shopware.Classes.ApiService {
     super(httpClient, loginService, apiEndpoint);
   }
 
-  testApiCredentials(apiCredentials) {
+  testApiCredentials(apiCredentials, sandboxMode) {
     return this.httpClient
-      .post(`/mondu/config/test`, { apiCredentials: apiCredentials },
+      .post(`/mondu/config/test`, { apiCredentials: apiCredentials, sandboxMode: sandboxMode },
         {
           headers: this.getBasicHeaders()
         })

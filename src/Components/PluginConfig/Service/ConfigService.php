@@ -19,6 +19,7 @@ class ConfigService
      */
     private SystemConfigService $systemConfigService;
     private ?string $salesChannelId = null;
+    private ?bool $overrideSandbox = null;
 
     /**
      * @param SystemConfigService $systemConfigService
@@ -35,8 +36,18 @@ class ConfigService
         return $this;
     }
 
+    public function setOverrideSandbox($mode)
+    {
+        $this->overrideSandbox = $mode;
+
+        return $this;
+    }
+
     public function isSandbox()
     {
+        if (!is_null($this->overrideSandbox))
+            return $this->overrideSandbox;
+
         $config = $this->getPluginConfiguration();
 
         return isset($config['sandbox']) ? $config['sandbox'] : false;
