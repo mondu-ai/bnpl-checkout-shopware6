@@ -22,49 +22,49 @@ class PaymentMethods extends AbstractBootstrap
     public const PAYMENT_METHODS = [
         MonduHandler::class => [
             'handlerIdentifier' => MonduHandler::class,
-            'name' => 'Rechnungskauf - jetzt kaufen, später bezahlen',
+            'name' => 'Rechnungskauf - Später per Banküberweisung bezahlen',
             'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
             'afterOrderEnabled' => false,
             'translations' => [
                 'de-DE' => [
-                    'name' => 'Rechnungskauf - jetzt kaufen, später bezahlen',
+                    'name' => 'Rechnungskauf - Später per Banküberweisung bezahlen',
                     'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
                 ],
                 'en-GB' => [
-                    'name' => 'Rechnungskauf - jetzt kaufen, später bezahlen',
-                    'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
+                    'name' => 'Invoice - Pay later by bank transfer',
+                    'description' => 'Information on the processing of your personal data by Mondu GmbH can be found [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]here[/url].',
                 ],
             ],
         ],
         MonduSepaHandler::class => [
             'handlerIdentifier' => MonduSepaHandler::class,
-            'name' => 'SEPA-Lastschrift - jetzt kaufen, später per Bankeinzug bezahlen',
+            'name' => 'SEPA - Später zahlen per Bankeinzug',
             'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
             'afterOrderEnabled' => false,
             'translations' => [
                 'de-DE' => [
-                    'name' => 'SEPA-Lastschrift - jetzt kaufen, später per Bankeinzug bezahlen',
+                    'name' => 'SEPA - Später zahlen per Bankeinzug',
                     'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
                 ],
                 'en-GB' => [
-                    'name' => 'SEPA-Lastschrift - jetzt kaufen, später per Bankeinzug bezahlen',
-                    'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
+                    'name' => 'SEPA - Pay later by direct debit',
+                    'description' => 'Information on the processing of your personal data by Mondu GmbH can be found [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]here[/url].',
                 ],
             ],
         ],
         MonduInstallmentHandler::class => [
             'handlerIdentifier' => MonduInstallmentHandler::class,
-            'name' => 'Ratenzahlung - Bequem in Raten per Bankeinzug zahlen',
+            'name' => 'Ratenkauf - Bequem in Raten per Bankeinzug zahlen',
             'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
             'afterOrderEnabled' => false,
             'translations' => [
                 'de-DE' => [
-                    'name' => 'Ratenzahlung - Bequem in Raten per Bankeinzug zahlen',
+                    'name' => 'Ratenkauf - Bequem in Raten per Bankeinzug zahlen',
                     'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
                 ],
                 'en-GB' => [
-                    'name' => 'Ratenzahlung - Bequem in Raten per Bankeinzug zahlen',
-                    'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
+                    'name' => 'Split payments - Pay conveniently in instalments by direct debit',
+                    'description' => 'Information on the processing of your personal data by Mondu GmbH can be found [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]here[/url].',
                 ],
             ],
         ],

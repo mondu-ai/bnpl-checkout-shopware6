@@ -15,7 +15,8 @@
       "apiConfigurationSuccessTitle": "Success!",
       "apiConfigurationSuccessMessage": "API Credentials are valid!",
       "apiConfigurationFailureTitle": "Failure!",
-      "apiConfigurationFailureMessage": "API Credentials are invalid."
+      "apiConfigurationFailureMessage": "API Credentials are invalid.",
+      "testApiConfiguration": "Test API Credentials"
     }
   }
 }

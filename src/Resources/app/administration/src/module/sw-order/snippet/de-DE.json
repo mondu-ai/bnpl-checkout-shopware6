@@ -1,0 +1,22 @@
+{
+  "sw-order-mondu": {
+    "documentCard": {
+      "labelCancelInvoice": "Rechnung stornieren",
+      "labelCancelCreditNote": "Gutschrift stornieren",
+      "cancelSuccessTitle": "Erfolg!",
+      "cancelSuccessMessage": "Erfolgreich gelöscht.",
+      "cancelErrorMessage": "Es ist ein Fehler aufgetreten. Dokument konnte nicht storniert werden."
+    }
+  },
+  "sw-mondu-config": {
+    "apiValidation": {
+      "apiConfigurationValidationTitle": "API Validierung",
+      "apiConfigurationValidationMessage": "Validierung der API Zugangsdaten gestartet...",
+      "apiConfigurationSuccessTitle": "Erfolg!",
+      "apiConfigurationSuccessMessage": "API Zugangsdaten sind gültig!",
+      "apiConfigurationFailureTitle": "Fehler!",
+      "apiConfigurationFailureMessage": "API Zugangsdaten sind ungültig.",
+      "testApiConfiguration": "API Zugangsdaten testen"
+    }
+  }
+}

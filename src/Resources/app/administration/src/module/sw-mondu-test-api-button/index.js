@@ -14,8 +14,9 @@ Shopware.Component.register('mondu-test-api-button', {
       });
 
       var apiCredentials = document.getElementById('Mond1SW6.config.apiToken').value;
+      var sandboxMode = document.querySelector('[name="Mond1SW6.config.sandbox"]').checked;
 
-      this.monduConfigService.testApiCredentials(apiCredentials).then((response) => {
+      this.monduConfigService.testApiCredentials(apiCredentials, sandboxMode).then((response) => {
         this.createNotificationSuccess({
           title: this.$tc('sw-mondu-config.apiValidation.apiConfigurationSuccessTitle'),
           message: this.$tc('sw-mondu-config.apiValidation.apiConfigurationSuccessMessage')

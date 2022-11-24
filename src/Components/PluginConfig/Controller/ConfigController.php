@@ -35,8 +35,8 @@ class ConfigController extends AbstractController
             $data = json_decode($request->getContent());
 
             if (isset($data->apiCredentials)) {
-                $response = $this->monduClient->getWebhooksSecret($data->apiCredentials);
-                
+                $response = $this->monduClient->getWebhooksSecret($data->apiCredentials, $data->sandboxMode);
+
                 if ($response != null) {
                     return new Response(json_encode(['status' => 'ok', 'error' => '0']), Response::HTTP_OK);
                 }
