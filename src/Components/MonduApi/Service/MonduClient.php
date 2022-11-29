@@ -37,146 +37,81 @@ class MonduClient
 
     public function createOrder($order)
     {
-        $body = json_encode($order);
-        $request = $this->getRequestObject('orders', 'POST', $body);
-        try {
-            $response = $this->restClient->send($request);
-            $body = json_decode($response->getBody()->getContents(), true);
-            return $body['order'];
-        } catch (GuzzleException $e) {
-            $this->logger->alert('MonduClient::createOrder Failed with an exception message: ' . $e->getMessage());
-            return null;
-        }
-    }
+        $response = $this->sendRequest('orders', 'POST', $order);
 
-    public function getMonduOrder($orderUid): ?array
-    {
-        $request = $this->getRequestObject('orders/'.$orderUid);
-        try {
-            $response = $this->restClient->send($request);
-            $body = json_decode($response->getBody()->getContents(), true);
-
-            return $body['order'];
-        } catch (GuzzleException $e) {
-            $this->logger->alert('MonduClient::getMonduOrder Failed with an exception message: ' . $e->getMessage());
-            return null;
-        }
-    }
-
-    public function cancelOrder($orderUid): ?string
-    {
-        $request = $this->getRequestObject('orders/'. $orderUid.'/cancel', 'POST');
-        try {
-            $response = $this->restClient->send($request);
-            $body = json_decode($response->getBody()->getContents(), true);
-            return $body['order']['state'];
-        } catch (GuzzleException $e) {
-            $this->logger->alert('MonduClient::cancelOrder Failed with an exception message: ' . $e->getMessage());
-            return null;
-        }
-    }
-
-    public function adjustOrder($orderUuid, $body = []): ?array
-    {
-        $request = $this->getRequestObject('orders/'. $orderUuid.'/adjust', 'POST', json_encode($body));
-        try {
-            $response = $this->restClient->send($request);
-            $body = json_decode($response->getBody()->getContents(), true);
-            return $body;
-        } catch (GuzzleException $e) {
-            $this->logger->alert('MonduClient::adjustOrder Failed with an exception message: ' . $e->getMessage());
-            return null;
-        }
-    }
-
-    public function updateExternalInfo($orderUuid, $body = []): ?array
-    {
-        $request = $this->getRequestObject('orders/'. $orderUuid.'/update_external_info', 'POST', json_encode($body));
-        try {
-            $response = $this->restClient->send($request);
-            $body = json_decode($response->getBody()->getContents(), true);
-            return $body;
-        } catch (GuzzleException $e) {
-            $this->logger->alert('MonduClient::updateExternalInfo Failed with an exception message: ' . $e->getMessage());
-            return null;
-        }
-    }
-
-    public function cancelInvoice($orderUuid, $invoiceUuid): ?array
-    {
-        $request = $this->getRequestObject('orders/'. $orderUuid.'/invoices/' . $invoiceUuid . '/cancel', 'POST');
-        try {
-            $response = $this->restClient->send($request);
-            $body = json_decode($response->getBody()->getContents(), true);
-            return $body;
-        } catch (GuzzleException $e) {
-            $this->logger->alert('MonduClient::cancelInvoice Failed with an exception message: ' . $e->getMessage());
-            return null;
-        }
-    }
-
-    public function cancelCreditNote($invoiceUuid, $creditNoteUuid): ?array
-    {
-        $request = $this->getRequestObject('invoices/' . $invoiceUuid . '/credit_notes/' . $creditNoteUuid . '/cancel', 'POST');
-        try {
-            $response = $this->restClient->send($request);
-            $body = json_decode($response->getBody()->getContents(), true);
-            return $body;
-        } catch (GuzzleException $e) {
-            $this->logger->alert('MonduClient::cancelInvoice Failed with an exception message: ' . $e->getMessage());
-            return null;
-        }
-    }
-
-    public function createCreditNote($invoiceUuid, $body = []): ?array
-    {
-        $request = $this->getRequestObject('invoices/' . $invoiceUuid . '/credit_notes', 'POST', json_encode($body));
-        try {
-            $response = $this->restClient->send($request);
-            $body = json_decode($response->getBody()->getContents(), true);
-            return $body;
-        } catch (GuzzleException $e) {
-            $this->logger->alert('MonduClient::createCreditNote Failed with an exception message: ' . $e->getMessage());
-            return null;
-        }
+        return $response['order'] ?? null;
     }
 
     public function invoiceOrder($orderUid, $referenceId, $grossAmount, $invoiceUrl, $line_items = [], $discount = 0, $shipping = 0)
     {
-        try {
-            $body = json_encode([
-                'external_reference_id' => $referenceId,
-                'invoice_url' => $invoiceUrl,
-                'gross_amount_cents' => $grossAmount,
-                'discount_cents' => $discount,
-                'shipping_price_cents' => $shipping,
-                'line_items' => $line_items
-            ]);
+        $body = [
+            'external_reference_id' => $referenceId,
+            'invoice_url' => $invoiceUrl,
+            'gross_amount_cents' => $grossAmount,
+            'discount_cents' => $discount,
+            'shipping_price_cents' => $shipping,
+            'line_items' => $line_items
+        ];
 
-            $request = $this->getRequestObject('orders/'.$orderUid.'/invoices', 'POST', $body);
+        $response = $this->sendRequest('orders/'.$orderUid.'/invoices', 'POST', $body);
 
-            $response = $this->restClient->send($request);
+        return $response['invoice'] ?? null;
+    }
 
-            $responseBody = json_decode($response->getBody()->getContents(), true);
+    public function getMonduOrder($orderUid): ?array
+    {
+        $response = $this->sendRequest('orders/' . $orderUid);
 
-            return $responseBody['invoice'];
-        } catch (GuzzleException $e) {
-            $this->logger->alert('MonduClient::invoiceOrder Failed with an exception message: ' . $e->getMessage());
-            return null;
-        }
+        return $response['order'] ?? null;
+    }
+
+    public function cancelOrder($orderUid): ?string
+    {
+        $response = $this->sendRequest('orders/'. $orderUid .'/cancel', 'POST');
+
+        return $response['order']['state'] ?? null;
+    }
+
+    public function adjustOrder($orderUuid, $body = []): ?array
+    {
+        $response = $this->sendRequest('orders/'. $orderUuid .'/adjust', 'POST', $body);
+
+        return $response;
+    }
+
+    public function updateExternalInfo($orderUuid, $body = []): ?array
+    {
+        $response = $this->sendRequest('orders/'. $orderUuid.'/update_external_info', 'POST', $body);
+
+        return $response;
+    }
+
+    public function cancelInvoice($orderUuid, $invoiceUuid): ?array
+    {
+        $response = $this->sendRequest('orders/'. $orderUuid.'/invoices/' . $invoiceUuid . '/cancel', 'POST');
+
+        return $response;
+    }
+
+    public function cancelCreditNote($invoiceUuid, $creditNoteUuid): ?array
+    {
+        $response = $this->sendRequest('invoices/' . $invoiceUuid . '/credit_notes/' . $creditNoteUuid . '/cancel', 'POST');
+
+        return $response;
+    }
+
+    public function createCreditNote($invoiceUuid, $body = []): ?array
+    {
+        $response = $this->sendRequest('invoices/' . $invoiceUuid . '/credit_notes', 'POST', $body);
+
+        return $response;
     }
 
     public function registerWebhook($body = []): ?array
     {
-        $request = $this->getRequestObject('webhooks', 'POST', json_encode($body));
-        try {
-            $response = $this->restClient->send($request);
-            $body = json_decode($response->getBody()->getContents(), true);
-            return $body;
-        } catch (GuzzleException $e) {
-            $this->logger->alert('MonduClient::registerWebhooks Failed with an exception message: ' . $e->getMessage());
-            return null;
-        }
+        $response = $this->sendRequest('webhooks', 'POST', $body);
+
+        return $response;
     }
 
     public function getWebhooksSecret($key, $sandboxMode = null): ?array
@@ -184,31 +119,54 @@ class MonduClient
         $this->key = $key;
         $this->sandboxMode = $sandboxMode;
 
-        $request = $this->getRequestObject('webhooks/keys', 'GET');
-        try {
-            $response = $this->restClient->send($request);
-            $body = json_decode($response->getBody()->getContents(), true);
-            return $body;
-        } catch (GuzzleException $e) {
-            $this->logger->alert('MonduClient::getWebhooksSecret Failed with an exception message: ' . $e->getMessage());
-            return null;
-        }
+        $response = $this->sendRequest('webhooks/keys');
+
+        return $response;
     }
 
     public function getPaymentMethods()
     {
-        $request = $this->getRequestObject('payment_methods');
+        $response = $this->sendRequest('payment_methods');
+
+        return $response;
+    }
+
+    public function logEvent($body = [])
+    {
+        try {
+            $this->restClient->send(
+                $this->getRequestObject('plugin/events', 'POST', array_filter($body))
+            );
+        } catch (GuzzleException $e) {
+            $this->logger->alert('MonduClient::logEvent Failed with an exception message: ' . $e->getMessage());
+        }
+    }
+
+    public function sendRequest($url, $method = 'GET', $body = []) 
+    {
+        $request = $this->getRequestObject($url, $method, $body);
+
         try {
             $response = $this->restClient->send($request);
-            $body = json_decode($response->getBody()->getContents(), true);
-            return $body;
+            $responseBody = json_decode($response->getBody()->getContents(), true);
+
+            return $responseBody;
+
         } catch (GuzzleException $e) {
-            $this->logger->alert('MonduClient::getPaymentMethods Failed with an excpetion message: '. $e->getMessage());
+            $this->logger->alert("MonduClient [{$method} {$url}]: Failed with an exception message: {$e->getMessage()}");
+            
+            $this->logEvent([
+                'response_status' => strval($e->getCode()),
+                'response_body' => json_decode($e->getResponse()->getBody()->getContents()) ?: null,
+                'request_body' => json_decode($e->getRequest()->getBody()->getContents()) ?: null,
+                'origin_event' => $e->getRequest()->getUri()->getPath()
+            ]);
+
             return null;
         }
     }
 
-    private function getRequestObject($url, $method = 'GET', $body = ''): Request
+    private function getRequestObject($url, $method = 'GET', $body = []): Request
     {
         $api = $this->config->setSalesChannelId($this->salesChannelId);
 
@@ -219,8 +177,18 @@ class MonduClient
         return new Request(
             $method,
             $api->getApiUrl($url),
-            ['Content-Type' => 'application/json', 'Api-Token' => $this->key ?? $this->config->setSalesChannelId($this->salesChannelId)->getApiToken()],
-            $body
+            $this->getRequestHeaders(),
+            json_encode($body)
         );
+    }
+
+    private function getRequestHeaders()
+    {
+        return [
+            'Content-Type' => 'application/json', 
+            'Api-Token' => $this->key ?? $this->config->setSalesChannelId($this->salesChannelId)->getApiToken(),
+            'x-plugin-version' => $this->config->getPluginVersion(),
+            'x-plugin-name' => $this->config->getPluginName()
+        ];
     }
 }
