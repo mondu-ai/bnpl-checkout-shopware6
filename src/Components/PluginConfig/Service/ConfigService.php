@@ -5,6 +5,12 @@ declare(strict_types=1);
 namespace Mondu\MonduPayment\Components\PluginConfig\Service;
 
 use Shopware\Core\System\SystemConfig\SystemConfigService;
+use Shopware\Core\Framework\Context;
+use Shopware\Core\Framework\Plugin;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
+use Shopware\Core\Framework\Api\Context\SystemSource;
 
 class ConfigService
 {
@@ -20,13 +26,15 @@ class ConfigService
     private SystemConfigService $systemConfigService;
     private ?string $salesChannelId = null;
     private ?bool $overrideSandbox = null;
+    private EntityRepositoryInterface $pluginRepository;
 
     /**
      * @param SystemConfigService $systemConfigService
      */
-    public function __construct(SystemConfigService $systemConfigService)
+    public function __construct(SystemConfigService $systemConfigService, EntityRepositoryInterface $pluginRepository)
     {
         $this->systemConfigService = $systemConfigService;
+        $this->pluginRepository = $pluginRepository;
     }
 
     public function setSalesChannelId($salesChannelId = null)
@@ -121,5 +129,25 @@ class ConfigService
         $config = $this->getPluginConfiguration();
 
         return isset($config['stateEnabled']) && $config['stateEnabled'];
+    }
+
+    public function getPluginVersion()
+    {
+        return $this->getPlugin()->getVersion();
+    }
+
+    public function getPluginName()
+    {
+        return $this->getPlugin()->getName();
+    }
+
+    public function getPlugin()
+    {
+        $criteria = new Criteria();
+        $criteria->addFilter(new EqualsFilter('name', 'Mond1SW6'));
+
+        $pluginEntity = $this->pluginRepository->search($criteria, new Context(new SystemSource()))->first();
+
+        return $pluginEntity;
     }
 }

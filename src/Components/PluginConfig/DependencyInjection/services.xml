@@ -5,6 +5,9 @@
     <services>
         <defaults autowire="true"/>
 
-        <service id="mondu.mondu_config" class="Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService"/>
+        <service id="mondu.mondu_config" class="Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService">
+            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService" />
+            <argument type="service" id="plugin.repository"/>
+        </service>
     </services>
 </container>
