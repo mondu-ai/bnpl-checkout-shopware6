@@ -13,7 +13,7 @@
                 data-mondu-checkout="true"
                 data-mondu-plugin-options="{{ monduPluginOptions|json_encode }}"
                 data-checkout-confirm-page="{{ path('frontend.checkout.confirm.page') }}"
-                data-mondu-token-url="{{ path('mondu-payment.checkout.token') }}"
+                data-mondu-token-url="{{ path('frontend.mondu-payment.checkout.token') }}"
                 form="confirmOrderForm"
         />
     {% endif %}

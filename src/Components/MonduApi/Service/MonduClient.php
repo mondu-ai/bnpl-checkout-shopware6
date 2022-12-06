@@ -178,7 +178,7 @@ class MonduClient
             $method,
             $api->getApiUrl($url),
             $this->getRequestHeaders(),
-            json_encode($body)
+            empty($body) ? null : json_encode($body)
         );
     }
 
