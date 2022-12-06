@@ -36,7 +36,7 @@ class CheckoutController extends StorefrontController
         $this->productRepository = $productRepository;
     }
     /**
-     * @Route(path="/token", name="mondu-payment.checkout.token", methods={"GET"}, defaults={"XmlHttpRequest"=true})
+     * @Route(path="/token", name="frontend.mondu-payment.checkout.token", methods={"GET"}, defaults={"XmlHttpRequest"=true})
      * @param Request $request
      * @return JsonResponse
      */
