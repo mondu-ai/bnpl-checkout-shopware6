@@ -1,0 +1,37 @@
+name: Release auto update
+
+on:
+  pull_request:
+    types:
+    - closed
+    branches: 
+    - main
+
+jobs:
+  release:
+    name: auto_release
+    if: github.event.pull_request.merged == true
+    uses: mondu-ai/release-action/.github/workflows/release-update.yml@master
+    secrets: inherit
+    with:
+      asset_creation_script: |
+        OLD_TAG_SED_DOT="${OLD_TAG//./\\.}" 
+        NEW_TAG_SED_DOT="${NEW_TAG//./\\.}"
+
+        files_to_update="composer.json"
+
+        for file in $files_to_update; do
+          echo "Updating semver occurrences in $file"
+          sed -i "s/${OLD_TAG_SED_DOT}/${NEW_TAG_SED_DOT}/g" $file
+          git add $file
+        done
+
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+
+        git commit -m "Updated semver in compose.json"
+        git push origin ${{ github.event.repository.default_branch }} -f
+
+        zip -r -D "Mond1SWR6.zip" ./*
+           
+        echo "FILES=Mond1SWR6.zip" >> $GITHUB_ENV
