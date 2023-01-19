@@ -1,0 +1,24 @@
+name: Release auto update
+
+on:
+  pull_request:
+    types:
+    - closed
+    branches: 
+    - main
+
+jobs:
+  release:
+    name: auto_release
+    if: github.event.pull_request.merged == true
+    uses: mondu-ai/release-action/.github/workflows/release-update.yml@master
+    secrets: inherit
+    with:
+      asset_creation_script: |
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+
+        ./releaser.sh -v "${NEW_TAG}" -o "${OLD_TAG}" -c "keep"
+
+        echo "FILES=Mond1SWR6.zip" >> $GITHUB_ENV
+           
