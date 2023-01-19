@@ -8,6 +8,7 @@ use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
 use Mondu\MonduPayment\Components\PaymentMethod\Util\MethodHelper;
 use Shopware\Core\Checkout\Cart\Order\OrderConversionContext;
 use Shopware\Core\Checkout\Cart\Order\OrderConverter;
+use Shopware\Core\Checkout\Cart\Price\Struct\CartPrice;
 use Shopware\Core\Checkout\Cart\SalesChannel\CartService;
 use Shopware\Core\Checkout\Order\Aggregate\OrderLineItem\OrderLineItemEntity;
 use Shopware\Core\Framework\Context;
@@ -73,7 +74,12 @@ class CheckoutController extends StorefrontController
 
             $product = $this->productRepository->search(new Criteria([$lineItem->getId()]), $context)->first();
 
-            $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - ($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity())) * 100;
+            if ($context->getTaxState() === CartPrice::TAX_STATE_GROSS) {
+                $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - ($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity())) * 100;
+            } else {
+                $unitNetPrice = $lineItem->getPrice()->getUnitPrice() * 100;
+            }
+
             $lineItems[] = [
                 'external_reference_id' => $lineItem->getReferencedId(),
                 'product_id' => $product->getProductNumber(),
@@ -102,7 +108,11 @@ class CheckoutController extends StorefrontController
                 continue;
             }
 
-            $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - ($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity())) * 100;
+            if ($context->getTaxState() === CartPrice::TAX_STATE_GROSS) {
+                $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - ($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity())) * 100;
+            } else {
+                $unitNetPrice = $lineItem->getPrice()->getUnitPrice() * 100;
+            }
             $discountAmount += abs($unitNetPrice);
         }
 
@@ -112,9 +122,15 @@ class CheckoutController extends StorefrontController
     protected function getOrderData($cart, $collection, Context $context, $customer, $orderNumber, $paymentMethod)
     {
         $lineItems = $this->getLineItems($collection, $context);
-        $shipping = ($cart->getDeliveries()->getShippingCosts()->sum()->getUnitPrice() - ($cart->getDeliveries()->getShippingCosts()->sum()->getCalculatedTaxes()->getAmount() / $cart->getDeliveries()->getShippingCosts()->sum()->getQuantity()));
+        $shipping = $cart->getDeliveries()->getShippingCosts()->sum()->getTotalPrice();
 
         $discount = $this->getDiscount($collection, $context);
+
+        if ($context->getTaxState() === CartPrice::TAX_STATE_GROSS) {
+            $shipping = $cart->getDeliveries()->getShippingCosts()->sum()->getTotalPrice() - $cart->getDeliveries()->getShippingCosts()->sum()->getCalculatedTaxes()->getAmount();
+        } else {
+            $shipping = $cart->getDeliveries()->getShippingCosts()->sum()->getTotalPrice();
+        }
 
         return [
             'currency' => 'EUR',
