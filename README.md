@@ -17,3 +17,12 @@
 8. Navigate to the Storefront sales channel (or any default)
    1. Add Mondu payment as a Payment method
    2. Click Save
+
+## CLI commands
+
+- Mond1SW6:Test <api_token> <sandbox_mode> --no-debug
+   Will test if api token is valid
+- Mond1SW6:Config:ApiToken <api_token> <sandbox_mode> --no-debug
+   Will set api token to plugin configs
+- Mond1SW6:Activate:Payment --no-debug
+   Will activate plugin as payment method in StoreFront sales channels
