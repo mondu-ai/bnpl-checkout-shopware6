@@ -76,7 +76,7 @@ class ActivatePaymentCommand extends Command
             }
         }
 
-        echo "Mondu activated as payment methods";
+        echo "Mondu activated as payment methods\n";
 
         return 0;
     }

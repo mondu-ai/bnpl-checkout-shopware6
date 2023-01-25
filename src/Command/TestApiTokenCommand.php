@@ -49,7 +49,7 @@ class TestApiTokenCommand extends Command
             throw new \ErrorException("API token is not valid");
         }
 
-        echo "Api token is valid";
+        echo "Api token is valid\n";
 
         return 0;
     }

@@ -47,8 +47,8 @@ class ConfigApiTokenCommand extends Command
         $this->systemConfig->set("Mond1SW6.config.apiToken", $api_token, null);
         $this->systemConfig->set("Mond1SW6.config.sandbox", $sandboxMode, null);
 
-        echo "Api token successfully updated";
-        
+        echo "Api token successfully updated\n";
+
         return 0;
     }
 }
