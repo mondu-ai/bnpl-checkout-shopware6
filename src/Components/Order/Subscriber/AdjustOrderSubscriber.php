@@ -25,6 +25,7 @@ use Shopware\Core\Checkout\Order\OrderEntity;
 use Shopware\Core\Framework\Context;
 use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
 use Psr\Log\LoggerInterface;
+use Shopware\Core\Checkout\Cart\Price\Struct\CartPrice;
 
 class AdjustOrderSubscriber implements EventSubscriberInterface
 {
@@ -111,7 +112,12 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
 
                         $product = $this->productRepository->search(new Criteria([$lineItem->getIdentifier()]), $context)->first();
 
-                        $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - ($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity())) * 100;
+                        if ($order->getTaxStatus() === CartPrice::TAX_STATE_GROSS) {
+                            $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - ($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity())) * 100;
+                        } else {
+                            $unitNetPrice = $lineItem->getPrice()->getUnitPrice() * 100;
+                        }
+
                         $lineItems[] = [
                             'external_reference_id' => $lineItem->getReferencedId(),
                             'product_id' => $product->getProductNumber(),
@@ -137,11 +143,22 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                             continue;
                         }
 
-                        $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - ($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity())) * 100;
+
+                        if ($order->getTaxStatus() === CartPrice::TAX_STATE_GROSS) {
+                            $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - ($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity())) * 100;
+                        } else {
+                            $unitNetPrice = $lineItem->getPrice()->getUnitPrice() * 100;
+                        }
+
                         $discountAmount += abs($unitNetPrice);
                     }
 
-                    $shipping = ($order->getShippingCosts()->getUnitPrice() - ($order->getShippingCosts()->getCalculatedTaxes()->getAmount() / $order->getShippingCosts()->getQuantity()));
+                    if ($order->getTaxStatus() === CartPrice::TAX_STATE_GROSS) {
+                        $shipping = ($order->getShippingCosts()->getUnitPrice() - ($order->getShippingCosts()->getCalculatedTaxes()->getAmount() / $order->getShippingCosts()->getQuantity()));
+                    } else {
+                        $shipping = $order->getShippingCosts()->getUnitPrice();
+                    }
+
 
                     $adjustParams = [
                         'currency' => 'EUR',

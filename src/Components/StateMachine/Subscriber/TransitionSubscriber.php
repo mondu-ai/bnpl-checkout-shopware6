@@ -23,6 +23,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\System\StateMachine\Event\StateMachineTransitionEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Mondu\MonduPayment\Components\Invoice\InvoiceDataEntity;
+use Shopware\Core\Checkout\Cart\Price\Struct\CartPrice;
 
 class TransitionSubscriber implements EventSubscriberInterface
 {
@@ -155,7 +156,11 @@ class TransitionSubscriber implements EventSubscriberInterface
             }
         }
 
-        $shipping = ($order->getShippingCosts()->getUnitPrice() - ($order->getShippingCosts()->getCalculatedTaxes()->getAmount() / $order->getShippingCosts()->getQuantity()));
+        if ($order->getTaxStatus() === CartPrice::TAX_STATE_GROSS) {
+            $shipping = ($order->getShippingCosts()->getUnitPrice() - ($order->getShippingCosts()->getCalculatedTaxes()->getAmount() / $order->getShippingCosts()->getQuantity()));
+        } else {
+            $shipping = $order->getShippingCosts()->getUnitPrice();
+        }
 
         try {
             $invoice = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->invoiceOrder(
@@ -208,7 +213,6 @@ class TransitionSubscriber implements EventSubscriberInterface
                 continue;
             }
 
-            $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - ($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity())) * 100;
             $lineItems[] = [
                 'external_reference_id' => $lineItem->getReferencedId(),
                 'quantity' => $lineItem->getQuantity()
@@ -235,7 +239,12 @@ class TransitionSubscriber implements EventSubscriberInterface
                 continue;
             }
 
-            $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - ($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity())) * 100;
+            if ($order->getTaxStatus() === CartPrice::TAX_STATE_GROSS) {
+                $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - ($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity())) * 100;
+            } else {
+                $unitNetPrice = $lineItem->getPrice()->getUnitPrice() * 100;
+            }
+
             $discountAmount += abs($unitNetPrice);
         }
 
