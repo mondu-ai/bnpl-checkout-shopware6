@@ -56,6 +56,10 @@ if [[ $changes == "keep" ]]; then
   git push origin "${default_branch}" -f
 fi
 
+echo "Creationg Mond1SW6"
+mkdir Mond1SW6
 echo "Generating zip file"
-zip -r -D "Mond1SWR6.zip" ./*
+rsync -r --exclude 'Mond1SW6' --exclude ".env" --exclude ".env.example" --exclude "activate.sh" --exclude "SHOPWARE.md" --exclude "*.DS_Store" ./* Mond1SW6
+zip -r -D "Mond1SW6.zip" Mond1SW6/*    
+rm -r Mond1SW6
 echo "Done"
