@@ -43,10 +43,8 @@ class Database extends AbstractBootstrap
         }
 
         $method = MigrationHelper::getExecuteStatementMethod();
-        $this->connection->{$method === 'executeStatement' ? $method : 'exec'}('SET FOREIGN_KEY_CHECKS=0;');
         $this->connection->{$method}('DROP TABLE IF EXISTS `mondu_order_data`');
         $this->connection->{$method}('DROP TABLE IF EXISTS `mondu_invoice_data`');
-        $this->connection->{$method === 'executeStatement' ? $method : 'exec'}('SET FOREIGN_KEY_CHECKS=1;');
 
         //Search for config keys that contain the bundle's name
         /** @var EntityRepositoryInterface $systemConfigRepository */
