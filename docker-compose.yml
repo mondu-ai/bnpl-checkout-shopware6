@@ -1,0 +1,25 @@
+version: '3'
+services:
+  shopware-local:
+    image: dockware/dev:6.4.18.0
+    container_name: shopware6
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - shopware6_data:/var/www/html
+      - .:/var/www/html/custom/plugins/Mond1SW6
+    command: nohup /bin/bash -c "/var/www/html/custom/plugins/Mond1SW6/activate.sh && tail -F /dev/null"
+    env_file:
+      - ./.env
+    environment:
+      MYSQL_USER: shopware
+      MYSQL_PWD: shopware
+      XDEBUG_ENABLED: 1
+      SHOPWARE_ENV: dev
+    ports:
+      - 80:80
+
+volumes:
+  shopware6_data:
+    driver: local
+  mysql_data:
+    driver: local

@@ -104,5 +104,18 @@
             <argument type="string">mondu_payment</argument>
         </service>
 
+        <service id="Mondu\MonduPayment\Command\ConfigApiTokenCommand">
+            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
+            <tag name="console.command"/>
+        </service>
+        <service id="Mondu\MonduPayment\Command\TestApiTokenCommand">
+            <argument type="service" id="mondu.mondu_api"/>
+            <tag name="console.command"/>
+        </service>
+        <service id="Mondu\MonduPayment\Command\ActivatePaymentCommand">
+            <argument type="service" id="Shopware\Core\Framework\Api\Controller\ApiController"/>
+            <argument type="service" id="Shopware\Core\Framework\Api\Response\Type\Api\JsonType"/>
+            <tag name="console.command"/>
+        </service>
     </services>
 </container>
