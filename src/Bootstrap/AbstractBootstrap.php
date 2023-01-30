@@ -7,6 +7,7 @@ namespace Mondu\MonduPayment\Bootstrap;
 use Monolog\Logger;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\Plugin\Context\InstallContext;
+use Shopware\Core\Framework\Plugin\Context\UpdateContext;
 use Shopware\Core\Framework\Plugin\PluginEntity;
 use Symfony\Component\DependencyInjection\ContainerAwareInterface;
 use Symfony\Component\DependencyInjection\ContainerAwareTrait;
@@ -19,6 +20,11 @@ abstract class AbstractBootstrap implements ContainerAwareInterface
      * @var InstallContext
      */
     protected $installContext;
+
+    /**
+     * @var UpdateContext
+     */
+    protected $updateContext;
 
     /**
      * @var Context
@@ -57,6 +63,11 @@ abstract class AbstractBootstrap implements ContainerAwareInterface
     final public function setInstallContext(InstallContext $installContext): void
     {
         $this->installContext = $installContext;
+    }
+
+    final public function setUpdateContext(UpdateContext $updateContext): void
+    {
+        $this->updateContext = $updateContext;
     }
 
     final public function setLogger(Logger $logger): void
