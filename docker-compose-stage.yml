@@ -1,0 +1,33 @@
+version: "3.8"
+
+services: 
+    jtl-db:
+        image: mariadb:latest
+        environment:
+            MYSQL_ROOT_PASSWORD: root
+            MYSQL_DATABASE: jtl-db
+        volumes: 
+           - sw6_db_6:/var/lib/mysql
+        healthcheck:
+            test: ["CMD", "mysqladmin", "ping", "--silent"]
+
+    jtl-shop:
+        links:
+          - "jtl-db"
+        image: mondu/sw6
+        build: 
+            context: ./docker/web
+            args:
+                SHOP_VERSION: "5-0-5"
+        environment:
+            DATABASE_URL: "mysql://root:root@jtl-db:3306/jtl-db"
+        ports:
+            - "80:80"
+        volumes: 
+            - jtl5_shop_6:/var/www/html
+        depends_on: 
+            - jtl-db
+
+volumes: 
+    sw6_db_6:
+    jtl5_shop_6:
