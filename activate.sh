@@ -7,6 +7,7 @@ alias shpw6="php ${SHOPWARE_CLI_PATH}"
 shpw6 cache:clear --no-debug
 shpw6 plugin:refresh
 shpw6 plugin:install Mond1SW6 --no-debug
+shpw6 plugin:deactivate Mond1SW6 --no-debug
 shpw6 plugin:activate Mond1SW6 --no-debug
 shpw6 cache:clear --no-debug
 

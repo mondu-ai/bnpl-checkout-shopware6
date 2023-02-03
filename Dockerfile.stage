@@ -1,11 +1,11 @@
 FROM php:7.4.16-apache
 
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
-
 RUN sed -ri -e "s!/var/www/html!${APACHE_DOCUMENT_ROOT}!g" /etc/apache2/sites-available/*.conf
 RUN sed -ri -e "s!/var/www/!${APACHE_DOCUMENT_ROOT}!g" /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
+RUN echo "ServerName host.docker.internal" >> /etc/apache2/apache2.conf
+RUN a2enmod rewrite
 
-ENV BNPL_MERCHANT_API_TOKEN=4ESFSXUCGHZKNC9EQD2IDUYQERMICPYC
 ARG SHOPWARE_VERSION="install_v6.4.18.1_59339d6a6e5b37eca3c18dddaf428fcffe8e472b.zip"
 
 RUN pecl install xdebug-3.0.3 && rm -r /tmp/pear/*
@@ -16,19 +16,18 @@ RUN docker-php-ext-install intl bcmath soap opcache pdo_mysql zip \
     && docker-php-ext-enable imagick xdebug
 RUN apt-get update && apt-get install wget unzip zip -y
 
-COPY php.ini "$PHP_INI_DIR/php.ini"
-COPY xdebug.ini "$PHP_INI_DIR/conf.d/docker-php-ext-xdebug.ini"
-COPY entrypoint.sh /tmp
+COPY deploy/php.ini "$PHP_INI_DIR/php.ini"
+COPY deploy/xdebug.ini "$PHP_INI_DIR/conf.d/docker-php-ext-xdebug.ini"
 
+USER www-data
+COPY deploy/entrypoint.sh /tmp
 RUN wget "https://releases.shopware.com/sw6/${SHOPWARE_VERSION}"
 RUN unzip "${SHOPWARE_VERSION}" -d /var/www/html
-RUN chmod -R 755 /var/www/html/var/
 
-RUN echo "ServerName host.docker.internal" >> /etc/apache2/apache2.conf
-RUN a2enmod rewrite
-
+USER root
 COPY . /var/www/html/custom/plugins/Mond1SW6/
 RUN chmod +x /var/www/html/custom/plugins/Mond1SW6/activate.sh
-
 RUN chmod 755 /tmp/entrypoint.sh
+
+USER www-data
 ENTRYPOINT ["/tmp/entrypoint.sh"]
