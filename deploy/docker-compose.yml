@@ -19,7 +19,7 @@ services:
             context: ./docker/web
         environment:
             DATABASE_URL: "mysql://root:root@jtl-db:3306/jtl-db"
-            BNPL_MERCHANT_API_TOKEN: "4ESFSXUCGHZKNC9EQD2IDUYQERMICPYC"
+            BNPL_MERCHANT_API_TOKEN: ""
         ports:
             - "80:80"
         volumes: 
