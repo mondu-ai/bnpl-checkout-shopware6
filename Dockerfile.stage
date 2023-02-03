@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install wget unzip zip -y
 COPY deploy/php.ini "$PHP_INI_DIR/php.ini"
 COPY deploy/xdebug.ini "$PHP_INI_DIR/conf.d/docker-php-ext-xdebug.ini"
 
+
 USER www-data
 COPY deploy/entrypoint.sh /tmp
 RUN wget "https://releases.shopware.com/sw6/${SHOPWARE_VERSION}"
