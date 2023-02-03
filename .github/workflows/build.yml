@@ -1,6 +1,7 @@
 jobs:
   # STAGE
   build_stage:
+    on: push
     name: Build and push image to stage
     runs-on: [self-hosted, shared]
     timeout-minutes: 20
