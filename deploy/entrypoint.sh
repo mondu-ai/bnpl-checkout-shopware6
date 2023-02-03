@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if [ ! -d /var/lib/mysql/jtl_shop ] ; then
+if [ ! -d /var/lib/mysql/sw6-db ] ; then
    php bin/console system:setup --app-env=dev -n --database-url=$DATABASE_URL
    php bin/console system:install --basic-setup --create-database
 

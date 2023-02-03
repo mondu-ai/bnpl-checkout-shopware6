@@ -1,32 +1,32 @@
 version: "3.8"
 
 services: 
-    jtl-db:
+    sw6-db:
         image: mariadb:latest
         environment:
             MYSQL_ROOT_PASSWORD: root
-            MYSQL_DATABASE: jtl-db
+            MYSQL_DATABASE: sw6-db
         volumes: 
-           - sw6_db_15:/var/lib/mysql
+           - sw6_db:/var/lib/mysql
         healthcheck:
             test: ["CMD", "mysqladmin", "ping", "--silent"]
 
-    jtl-shop:
+    sw6-shop:
         links:
-          - "jtl-db"
+          - "sw6-db"
         image: mondu/sw6
         build: 
             context: ./docker/web
         environment:
-            DATABASE_URL: "mysql://root:root@jtl-db:3306/jtl-db"
+            DATABASE_URL: "mysql://root:root@sw6-db:3306/sw6-db"
             BNPL_MERCHANT_API_TOKEN: ""
         ports:
             - "80:80"
         volumes: 
-            - jtl5_shop_15:/var/www/html
+            - sw6_shop:/var/www/html
         depends_on: 
-            - jtl-db
+            - sw6-db
 
 volumes: 
-    sw6_db_15:
-    jtl5_shop_15:
+    sw6_db:
+    sw6_shop:
