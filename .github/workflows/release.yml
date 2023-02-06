@@ -20,5 +20,5 @@ jobs:
 
         ./releaser.sh -v "${NEW_TAG}" -o "${OLD_TAG}" -c "keep"
 
-        echo "FILES=Mond1SWR6.zip" >> $GITHUB_ENV
+        echo "FILES=Mond1SW6.zip" >> $GITHUB_ENV
            
