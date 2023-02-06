@@ -8,7 +8,7 @@ jobs:
   # STAGE
   build_stage:
     name: Build and push image to stage
-    runs-on: [self-hosted, shared]
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/remote-environment-1' }}
     steps:
