@@ -85,7 +85,9 @@ class PaymentMethods extends AbstractBootstrap
         foreach (self::PAYMENT_METHODS as $paymentMethod) {
             $this->upsertPaymentMethod($paymentMethod);
         }
-        // Keep active flags as they are
+
+        $this->updatePaymentMethodImage();
+        
     }
 
     public function install(): void

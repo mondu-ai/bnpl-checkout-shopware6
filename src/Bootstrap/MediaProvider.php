@@ -47,7 +47,7 @@ class MediaProvider
         $mediaId = '';
 
         if ($file) {
-            $mediaId = $this->mediaService->saveFile($file, 'png', 'image/png', 'mondu-payment-logo', $context, 'payment_method', null, false);
+            $mediaId = $this->mediaService->saveFile($file, 'png', 'image/png', 'mondu-payment-logo-v2', $context, 'payment_method', null, false);
         }
 
         return $mediaId;
@@ -67,7 +67,7 @@ class MediaProvider
         $criteria = (new Criteria())->addFilter(
             new EqualsFilter(
                 'fileName',
-                'mondu-payment-logo'
+                'mondu-payment-logo-v2'
             )
         );
 
