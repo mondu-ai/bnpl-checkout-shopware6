@@ -1,15 +1,16 @@
+name: Deploy
+run-name: "Deploy from ${{ github.ref_name }}"
+
 on:
-    push:
-      branches:
-        - main
-        - remote-environment-1
+  push:
+    branches: [ main, remote-environment-1 ]
 jobs:
   # STAGE
   build_stage:
     name: Build and push image to stage
     runs-on: [self-hosted, shared]
     timeout-minutes: 20
-    #if: ${{ github.ref == 'refs/heads/main' }}
+    if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/remote-environment-1' }}
     steps:
       - uses: actions/checkout@v3
       - uses: mondu-ai/cicd/auth-aws@v1
