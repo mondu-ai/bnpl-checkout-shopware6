@@ -30,7 +30,7 @@ class Migration1652857810CreateMonduOrderInvoicesTable extends MigrationStep
           PRIMARY KEY (`id`, `version_id`),
           FOREIGN KEY (`document_id`) REFERENCES `document` (`id`),
           FOREIGN KEY (`order_id`,`order_version_id`) REFERENCES `order` (`id`, `version_id`) ON UPDATE CASCADE ON DELETE CASCADE
-        ) ENGINE='InnoDB' COLLATE 'utf8mb4_bin';
+        ) ENGINE='InnoDB' DEFAULT CHARSET=utf8mb4;
       SQL;
 
         $connection->executeStatement($query);
