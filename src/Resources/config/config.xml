@@ -19,7 +19,7 @@
             <name>apiToken</name>
             <label>API Key</label>
             <label lang="de-DE">API Schlüssel</label>
-            <label lang="nl-NL">API sleutel</label>
+            <label lang="nl-NL">API Key</label>
         </input-field>
 
         <component name="mondu-test-api-button">
@@ -46,7 +46,7 @@
             <defaultValue>0</defaultValue>
             <helpText>When this flag is enabled, there will be no validations such as invoice validation upon changing an order state.</helpText>
             <helpText lang="de-DE">Wenn diese Option aktiviert ist, werden bei einer Änderung des Bestellstatus keine Validierungen wie z. B. die Rechnungsvalidierung durchgeführt.</helpText>
-            <helpText lang="nl-NL">Als deze vlag is ingeschakeld, zijn er geen validaties zoals factuurvalidatie bij het wijzigen van een orderstatus.</helpText>
+            <helpText lang="nl-NL">Als deze feature is ingeschakeld, zijn er geen validaties zoals factuurvalidatie bij het wijzigen van een orderstatus.</helpText>
         </input-field>
     </card>
 </config>

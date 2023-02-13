@@ -3,7 +3,7 @@
     "documentCard": {
       "labelCancelInvoice": "Factuur annuleren",
       "labelCancelCreditNote": "Kredietnota annuleren",
-      "cancelSuccessTitle": "Succes!",
+      "cancelSuccessTitle": "Gelukt!",
       "cancelSuccessMessage": "Succesvol geannuleerd.",
       "cancelErrorMessage": "Er is een fout opgetreden. Document kon niet worden geannuleerd."
     }
@@ -14,7 +14,7 @@
       "apiConfigurationValidationMessage": "API Credentials validatie gestart...",
       "apiConfigurationSuccessTitle": "Succes!",
       "apiConfigurationSuccessMessage": "API Credentials zijn geldig!",
-      "apiConfigurationFailureTitle": "Storing!",
+      "apiConfigurationFailureTitle": "Foutmelding!",
       "apiConfigurationFailureMessage": "API Credentials zijn ongeldig.",
       "testApiConfiguration": "API-referenties testen"
     }
