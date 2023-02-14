@@ -34,6 +34,10 @@ class PaymentMethods extends AbstractBootstrap
                     'name' => 'Invoice - Pay later by bank transfer',
                     'description' => 'Information on the processing of your personal data by Mondu GmbH can be found [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]here[/url].',
                 ],
+                'nl-NL' => [
+                    'name' => 'Aankoop op rekening - nu kopen, later betalen',
+                    'description' => 'Informatie over de verwerking van uw persoonsgegevens door Mondu GmbH vindt u [url=https://www.mondu.ai/nl/gdpr-notification-for-merchants/]hier[/url].'
+                ]
             ],
         ],
         MonduSepaHandler::class => [
@@ -50,6 +54,10 @@ class PaymentMethods extends AbstractBootstrap
                     'name' => 'SEPA - Pay later by direct debit',
                     'description' => 'Information on the processing of your personal data by Mondu GmbH can be found [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]here[/url].',
                 ],
+                'nl-NL' => [
+                    'name' => 'SEPA automatische incasso - nu kopen, later betalen',
+                    'description' => 'Informatie over de verwerking van uw persoonsgegevens door Mondu GmbH vindt u [url=https://www.mondu.ai/nl/gdpr-notification-for-merchants/]hier[/url].'
+                ]
             ],
         ],
         MonduInstallmentHandler::class => [
@@ -66,6 +74,10 @@ class PaymentMethods extends AbstractBootstrap
                     'name' => 'Split payments - Pay conveniently in instalments by direct debit',
                     'description' => 'Information on the processing of your personal data by Mondu GmbH can be found [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]here[/url].',
                 ],
+                'nl-NL' => [
+                    'name' => 'Gespreid betalen, betaal gemakkelijk in termijnen via automatische incasso',
+                    'description' => 'Informatie over de verwerking van uw persoonsgegevens door Mondu GmbH vindt u [url=https://www.mondu.ai/nl/gdpr-notification-for-merchants/]hier[/url].'
+                ]
             ],
         ],
     ];

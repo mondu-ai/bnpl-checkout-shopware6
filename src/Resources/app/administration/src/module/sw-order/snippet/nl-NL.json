@@ -1,0 +1,22 @@
+{
+  "sw-order-mondu": {
+    "documentCard": {
+      "labelCancelInvoice": "Factuur annuleren",
+      "labelCancelCreditNote": "Kredietnota annuleren",
+      "cancelSuccessTitle": "Gelukt!",
+      "cancelSuccessMessage": "Succesvol geannuleerd.",
+      "cancelErrorMessage": "Er is een fout opgetreden. Document kon niet worden geannuleerd."
+    }
+  },
+  "sw-mondu-config": {
+    "apiValidation": {
+      "apiConfigurationValidationTitle": "API-validatie",
+      "apiConfigurationValidationMessage": "API Credentials validatie gestart...",
+      "apiConfigurationSuccessTitle": "Succes!",
+      "apiConfigurationSuccessMessage": "API Credentials zijn geldig!",
+      "apiConfigurationFailureTitle": "Foutmelding!",
+      "apiConfigurationFailureMessage": "API Credentials zijn ongeldig.",
+      "testApiConfiguration": "API-referenties testen"
+    }
+  }
+}

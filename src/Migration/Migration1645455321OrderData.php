@@ -35,7 +35,7 @@ class Migration1645455321OrderData extends MigrationStep
               `updated_at` DATETIME NULL,
               PRIMARY KEY (`id`, `version_id`),
               FOREIGN KEY (`order_id`,`order_version_id`) REFERENCES `order` (`id`, `version_id`) ON UPDATE CASCADE ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         ');
         // implement update
     }

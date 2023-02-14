@@ -10,6 +10,7 @@
             <name>sandbox</name>
             <label>Sandbox</label>
             <label lang="de-DE">Testmodus</label>
+            <label lang="nl-NL">Testmodus</label>
             <value>0</value>
             <defaultValue>1</defaultValue>
         </input-field>
@@ -18,12 +19,14 @@
             <name>apiToken</name>
             <label>API Key</label>
             <label lang="de-DE">API Schlüssel</label>
+            <label lang="nl-NL">API Key</label>
         </input-field>
 
         <component name="mondu-test-api-button">
             <name>testLiveClientCredentialsButton</name>
             <label>Validate API Credentials</label>
             <label lang="de-DE">API Zugangsdaten validieren</label>
+            <label lang="nl-NL">API Credentials valideren</label>
             <apiMode>live</apiMode>
         </component>
     </card>
@@ -31,15 +34,19 @@
     <card>
         <title>Mondu Configuration</title>
         <title lang="de-DE">Konfiguration</title>
+        <title lang="nl-NL">Configuratie</title>
 
         <input-field type="bool">
             <name>skipOrderStateValidation</name>
             <label>Skip order state validation?</label>
             <label lang="de-DE">Validierung des Bestellstatus überspringen?</label>
+            <label lang="nl-NL">De validatie van de orderstatus overslaan?</label>
+
             <value>0</value>
             <defaultValue>0</defaultValue>
             <helpText>When this flag is enabled, there will be no validations such as invoice validation upon changing an order state.</helpText>
             <helpText lang="de-DE">Wenn diese Option aktiviert ist, werden bei einer Änderung des Bestellstatus keine Validierungen wie z. B. die Rechnungsvalidierung durchgeführt.</helpText>
+            <helpText lang="nl-NL">Als deze feature is ingeschakeld, zijn er geen validaties zoals factuurvalidatie bij het wijzigen van een orderstatus.</helpText>
         </input-field>
     </card>
 </config>
