@@ -16,8 +16,8 @@ class ConfigService
 {
     public const API_URL = 'https://api.mondu.ai/api/v1';
     public const WIDGET_URL = 'https://checkout.mondu.ai/widget.js';
-    public const SANDBOX_API_URL = 'https://api.stage.mondu.ai/api/v1';
-    public const SANDBOX_WIDGET_URL = 'https://checkout.stage.mondu.ai/widget.js';
+    public const SANDBOX_API_URL = 'https://api.demo.mondu.ai/api/v1';
+    public const SANDBOX_WIDGET_URL = 'https://checkout.demo.mondu.ai/widget.js';
 
     /**
      * @var SystemConfigService
