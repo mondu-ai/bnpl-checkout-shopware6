@@ -23,7 +23,7 @@ class MonduOperationService
         $this->cache = $cache;
     }
 
-    public function syncOrder(OrderDataEntity $orderData, $salesChannelId = null)
+    public function syncOrder(OrderDataEntity $orderData, $salesChannelId = null, Context $context)
     {
         $order = $this->monduClient->setSalesChannelId($salesChannelId)->getMonduOrder($orderData->getReferenceId());
         $this->orderDataRepository->update([
@@ -32,7 +32,7 @@ class MonduOperationService
                 OrderDataEntity::FIELD_VIBAN => null, //$order['buyer']['viban'],
                 OrderDataEntity::FIELD_ORDER_STATE => $order['state'],
             ]
-        ], Context::createDefaultContext());
+        ], $context);
 
         return $order['state'];
     }

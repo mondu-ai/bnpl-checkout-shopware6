@@ -17,6 +17,11 @@ abstract class AbstractBootstrap implements ContainerAwareInterface
     use ContainerAwareTrait;
 
     /**
+     * @var Context
+     */
+    protected $context;
+
+    /**
      * @var InstallContext
      */
     protected $installContext;
@@ -25,11 +30,6 @@ abstract class AbstractBootstrap implements ContainerAwareInterface
      * @var UpdateContext
      */
     protected $updateContext;
-
-    /**
-     * @var Context
-     */
-    protected $defaultContext;
 
     /**
      * @var Logger
@@ -43,7 +43,6 @@ abstract class AbstractBootstrap implements ContainerAwareInterface
 
     final public function __construct()
     {
-        $this->defaultContext = Context::createDefaultContext();
     }
 
     abstract public function install(): void;
@@ -58,6 +57,11 @@ abstract class AbstractBootstrap implements ContainerAwareInterface
 
     public function injectServices(): void
     {
+    }
+
+    final public function setContext(Context $context): void
+    {
+        $this->context = $context;
     }
 
     final public function setInstallContext(InstallContext $installContext): void

@@ -16,10 +16,9 @@ class ConfigService
 {
     public const API_URL = 'https://api.mondu.ai/api/v1';
     public const WIDGET_URL = 'https://checkout.mondu.ai/widget.js';
-    public const SANDBOX_API_URL = 'https://api.demo.mondu.ai/api/v1';
-    public const SANDBOX_WIDGET_URL = 'https://checkout.demo.mondu.ai/widget.js';
-    public const LOCAL_API_URL = 'http://host.docker.internal:3000/api/v1';
-    public const LOCAL_WIDGET_URL = 'http://localhost:3002/widget.js';
+    public const SANDBOX_API_URL = 'https://api.stage.mondu.ai/api/v1';
+    public const SANDBOX_WIDGET_URL = 'https://checkout.stage.mondu.ai/widget.js';
+
     /**
      * @var SystemConfigService
      */
@@ -62,7 +61,7 @@ class ConfigService
     }
 
     public function getBaseApiUrl(): string
-    {        
+    {
         return $this->isSandbox() ? self::SANDBOX_API_URL : self::API_URL;
     }
 

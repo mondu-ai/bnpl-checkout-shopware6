@@ -90,6 +90,7 @@ class Mond1SW6 extends Plugin
         $plugin = $plugins->first();
 
         foreach ($bootstrapper as $bootstrap) {
+            $bootstrap->setContext($installContext->getContext());
             $bootstrap->setInstallContext($installContext);
             $bootstrap->setContainer($this->container);
             $bootstrap->injectServices();

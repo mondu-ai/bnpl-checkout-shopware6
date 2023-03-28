@@ -7,109 +7,64 @@ use Shopware\Core\Framework\Api\Response\Type\Api\JsonType;
 use Shopware\Core\Framework\Api\Response\Type\Api\JsonApiType;
 use Shopware\Core\Framework\Context;
 use Symfony\Component\HttpFoundation\Request;
-
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\ContainsFilter;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 
 class ActivatePaymentCommand extends Command
 {
     protected static $defaultName = 'Mond1SW6:Activate:Payment';
-    private ApiController $apiController;
-    private JsonType $responseFactory;
-    private JsonApiType $responseApiFactory;
     private Context $context;
+    private EntityRepositoryInterface $salesChannelRepository;
+    private EntityRepositoryInterface $paymentMethodRepository;
+    private EntityRepositoryInterface $salesChannelPaymentMethodRepository;
+
 
     public function __construct(
-        ApiController $apiController,
-        JsonType $responseFactory
+        EntityRepositoryInterface $salesChannelPaymentMethodRepository,
+        EntityRepositoryInterface $paymentMethodRepository,
+        EntityRepositoryInterface $salesChannelRepository
     )
     {
         parent::__construct();
 
-        $this->apiController = $apiController;
-        $this->responseFactory = $responseFactory;
         $this->context = Context::createDefaultContext();
+        $this->salesChannelPaymentMethodRepository = $salesChannelPaymentMethodRepository;
+        $this->paymentMethodRepository = $paymentMethodRepository;
+        $this->salesChannelRepository = $salesChannelRepository;
     }
 
     protected function configure(): void
     {
-        $this->setDescription('Adds API token to plugin configuration.');
+        $this->setDescription('Adds Mondu Payment methods to the sales channels.');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $paymentMethods = $this->queryEntityData("payment-method", "app-payment-method");
 
-        $monduPaymentIds = $this->filterIds($paymentMethods, function ($paymentMethod) {
-            return str_contains($paymentMethod["distinguishableName"], "Mondu");
-        });
+        $salesChannels = $this->salesChannelRepository->search(new Criteria(), $this->context);
 
-        $salesChannels = $this->queryEntityData("sales-channel", "sales-channel");
+        foreach ($salesChannels->getIterator() as $salesChannel) {
 
-        $storeFrontIds = $this->filterIds($salesChannels, function ($salesChannel) {
-            return str_contains($salesChannel["name"], "Storefront");
-        });
+            $criteria = new Criteria();
+            $criteria->addFilter(new ContainsFilter('handlerIdentifier', 'MonduPayment'));
+            $paymentMethods = $this->paymentMethodRepository->search($criteria, $this->context);
 
-        foreach ($storeFrontIds as $storeFrontId) {
-            $paymentMethodsIds = [];
-
-            foreach ($monduPaymentIds as $id) {
-                array_push($paymentMethodsIds, ["id" => $id]);
-            }
-
-            $request = (new Request)->create(
-                "http://localhost/api/sales-channel/{$storeFrontId}",
-                "PATCH",
-                [
-                    "id" => $storeFrontId,
-                    "paymentMethods" => $paymentMethodsIds
-                ]
-            );
-
-            $request->headers->set("Content-Type", "application/json");
-
-            $response = $this->apiController->update($request, $this->context, $this->responseFactory, "sales-channel", $storeFrontId);
-            if ($response->getStatusCode() != 204) {
-                echo($response->getStatusCode());
-                throw new \ErrorException("Unable to activate plugin in storefront");
+            foreach ($paymentMethods->getIterator() as $paymentMethod) {
+                $this->salesChannelPaymentMethodRepository->create([
+                    [
+                        'salesChannelId'  => $salesChannel->getId(),
+                        'paymentMethodId' => $paymentMethod->getId()
+                    ]
+                ], $this->context);
             }
         }
-
-        echo "Mondu activated as payment methods\n";
+        
+        $output->writeln("Mondu payment methods are activated.\n");
 
         return 0;
-    }
-
-    private function queryEntityData(
-        $path,
-        $entityName
-    )
-    {
-        $request = (new Request)->create("http://localhost/api/search/{$path}", "POST", [
-            "page" => 1,
-            "limit" => 25,
-            "term" => "",
-            "total-count-mode" => 1
-        ]);
-
-        $response = $this->apiController->search($request, $this->context, $this->responseFactory, $path, $entityName);
-        $responseContent = $response->getContent();
-
-        return json_decode($responseContent, true)["data"];
-    }
-
-    private function filterIds(
-        $data,
-        $filter
-    )
-    {
-        $filteredData = array_filter($data, $filter);
-
-        $dataIds = array_map(function ($member) {
-            return $member["id"];
-        }, $filteredData);
-
-        return array_values($dataIds);
     }
 }

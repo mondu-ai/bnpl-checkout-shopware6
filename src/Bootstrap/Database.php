@@ -59,13 +59,13 @@ class Database extends AbstractBootstrap
                 ]
             )
         );
-        $idSearchResult = $systemConfigRepository->searchIds($criteria, Context::createDefaultContext());
+        $idSearchResult = $systemConfigRepository->searchIds($criteria, $this->context);
 
         //Formatting IDs array and deleting config keys
         $ids = \array_map(static function ($id) {
             return ['id' => $id];
         }, $idSearchResult->getIds());
-        $systemConfigRepository->delete($ids, Context::createDefaultContext());
+        $systemConfigRepository->delete($ids, $this->context);
     }
 
     public function activate(): void
