@@ -3,7 +3,7 @@ import HttpClient from 'src/service/http-client.service';
 
 export default class MonduCheckoutPlugin extends Plugin {
     static options = {
-        src: 'http://localhost:3002/widget.js',
+        src: '',
         csrfToken: '',
         payment_method: 'invoice'
     };

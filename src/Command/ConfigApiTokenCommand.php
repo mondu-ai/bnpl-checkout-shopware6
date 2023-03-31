@@ -42,12 +42,10 @@ class ConfigApiTokenCommand extends Command
         $api_token = (string)$input->getArgument('api_token');
         $sandboxMode = boolval($input->getArgument('sandbox_mode'));
 
-        error_reporting(0);
-
         $this->systemConfig->set("Mond1SW6.config.apiToken", $api_token, null);
         $this->systemConfig->set("Mond1SW6.config.sandbox", $sandboxMode, null);
 
-        echo "Api token successfully updated\n";
+        $output->writeln("Api token successfully updated\n");
 
         return 0;
     }

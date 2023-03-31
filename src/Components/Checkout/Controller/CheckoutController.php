@@ -64,7 +64,16 @@ class CheckoutController extends StorefrontController
     }
     protected function getLineItems($collection, Context $context): array
     {
+        $productIds = $collection->fmap(
+            function (\Shopware\Core\Checkout\Cart\LineItem\LineItem $lineItem) {
+                return $lineItem->getId(); 
+            }
+        );
+
+        $products = $this->productRepository->search(new Criteria($productIds), $context);
+
         $lineItems = [];
+        
         /** @var \Shopware\Core\Checkout\Cart\LineItem\LineItem|OrderLineItemEntity $lineItem */
         foreach ($collection->getIterator() as $lineItem) {
             if ($lineItem->getType() !== \Shopware\Core\Checkout\Cart\LineItem\LineItem::PRODUCT_LINE_ITEM_TYPE) {
@@ -72,7 +81,9 @@ class CheckoutController extends StorefrontController
                 continue;
             }
 
-            $product = $this->productRepository->search(new Criteria([$lineItem->getId()]), $context)->first();
+            $product = $products->filter(function ($product) use ($lineItem) {
+                return $product->getId() == $lineItem->getId();
+            })->first();
 
             if ($context->getTaxState() === CartPrice::TAX_STATE_GROSS) {
                 $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - ($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity())) * 100;

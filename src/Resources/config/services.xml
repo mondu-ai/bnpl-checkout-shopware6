@@ -113,8 +113,9 @@
             <tag name="console.command"/>
         </service>
         <service id="Mondu\MonduPayment\Command\ActivatePaymentCommand">
-            <argument type="service" id="Shopware\Core\Framework\Api\Controller\ApiController"/>
-            <argument type="service" id="Shopware\Core\Framework\Api\Response\Type\Api\JsonType"/>
+            <argument type="service" key="$salesChannelPaymentMethodRepository" id="sales_channel_payment_method.repository"/>
+            <argument type="service" key="$salesChannelRepository" id="sales_channel.repository"/>
+            <argument type="service" key="$paymentMethodRepository" id="payment_method.repository"/>
             <tag name="console.command"/>
         </service>
     </services>

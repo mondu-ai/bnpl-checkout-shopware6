@@ -83,7 +83,7 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
                     }
 
                     if ($transitionName == 'ship' || $transitionName == 'ship_partially') {
-                        if (!$this->canShipOrder($order, $order->getSalesChannelId())) {
+                        if (!$this->canShipOrder($order, $order->getSalesChannelId(), $context)) {
                             throw new MonduException('Order can not be shipped. Invoice required.');
                         }
 
@@ -115,7 +115,7 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
         return true;
     }
 
-    protected function canShipOrder(OrderEntity $order, ?string $salesChannelId = null): bool
+    protected function canShipOrder(OrderEntity $order, ?string $salesChannelId = null, Context $context): bool
     {
         /** @var OrderDataEntity $monduData */
         $monduData = $order->getExtension(OrderExtension::EXTENSION_NAME);
@@ -125,7 +125,7 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
         /**if ($monduData->getOrderState() === 'partially_shipped' || $monduData->getOrderState() === 'confirmed') {
          *
         } else */if ($monduData->getOrderState() === 'pending') {
-            $newState = $this->monduOperationService->syncOrder($monduData, $salesChannelId);
+            $newState = $this->monduOperationService->syncOrder($monduData, $salesChannelId, $context);
             if ($newState !=='partially_shipped' && $newState !== 'confirmed') {
                 throw new MonduException('Mondu Order state must be confirmed or partially_shipped');
             }

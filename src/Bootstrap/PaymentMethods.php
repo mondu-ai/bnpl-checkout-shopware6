@@ -136,7 +136,7 @@ class PaymentMethods extends AbstractBootstrap
                 ->addFilter(new EqualsFilter('handlerIdentifier', $paymentMethod['handlerIdentifier']))
                 ->setLimit(1)
             ),
-            $this->defaultContext
+            $this->context
         );
 
         /** @var PaymentMethodEntity|null $paymentEntity */
@@ -146,14 +146,14 @@ class PaymentMethods extends AbstractBootstrap
         }
 
         $paymentMethod['pluginId'] = $this->plugin->getId();
-        $this->paymentRepository->upsert([$paymentMethod], $this->defaultContext);
+        $this->paymentRepository->upsert([$paymentMethod], $this->context);
     }
 
     protected function setActiveFlags(bool $activated): void
     {
         $paymentEntities = $this->paymentRepository->search(
             (new Criteria())->addFilter(new EqualsFilter('pluginId', $this->plugin->getId())),
-            $this->defaultContext
+            $this->context
         );
 
         $updateData = array_map(static function (PaymentMethodEntity $entity) use ($activated) {
@@ -163,7 +163,7 @@ class PaymentMethods extends AbstractBootstrap
             ];
         }, $paymentEntities->getElements());
 
-        $this->paymentRepository->update(array_values($updateData), $this->defaultContext);
+        $this->paymentRepository->update(array_values($updateData), $this->context);
     }
 
     protected function updatePaymentMethodImage()
@@ -171,7 +171,7 @@ class PaymentMethods extends AbstractBootstrap
         $mediaProvider = $this->container->get(MediaProvider::class);
 
         foreach (self::PAYMENT_METHODS as $paymentMethod) {
-            $mediaId = $mediaProvider->getLogoMediaId($this->defaultContext);
+            $mediaId = $mediaProvider->getLogoMediaId($this->context);
 
             $paymentSearchResult = $this->paymentRepository->search(
                 (
@@ -179,7 +179,7 @@ class PaymentMethods extends AbstractBootstrap
                 ->addFilter(new EqualsFilter('handlerIdentifier', $paymentMethod['handlerIdentifier']))
                 ->setLimit(1)
             ),
-                $this->defaultContext
+                $this->context
             );
 
             $paymentMethodData = [
@@ -187,7 +187,7 @@ class PaymentMethods extends AbstractBootstrap
             'mediaId' => $mediaId
           ];
 
-            $this->paymentRepository->update([$paymentMethodData], $this->defaultContext);
+            $this->paymentRepository->update([$paymentMethodData], $this->context);
         }
     }
 }
