@@ -340,7 +340,7 @@ const  SANDBOX_WIDGET_URL  =  'https://checkout.demo.mondu.ai/widget.js';
 
 ## BNPL checkout configuration
 
-- Go to [Shopware6 admin](http://localhost:80/admin/)
+- Go to [Shopware 6 Admin](http://localhost:80/admin/)
 	- Login: demo
 	- Password: adminadmin
 - In left sidebar go to Extensions=>My extensions
