@@ -1,0 +1,22 @@
+{
+  "sw-order-mondu": {
+    "documentCard": {
+      "labelCancelInvoice": "Annuler la facture",
+      "labelCancelCreditNote": "Annuler la note de crédit",
+      "cancelSuccessTitle": "Success !",
+      "cancelSuccessMessage": "Annulation réussie",
+      "cancelErrorMessage": "Une erreur s'est produite. Le document n'a pas pu être annulé."
+    }
+  },
+  "sw-mondu-config": {
+    "apiValidation": {
+      "apiConfigurationValidationTitle": "API Validation",
+      "apiConfigurationValidationMessage": "API Credentials validation started...",
+      "apiConfigurationSuccessTitle": "Success !",
+      "apiConfigurationSuccessMessage": "API Credentials are valid !",
+      "apiConfigurationFailureTitle": "Failure !",
+      "apiConfigurationFailureMessage": "API Credentials are invalid",
+      "testApiConfiguration": "Test API Credentials"
+    }
+  }
+}

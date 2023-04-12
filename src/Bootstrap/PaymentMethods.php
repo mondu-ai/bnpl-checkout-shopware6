@@ -23,20 +23,24 @@ class PaymentMethods extends AbstractBootstrap
         MonduHandler::class => [
             'handlerIdentifier' => MonduHandler::class,
             'name' => 'Rechnungskauf - Später per Banküberweisung bezahlen',
-            'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
+            'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/gdpr-notification-for-buyers/]hier[/url].',
             'afterOrderEnabled' => false,
             'translations' => [
                 'de-DE' => [
                     'name' => 'Rechnungskauf - Später per Banküberweisung bezahlen',
-                    'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
+                    'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/gdpr-notification-for-buyers/]hier[/url].',
                 ],
                 'en-GB' => [
                     'name' => 'Invoice - Pay later by bank transfer',
-                    'description' => 'Information on the processing of your personal data by Mondu GmbH can be found [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]here[/url].',
+                    'description' => 'Information on the processing of your personal data by Mondu GmbH can be found [url=https://www.mondu.ai/de/gdpr-notification-for-buyers/]here[/url].',
                 ],
                 'nl-NL' => [
                     'name' => 'Aankoop op rekening - nu kopen, later betalen',
-                    'description' => 'Informatie over de verwerking van uw persoonsgegevens door Mondu GmbH vindt u [url=https://www.mondu.ai/nl/gdpr-notification-for-merchants/]hier[/url].'
+                    'description' => 'Informatie over de verwerking van uw persoonsgegevens door Mondu GmbH vindt u [url=https://mondu.ai/nl/gdpr-notification-for-buyers]hier[/url].'
+                ],
+                'fr-FR' => [
+                    'name' => 'Achat sur facture - Payer plus tard par virement bancaire',
+                    'description' => 'Des informations sur la façon dont Mondu GmbH traite vos données personnelles peuvent être trouvées [url=https://mondu.ai/fr/gdpr-notification-for-buyers]ici[/url].'
                 ]
             ],
         ],
@@ -57,6 +61,10 @@ class PaymentMethods extends AbstractBootstrap
                 'nl-NL' => [
                     'name' => 'SEPA automatische incasso - nu kopen, later betalen',
                     'description' => 'Informatie over de verwerking van uw persoonsgegevens door Mondu GmbH vindt u [url=https://www.mondu.ai/nl/gdpr-notification-for-merchants/]hier[/url].'
+                ],
+                'fr-FR' => [
+                    'name' => 'SEPA - Payer plus tard par prélèvement SEPA',
+                    'description' => 'Des informations sur la façon dont Mondu GmbH traite vos données personnelles peuvent être trouvées [url=https://mondu.ai/fr/gdpr-notification-for-buyers]ici[/url].'
                 ]
             ],
         ],
@@ -77,6 +85,10 @@ class PaymentMethods extends AbstractBootstrap
                 'nl-NL' => [
                     'name' => 'Gespreid betalen, betaal gemakkelijk in termijnen via automatische incasso',
                     'description' => 'Informatie over de verwerking van uw persoonsgegevens door Mondu GmbH vindt u [url=https://www.mondu.ai/nl/gdpr-notification-for-merchants/]hier[/url].'
+                ],
+                'fr-FR' => [
+                    'name' => 'Achat à tempérament - Payer confortablement en plusieurs fois par prélèvement automatique',
+                    'description' => 'Des informations sur la façon dont Mondu GmbH traite vos données personnelles peuvent être trouvées [url=https://mondu.ai/fr/gdpr-notification-for-buyers]ici[/url].'
                 ]
             ],
         ],
