@@ -10,13 +10,13 @@
   },
   "sw-mondu-config": {
     "apiValidation": {
-      "apiConfigurationValidationTitle": "API Validation",
-      "apiConfigurationValidationMessage": "API Credentials validation started...",
-      "apiConfigurationSuccessTitle": "Success !",
-      "apiConfigurationSuccessMessage": "API Credentials are valid !",
-      "apiConfigurationFailureTitle": "Failure !",
-      "apiConfigurationFailureMessage": "API Credentials are invalid",
-      "testApiConfiguration": "Test API Credentials"
+      "apiConfigurationValidationTitle": "Validation de l'API",
+      "apiConfigurationValidationMessage": "La validation des informations d'identification de l'API a commencé...",
+      "apiConfigurationSuccessTitle": "Succès!",
+      "apiConfigurationSuccessMessage": "Les informations d'identification de l'API sont valides!",
+      "apiConfigurationFailureTitle": "Échec!",
+      "apiConfigurationFailureMessage": "Les informations d'identification de l'API ne sont pas valides",
+      "testApiConfiguration": "Tester les informations d'identification de l'API"
     }
   }
 }
