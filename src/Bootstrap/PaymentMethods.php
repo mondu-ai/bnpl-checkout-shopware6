@@ -40,7 +40,7 @@ class PaymentMethods extends AbstractBootstrap
                 ],
                 'fr-FR' => [
                     'name' => 'Achat sur facture - Payer plus tard par virement bancaire',
-                    'description' => 'Des informations sur la façon dont Mondu GmbH traite vos données personnelles peuvent être trouvées [url=https://mondu.ai/fr/gdpr-notification-for-buyers]ici[/url].'
+                    'description' => "Plus d'informations sur la façon dont Mondu GmbH traite vos données personnelles peuvent être trouvées [url=https://mondu.ai/fr/gdpr-notification-for-buyers]ici[/url]."
                 ]
             ],
         ],
@@ -63,8 +63,8 @@ class PaymentMethods extends AbstractBootstrap
                     'description' => 'Informatie over de verwerking van uw persoonsgegevens door Mondu GmbH vindt u [url=https://www.mondu.ai/nl/gdpr-notification-for-merchants/]hier[/url].'
                 ],
                 'fr-FR' => [
-                    'name' => 'SEPA - Payer plus tard par prélèvement SEPA',
-                    'description' => 'Des informations sur la façon dont Mondu GmbH traite vos données personnelles peuvent être trouvées [url=https://mondu.ai/fr/gdpr-notification-for-buyers]ici[/url].'
+                    'name' => 'SEPA - Payer plus tard par prélèvement automatique SEPA',
+                    'description' => "Plus d'informations sur la façon dont Mondu GmbH traite vos données personnelles peuvent être trouvées [url=https://mondu.ai/fr/gdpr-notification-for-buyers]ici[/url]."
                 ]
             ],
         ],
@@ -87,8 +87,8 @@ class PaymentMethods extends AbstractBootstrap
                     'description' => 'Informatie over de verwerking van uw persoonsgegevens door Mondu GmbH vindt u [url=https://www.mondu.ai/nl/gdpr-notification-for-merchants/]hier[/url].'
                 ],
                 'fr-FR' => [
-                    'name' => 'Achat à tempérament - Payer confortablement en plusieurs fois par prélèvement automatique',
-                    'description' => 'Des informations sur la façon dont Mondu GmbH traite vos données personnelles peuvent être trouvées [url=https://mondu.ai/fr/gdpr-notification-for-buyers]ici[/url].'
+                    'name' => 'Paiement échelonné - Payer confortablement en plusieurs fois par prélèvement automatique',
+                    'description' => "Plus d'informations sur la façon dont Mondu GmbH traite vos données personnelles peuvent être trouvées [url=https://mondu.ai/fr/gdpr-notification-for-buyers]ici[/url]."
                 ]
             ],
         ],

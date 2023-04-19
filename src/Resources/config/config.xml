@@ -46,7 +46,7 @@
             <label>Skip order state validation?</label>
             <label lang="de-DE">Validierung des Bestellstatus überspringen?</label>
             <label lang="nl-NL">De validatie van de orderstatus overslaan?</label>
-            <label lang="fr-FR">Sauter la validation de l'état de la commande?</label>
+            <label lang="fr-FR">Sauter l'étape de validation de la commande ?</label>
 
             <value>0</value>
             <defaultValue>0</defaultValue>
