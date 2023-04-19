@@ -1,0 +1,22 @@
+{
+  "sw-order-mondu": {
+    "documentCard": {
+      "labelCancelInvoice": "Annuler la facture",
+      "labelCancelCreditNote": "Annuler la note de crédit",
+      "cancelSuccessTitle": "Bravo! Opération réussie.",
+      "cancelSuccessMessage": "Annulation réussie.",
+      "cancelErrorMessage": "Une erreur s'est produite. Le document n'a pas pu être annulé."
+    }
+  },
+  "sw-mondu-config": {
+    "apiValidation": {
+      "apiConfigurationValidationTitle": "Validation de l'API",
+      "apiConfigurationValidationMessage": "La validation des informations d'identification de l'API a commencé...",
+      "apiConfigurationSuccessTitle": "Bravo! Opération réussie.",
+      "apiConfigurationSuccessMessage": "Les informations d'identification de l'API sont valides!",
+      "apiConfigurationFailureTitle": "Échec!",
+      "apiConfigurationFailureMessage": "Les informations d'identification de l'API ne sont pas valides",
+      "testApiConfiguration": "Tester les informations d'identification de l'API"
+    }
+  }
+}
