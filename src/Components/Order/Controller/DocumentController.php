@@ -6,6 +6,8 @@ namespace Mondu\MonduPayment\Components\Order\Controller;
 
 use Mondu\MonduPayment\Components\Order\Util\DocumentUrlHelper;
 use Shopware\Core\Checkout\Document\DocumentService;
+use Shopware\Core\Checkout\Document\Service\DocumentGenerator;
+use Shopware\Core\Checkout\Document\Service\DocumentMerger;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 use Shopware\Core\Framework\Routing\Annotation\RouteScope;
@@ -22,10 +24,12 @@ class DocumentController extends \Shopware\Core\Checkout\Document\Controller\Doc
 
     public function __construct(
         DocumentService $documentService,
+        DocumentGenerator $documentGenerator,
+        DocumentMerger $documentMerger,
         EntityRepositoryInterface $documentRepository,
         DocumentUrlHelper $documentUrlHelper
     ) {
-        parent::__construct($documentService, $documentRepository);
+        parent::__construct($documentService, $documentGenerator, $documentMerger, $documentRepository);
         $this->documentUrlHelper = $documentUrlHelper;
     }
 
