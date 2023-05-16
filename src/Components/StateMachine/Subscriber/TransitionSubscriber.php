@@ -17,6 +17,7 @@ use Shopware\Core\Checkout\Document\DocumentGenerator\InvoiceGenerator;
 use Shopware\Core\Checkout\Order\Aggregate\OrderDelivery\OrderDeliveryDefinition;
 use Shopware\Core\Checkout\Order\OrderDefinition;
 use Shopware\Core\Checkout\Order\OrderEntity;
+use Shopware\Core\System\Currency\CurrencyEntity;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
@@ -24,6 +25,7 @@ use Shopware\Core\System\StateMachine\Event\StateMachineTransitionEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Mondu\MonduPayment\Components\Invoice\InvoiceDataEntity;
 use Shopware\Core\Checkout\Cart\Price\Struct\CartPrice;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 
 class TransitionSubscriber implements EventSubscriberInterface
 {
@@ -31,6 +33,7 @@ class TransitionSubscriber implements EventSubscriberInterface
     private EntityRepositoryInterface $orderDeliveryRepository;
     private EntityRepositoryInterface $orderRepository;
     private EntityRepositoryInterface $invoiceDataRepository;
+    private EntityRepositoryInterface $currencyRepository;
     private $operationService;
     private $monduClient;
     private $orderDataRepository;
@@ -45,7 +48,8 @@ class TransitionSubscriber implements EventSubscriberInterface
         EntityRepositoryInterface $orderDataRepository,
         EntityRepositoryInterface $invoiceDataRepository,
         DocumentUrlHelper $documentUrlHelper,
-        LoggerInterface $logger
+        LoggerInterface $logger,
+        EntityRepositoryInterface $currencyRepository
     ) {
         $this->orderDeliveryRepository = $orderDeliveryRepository;
         $this->orderRepository = $orderRepository;
@@ -55,6 +59,7 @@ class TransitionSubscriber implements EventSubscriberInterface
         $this->invoiceDataRepository = $invoiceDataRepository;
         $this->documentUrlHelper = $documentUrlHelper;
         $this->logger = $logger;
+        $this->currencyRepository = $currencyRepository;
     }
 
     public static function getSubscribedEvents()
@@ -170,7 +175,8 @@ class TransitionSubscriber implements EventSubscriberInterface
                 $invoiceUrl,
                 $this->getLineItems($order, $context),
                 $this->getDiscount($order, $context),
-                round($shipping * 100)
+                round($shipping * 100),
+                $this->getCurrency($order->getCurrencyId(), $context)->getIsoCode()
             );
 
             if ($invoice == null) {
@@ -249,5 +255,13 @@ class TransitionSubscriber implements EventSubscriberInterface
         }
 
         return $discountAmount;
+    }
+
+    protected function getCurrency(string $currencyId, Context $context): CurrencyEntity
+    {
+        $criteria = new Criteria();
+        $criteria->addFilter(new EqualsFilter('id', $currencyId));
+
+        return $this->currencyRepository->search($criteria, $context)->first();
     }
 }

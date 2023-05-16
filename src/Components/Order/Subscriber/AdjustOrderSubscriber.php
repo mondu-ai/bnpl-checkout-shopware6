@@ -22,6 +22,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Checkout\Order\OrderEntity;
+use Shopware\Core\System\Currency\CurrencyEntity;
 use Shopware\Core\Framework\Context;
 use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
 use Psr\Log\LoggerInterface;
@@ -34,11 +35,20 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
     private EntityRepositoryInterface $orderDataRepository;
     private EntityRepositoryInterface $invoiceDataRepository;
     private EntityRepositoryInterface $productRepository;
+    private EntityRepositoryInterface $currencyRepository;
     private MonduClient $monduClient;
     private LoggerInterface $logger;
 
-    public function __construct(StateMachineRegistry $stateMachineRegistry, EntityRepositoryInterface $orderRepository, EntityRepositoryInterface $orderDataRepository, EntityRepositoryInterface $invoiceDataRepository, MonduClient $monduClient, LoggerInterface $logger, EntityRepositoryInterface $productRepository)
-    {
+    public function __construct(
+        StateMachineRegistry $stateMachineRegistry,
+        EntityRepositoryInterface $orderRepository,
+        EntityRepositoryInterface $orderDataRepository,
+        EntityRepositoryInterface $invoiceDataRepository,
+        MonduClient $monduClient,
+        LoggerInterface $logger,
+        EntityRepositoryInterface $productRepository,
+        EntityRepositoryInterface $currencyRepository
+    ) {
         $this->stateMachineRegistry = $stateMachineRegistry;
         $this->orderRepository = $orderRepository;
         $this->orderDataRepository = $orderDataRepository;
@@ -46,6 +56,7 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
         $this->monduClient = $monduClient;
         $this->logger = $logger;
         $this->productRepository = $productRepository;
+        $this->currencyRepository = $currencyRepository;
     }
 
     public static function getSubscribedEvents(): array
@@ -161,7 +172,7 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
 
 
                     $adjustParams = [
-                        'currency' => 'EUR',
+                        'currency' => $this->getCurrency($order->getCurrencyId(), $context)->getIsoCode(),
                         'external_reference_id' => $order->getOrderNumber(),
                         'amount' => [
                             'net_price_cents' => round($netPrice),
@@ -199,6 +210,14 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
         $criteria->addAssociation('documents.documentType');
 
         return $this->orderRepository->search($criteria, $context)->first();
+    }
+
+    protected function getCurrency(string $currencyId, Context $context): CurrencyEntity
+    {
+        $criteria = new Criteria();
+        $criteria->addFilter(new EqualsFilter('id', $currencyId));
+
+        return $this->currencyRepository->search($criteria, $context)->first();
     }
 
     protected function log($message, $data, $exception = null)

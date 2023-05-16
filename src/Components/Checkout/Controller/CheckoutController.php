@@ -49,11 +49,15 @@ class CheckoutController extends StorefrontController
 
         $cart = $cartService->getCart($salesChannelContext->getToken(), $salesChannelContext);
 
-        if ($salesChannelContext->getCurrency()->getIsoCode() !== 'EUR') {
-            // handle
-        }
-
-        $order = $this->getOrderData($cart, $cart->getLineItems(), $salesChannelContext->getContext(), $salesChannelContext->getCustomer(), $orderNumber, $paymentMethod);
+        $order = $this->getOrderData(
+            $cart,
+            $cart->getLineItems(),
+            $salesChannelContext->getContext(),
+            $salesChannelContext->getCustomer(),
+            $orderNumber,
+            $paymentMethod,
+            $salesChannelContext->getCurrency()->getIsoCode()
+        );
 
         $monduOrder = $this->monduClient->setSalesChannelId($salesChannelContext->getSalesChannelId())->createOrder($order);
 
@@ -130,7 +134,7 @@ class CheckoutController extends StorefrontController
         return $discountAmount;
     }
 
-    protected function getOrderData($cart, $collection, Context $context, $customer, $orderNumber, $paymentMethod)
+    protected function getOrderData($cart, $collection, Context $context, $customer, $orderNumber, $paymentMethod, $currency)
     {
         $lineItems = $this->getLineItems($collection, $context);
         $shipping = $cart->getDeliveries()->getShippingCosts()->sum()->getTotalPrice();
@@ -144,7 +148,7 @@ class CheckoutController extends StorefrontController
         }
 
         return [
-            'currency' => 'EUR',
+            'currency' => $currency,
             'payment_method' => $paymentMethod,
             'external_reference_id' => $orderNumber,
             'gross_amount_cents' => round($cart->getPrice()->getTotalPrice() * 100),

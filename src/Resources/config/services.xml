@@ -83,6 +83,7 @@
             <argument key="$monduClient" type="service" id="mondu.mondu_api"/>
             <argument key="$logger" type="service" id="mondu.logger"/>
             <argument key="$productRepository" type="service" id="product.repository"/>
+            <argument key="$currencyRepository" type="service" id="currency.repository"/>
         </service>
 
         <service id="Mondu\MonduPayment\Components\Order\Subscriber\CreditNoteSubscriber" >
