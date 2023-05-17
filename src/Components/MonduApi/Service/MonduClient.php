@@ -42,9 +42,10 @@ class MonduClient
         return $response['order'] ?? null;
     }
 
-    public function invoiceOrder($orderUid, $referenceId, $grossAmount, $invoiceUrl, $line_items = [], $discount = 0, $shipping = 0)
+    public function invoiceOrder($orderUid, $referenceId, $grossAmount, $invoiceUrl, $line_items = [], $discount = 0, $shipping = 0, $currency = 'EUR')
     {
         $body = [
+            'currency' => $currency,
             'external_reference_id' => $referenceId,
             'invoice_url' => $invoiceUrl,
             'gross_amount_cents' => $grossAmount,
