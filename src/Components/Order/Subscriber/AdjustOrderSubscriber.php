@@ -18,7 +18,7 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityWriteResult;
 use Mondu\MonduPayment\Util\CriteriaHelper;
 use Mondu\MonduPayment\Components\StateMachine\Exception\MonduException;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Checkout\Order\OrderEntity;
@@ -31,23 +31,23 @@ use Shopware\Core\Checkout\Cart\Price\Struct\CartPrice;
 class AdjustOrderSubscriber implements EventSubscriberInterface
 {
     private StateMachineRegistry $stateMachineRegistry;
-    private EntityRepositoryInterface $orderRepository;
-    private EntityRepositoryInterface $orderDataRepository;
-    private EntityRepositoryInterface $invoiceDataRepository;
-    private EntityRepositoryInterface $productRepository;
-    private EntityRepositoryInterface $currencyRepository;
+    private EntityRepository $orderRepository;
+    private EntityRepository $orderDataRepository;
+    private EntityRepository $invoiceDataRepository;
+    private EntityRepository $productRepository;
+    private EntityRepository $currencyRepository;
     private MonduClient $monduClient;
     private LoggerInterface $logger;
 
     public function __construct(
         StateMachineRegistry $stateMachineRegistry,
-        EntityRepositoryInterface $orderRepository,
-        EntityRepositoryInterface $orderDataRepository,
-        EntityRepositoryInterface $invoiceDataRepository,
+        EntityRepository $orderRepository,
+        EntityRepository $orderDataRepository,
+        EntityRepository $invoiceDataRepository,
         MonduClient $monduClient,
         LoggerInterface $logger,
-        EntityRepositoryInterface $productRepository,
-        EntityRepositoryInterface $currencyRepository
+        EntityRepository $productRepository,
+        EntityRepository $currencyRepository
     ) {
         $this->stateMachineRegistry = $stateMachineRegistry;
         $this->orderRepository = $orderRepository;
@@ -88,6 +88,9 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
         try {
             foreach ($event->getWriteResults() as $result) {
                 $changeSet = $result->getChangeSet();
+
+                $orderVersionId = $this->getOrder($result->getPrimaryKey(), $event->getContext())->getVersionId();
+                $updateVersionId = $result->getPayload()['versionId'];
 
                 if ($result->getOperation() === EntityWriteResult::OPERATION_UPDATE
                 && $changeSet != null

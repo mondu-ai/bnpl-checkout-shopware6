@@ -8,7 +8,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Shopware\Core\System\StateMachine\StateMachineRegistry;
 use Shopware\Core\System\StateMachine\Transition;
 use Shopware\Core\Checkout\Order\OrderDefinition;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Mondu\MonduPayment\Components\StateMachine\Exception\MonduException;
@@ -25,13 +25,13 @@ class WebhookService
 {
     private MonduClient $monduClient;
     private StateMachineRegistry $stateMachineRegistry;
-    private EntityRepositoryInterface $orderRepository;
+    private EntityRepository $orderRepository;
     private LoggerInterface $logger;
     private $orderDataRepository;
     private ConfigService $configService;
     private $salesChannelId;
 
-    public function __construct(StateMachineRegistry $stateMachineRegistry, EntityRepositoryInterface $orderRepository, LoggerInterface $logger, MonduClient $monduClient, $orderDataRepository, ConfigService $configService)
+    public function __construct(StateMachineRegistry $stateMachineRegistry, EntityRepository $orderRepository, LoggerInterface $logger, MonduClient $monduClient, EntityRepository $orderDataRepository, ConfigService $configService)
     {
         $this->stateMachineRegistry = $stateMachineRegistry;
         $this->orderRepository = $orderRepository;

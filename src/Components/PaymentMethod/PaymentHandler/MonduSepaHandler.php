@@ -9,7 +9,7 @@ use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
 use Shopware\Core\Checkout\Payment\Cart\PaymentHandler\SynchronousPaymentHandlerInterface;
 use Shopware\Core\Checkout\Payment\Cart\SyncPaymentTransactionStruct;
 use Shopware\Core\Checkout\Payment\Exception\SyncPaymentProcessException;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\Validation\DataBag\RequestDataBag;
 use Shopware\Core\System\SalesChannel\SalesChannelContext;
 use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler;
@@ -22,7 +22,7 @@ class MonduSepaHandler implements SynchronousPaymentHandlerInterface
     private $orderDataRepository;
     private $orderRepository;
 
-    public function __construct(OrderTransactionStateHandler $transactionStateHandler, MonduClient $monduClient, $orderDataRepository, EntityRepositoryInterface $repository)
+    public function __construct(OrderTransactionStateHandler $transactionStateHandler, MonduClient $monduClient, $orderDataRepository, EntityRepository $repository)
     {
         $this->transactionStateHandler = $transactionStateHandler;
         $this->monduClient = $monduClient;

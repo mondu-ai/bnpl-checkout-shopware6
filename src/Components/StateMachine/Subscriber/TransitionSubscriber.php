@@ -19,7 +19,7 @@ use Shopware\Core\Checkout\Order\OrderDefinition;
 use Shopware\Core\Checkout\Order\OrderEntity;
 use Shopware\Core\System\Currency\CurrencyEntity;
 use Shopware\Core\Framework\Context;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\System\StateMachine\Event\StateMachineTransitionEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -30,10 +30,10 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 class TransitionSubscriber implements EventSubscriberInterface
 {
     private ConfigService $configService;
-    private EntityRepositoryInterface $orderDeliveryRepository;
-    private EntityRepositoryInterface $orderRepository;
-    private EntityRepositoryInterface $invoiceDataRepository;
-    private EntityRepositoryInterface $currencyRepository;
+    private EntityRepository $orderDeliveryRepository;
+    private EntityRepository $orderRepository;
+    private EntityRepository $invoiceDataRepository;
+    private EntityRepository $currencyRepository;
     private $operationService;
     private $monduClient;
     private $orderDataRepository;
@@ -41,15 +41,15 @@ class TransitionSubscriber implements EventSubscriberInterface
     private $logger;
 
     public function __construct(
-        EntityRepositoryInterface $orderDeliveryRepository,
-        EntityRepositoryInterface $orderRepository,
+        EntityRepository $orderDeliveryRepository,
+        EntityRepository $orderRepository,
         ConfigService $configService,
         MonduClient $monduClient,
-        EntityRepositoryInterface $orderDataRepository,
-        EntityRepositoryInterface $invoiceDataRepository,
+        EntityRepository $orderDataRepository,
+        EntityRepository $invoiceDataRepository,
         DocumentUrlHelper $documentUrlHelper,
         LoggerInterface $logger,
-        EntityRepositoryInterface $currencyRepository
+        EntityRepository $currencyRepository
     ) {
         $this->orderDeliveryRepository = $orderDeliveryRepository;
         $this->orderRepository = $orderRepository;
@@ -149,14 +149,14 @@ class TransitionSubscriber implements EventSubscriberInterface
 
         foreach ($order->getDocuments() as $document) {
             if ($document->getId() == $attachedDocument) {
-                if ($document->getDocumentType()->getTechnicalName() === InvoiceGenerator::INVOICE) {
+                if ($document->getDocumentType()->getTechnicalName() === 'invoice') {
                     $config = $document->getConfig();
                     $invoiceNumber = $config['custom']['invoiceNumber'] ?? null;
                     $invoiceUrl = $this->documentUrlHelper->generateRouteForDocument($document);
                 }
             }
 
-            if ($document->getDocumentType()->getTechnicalName() === DeliveryNoteGenerator::DELIVERY_NOTE) {
+            if ($document->getDocumentType()->getTechnicalName() === 'delivery_note') {
                 $shippingUrl = $this->documentUrlHelper->generateRouteForDocument($document);
             }
         }

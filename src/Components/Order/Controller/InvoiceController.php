@@ -10,8 +10,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-use Shopware\Core\Framework\Routing\Annotation\RouteScope;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Mondu\MonduPayment\Components\Order\Model\Extension\OrderExtension;
@@ -19,21 +18,21 @@ use Mondu\MonduPayment\Components\Order\Model\OrderDataEntity;
 use Mondu\MonduPayment\Util\CriteriaHelper;
 
 /**
- * @RouteScope(scopes={"api"})
+ * @Route(defaults={"_routeScope"={"api"}})
  */
 class InvoiceController extends AbstractController
 {
     private MonduClient $monduClient;
-    private EntityRepositoryInterface $orderRepository;
-    private EntityRepositoryInterface $invoiceDataRepository;
-    private EntityRepositoryInterface $orderDataRepository;
+    private EntityRepository $orderRepository;
+    private EntityRepository $invoiceDataRepository;
+    private EntityRepository $orderDataRepository;
 
 
     public function __construct(
         MonduClient $monduClient,
-        EntityRepositoryInterface $orderRepository,
-        EntityRepositoryInterface $invoiceDataRepository,
-        EntityRepositoryInterface $orderDataRepository
+        EntityRepository $orderRepository,
+        EntityRepository $invoiceDataRepository,
+        EntityRepository $orderDataRepository
     ) {
         $this->monduClient = $monduClient;
         $this->orderRepository = $orderRepository;

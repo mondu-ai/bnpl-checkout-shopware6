@@ -8,7 +8,7 @@ use Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduHandler;
 use Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduSepaHandler;
 use Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduInstallmentHandler;
 use Shopware\Core\Checkout\Payment\PaymentMethodEntity;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Mondu\MonduPayment\Components\Order\Model\Definition\OrderDataDefinition;
@@ -95,7 +95,7 @@ class PaymentMethods extends AbstractBootstrap
     ];
 
     /**
-     * @var EntityRepositoryInterface
+     * @var EntityRepository
      */
     private $paymentRepository;
 
