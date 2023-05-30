@@ -221,6 +221,7 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
             }
         } catch (\Exception $e) {
             $this->log('Adjust Order Failed', [$event], $e);
+            return;
         }
     }
 
@@ -252,8 +253,6 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
             $message . '. (Exception: '. $exceptionMessage .')',
             $data
         );
-
-        throw new MonduException('Adjusting an order failed. Please contact Mondu Support.');
     }
 
     protected function hasInvoices(string $orderId, $context)
@@ -282,7 +281,7 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
             ), $context);
         } catch (\Exception $e) {
             $this->log('Adjust Order: transitionDeliveryState Failed', [$orderId, $state], $e);
-            throw new MonduException($e->getMessage());
+            // throw new MonduException($e->getMessage());
         }
     }
 }
