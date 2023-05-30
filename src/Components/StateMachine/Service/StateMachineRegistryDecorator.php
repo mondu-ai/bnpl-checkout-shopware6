@@ -115,7 +115,7 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
         return true;
     }
 
-    protected function canShipOrder(OrderEntity $order, Context $context, ?string $salesChannelId = null,): bool
+    protected function canShipOrder(OrderEntity $order, Context $context, ?string $salesChannelId = null): bool
     {
         /** @var OrderDataEntity $monduData */
         $monduData = $order->getExtension(OrderExtension::EXTENSION_NAME);
