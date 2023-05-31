@@ -23,7 +23,7 @@ class MonduOperationService
         $this->cache = $cache;
     }
 
-    public function syncOrder(OrderDataEntity $orderData, $salesChannelId = null, Context $context)
+    public function syncOrder(OrderDataEntity $orderData, Context $context, $salesChannelId = null)
     {
         $order = $this->monduClient->setSalesChannelId($salesChannelId)->getMonduOrder($orderData->getReferenceId());
         $this->orderDataRepository->update([

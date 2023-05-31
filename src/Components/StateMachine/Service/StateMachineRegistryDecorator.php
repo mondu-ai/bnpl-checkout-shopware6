@@ -125,7 +125,7 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
         /**if ($monduData->getOrderState() === 'partially_shipped' || $monduData->getOrderState() === 'confirmed') {
          *
         } else */if ($monduData->getOrderState() === 'pending') {
-            $newState = $this->monduOperationService->syncOrder($monduData, $salesChannelId, $context);
+            $newState = $this->monduOperationService->syncOrder($monduData, $context, $salesChannelId);
             if ($newState !=='partially_shipped' && $newState !== 'confirmed') {
                 throw new MonduException('Mondu Order state must be confirmed or partially_shipped');
             }
