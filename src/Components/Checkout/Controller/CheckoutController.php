@@ -12,26 +12,25 @@ use Shopware\Core\Checkout\Cart\Price\Struct\CartPrice;
 use Shopware\Core\Checkout\Cart\SalesChannel\CartService;
 use Shopware\Core\Checkout\Order\Aggregate\OrderLineItem\OrderLineItemEntity;
 use Shopware\Core\Framework\Context;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
-use Shopware\Core\Framework\Routing\Annotation\RouteScope;
 use Shopware\Core\System\NumberRange\ValueGenerator\NumberRangeValueGeneratorInterface;
 use Shopware\Core\System\SalesChannel\SalesChannelContext;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Annotation\RouteScope;
 use Shopware\Storefront\Controller\StorefrontController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
 /**
- * @Route(path="/mondu-payment")
- * @RouteScope(scopes={"storefront"})
+ * @Route(path="/mondu-payment", defaults={"_routeScope"={"storefront"}})
  */
 class CheckoutController extends StorefrontController
 {
     private MonduClient $monduClient;
-    private EntityRepositoryInterface $productRepository;
+    private EntityRepository $productRepository;
 
-    public function __construct(MonduClient $monduClient, EntityRepositoryInterface $productRepository)
+    public function __construct(MonduClient $monduClient, EntityRepository $productRepository)
     {
         $this->monduClient = $monduClient;
         $this->productRepository = $productRepository;

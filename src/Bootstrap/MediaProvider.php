@@ -6,7 +6,7 @@ namespace Mondu\MonduPayment\Bootstrap;
 
 use Shopware\Core\Content\Media\MediaService;
 use Shopware\Core\Framework\Context;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 
@@ -20,7 +20,7 @@ class MediaProvider
      */
     private $mediaService;
 
-    /** @var EntityRepositoryInterface */
+    /** @var EntityRepository */
 
     private $mediaRepository;
 
@@ -29,7 +29,7 @@ class MediaProvider
      *
      * @param MediaService $mediaService
      */
-    public function __construct(MediaService $mediaService, EntityRepositoryInterface $mediaRepository)
+    public function __construct(MediaService $mediaService, EntityRepository $mediaRepository)
     {
         $this->mediaService = $mediaService;
         $this->mediaRepository = $mediaRepository;

@@ -7,7 +7,7 @@ namespace Mondu\MonduPayment\Bootstrap;
 use Mondu\MonduPayment\Util\MigrationHelper;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DBALException;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\ContainsFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\MultiFilter;
@@ -47,7 +47,7 @@ class Database extends AbstractBootstrap
         $this->connection->{$method}('DROP TABLE IF EXISTS `mondu_invoice_data`');
 
         //Search for config keys that contain the bundle's name
-        /** @var EntityRepositoryInterface $systemConfigRepository */
+        /** @var EntityRepository $systemConfigRepository */
         $systemConfigRepository = $this->container->get('system_config.repository');
         $criteria = new Criteria();
         $criteria->addFilter(

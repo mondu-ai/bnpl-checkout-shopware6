@@ -9,7 +9,7 @@ use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\Plugin;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\Api\Context\SystemSource;
 
 class ConfigService
@@ -25,12 +25,12 @@ class ConfigService
     private SystemConfigService $systemConfigService;
     private ?string $salesChannelId = null;
     private ?bool $overrideSandbox = null;
-    private EntityRepositoryInterface $pluginRepository;
+    private EntityRepository $pluginRepository;
 
     /**
      * @param SystemConfigService $systemConfigService
      */
-    public function __construct(SystemConfigService $systemConfigService, EntityRepositoryInterface $pluginRepository)
+    public function __construct(SystemConfigService $systemConfigService, EntityRepository $pluginRepository)
     {
         $this->systemConfigService = $systemConfigService;
         $this->pluginRepository = $pluginRepository;

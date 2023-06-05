@@ -8,22 +8,22 @@ use Mondu\MonduPayment\Components\Order\Model\OrderDataEntity;
 use Mondu\MonduPayment\Components\PaymentMethod\Util\MethodHelper;
 use Psr\Cache\CacheItemPoolInterface;
 use Shopware\Core\Framework\Context;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 
 class MonduOperationService
 {
     private MonduClient $monduClient;
-    private EntityRepositoryInterface $orderDataRepository;
+    private EntityRepository $orderDataRepository;
     private CacheItemPoolInterface $cache;
 
-    public function __construct(MonduClient $monduClient, EntityRepositoryInterface $orderDataRepository, CacheItemPoolInterface $cache)
+    public function __construct(MonduClient $monduClient, EntityRepository $orderDataRepository, CacheItemPoolInterface $cache)
     {
         $this->monduClient = $monduClient;
         $this->orderDataRepository = $orderDataRepository;
         $this->cache = $cache;
     }
 
-    public function syncOrder(OrderDataEntity $orderData, $salesChannelId = null, Context $context)
+    public function syncOrder(OrderDataEntity $orderData, Context $context, $salesChannelId = null)
     {
         $order = $this->monduClient->setSalesChannelId($salesChannelId)->getMonduOrder($orderData->getReferenceId());
         $this->orderDataRepository->update([

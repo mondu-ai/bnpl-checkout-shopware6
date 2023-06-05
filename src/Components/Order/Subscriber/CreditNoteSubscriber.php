@@ -10,7 +10,7 @@ use Psr\Log\LoggerInterface;
 use Shopware\Core\Checkout\Order\OrderDefinition;
 use Shopware\Core\Checkout\Order\OrderEntity;
 use Shopware\Core\Framework\Context;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Event\EntityWrittenEvent;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
@@ -25,13 +25,13 @@ use Mondu\MonduPayment\Components\Invoice\InvoiceDataCollection;
 
 class CreditNoteSubscriber implements EventSubscriberInterface
 {
-    private EntityRepositoryInterface $orderRepository;
-    private EntityRepositoryInterface $orderDataRepository;
-    private EntityRepositoryInterface $invoiceDataRepository;
+    private EntityRepository $orderRepository;
+    private EntityRepository $orderDataRepository;
+    private EntityRepository $invoiceDataRepository;
     private MonduClient $monduClient;
     private LoggerInterface $logger;
 
-    public function __construct(EntityRepositoryInterface $orderRepository, EntityRepositoryInterface $orderDataRepository, EntityRepositoryInterface $invoiceDataRepository, MonduClient $monduClient, LoggerInterface $logger)
+    public function __construct(EntityRepository $orderRepository, EntityRepository $orderDataRepository, EntityRepository $invoiceDataRepository, MonduClient $monduClient, LoggerInterface $logger)
     {
         $this->orderRepository = $orderRepository;
         $this->orderDataRepository = $orderDataRepository;

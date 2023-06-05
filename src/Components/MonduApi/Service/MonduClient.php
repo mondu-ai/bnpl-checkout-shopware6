@@ -155,13 +155,21 @@ class MonduClient
 
         } catch (GuzzleException $e) {
             $this->logger->alert("MonduClient [{$method} {$url}]: Failed with an exception message: {$e->getMessage()}");
-            
-            $this->logEvent([
+
+            $eventLog = [
                 'response_status' => strval($e->getCode()),
-                'response_body' => json_decode($e->getResponse()->getBody()->getContents()) ?: null,
-                'request_body' => json_decode($e->getRequest()->getBody()->getContents()) ?: null,
                 'origin_event' => $e->getRequest()->getUri()->getPath()
-            ]);
+            ];
+
+            if (method_exists($e, 'getRequest')) {
+                $eventLog['request_body'] = json_decode($e->getRequest()->getBody()->getContents());
+            }
+
+            if (method_exists($e, 'getResponse')) {
+                $eventLog['response_body'] = json_decode($e->getResponse()->getBody()->getContents());
+            }
+
+            $this->logEvent($eventLog);
 
             return null;
         }

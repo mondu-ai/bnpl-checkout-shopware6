@@ -8,11 +8,10 @@ use Mondu\MonduPayment\Components\Order\Util\DocumentUrlHelper;
 use Shopware\Core\Framework\Context;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Shopware\Core\Framework\Routing\Annotation\RouteScope;
 use Symfony\Component\Routing\Annotation\Route;
 
 /**
- * @RouteScope(scopes={"storefront"})
+ * @Route(defaults={"_routeScope"={"storefront"}})
  */
 class DocumentController extends \Shopware\Core\Checkout\Document\Controller\DocumentController
 {

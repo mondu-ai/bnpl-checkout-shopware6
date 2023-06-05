@@ -12,12 +12,12 @@ use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 //use Mondu\MonduPayment\Components\StateMachine\Exception\InvoiceNumberMissingException;
 use Mondu\MonduPayment\Components\StateMachine\Exception\MonduException;
 use Mondu\MonduPayment\Util\CriteriaHelper;
-use Shopware\Core\Checkout\Document\DocumentGenerator\InvoiceGenerator;
+use Shopware\Core\Checkout\Document\Renderer\InvoiceRenderer;
 use Shopware\Core\Checkout\Order\Aggregate\OrderDelivery\OrderDeliveryDefinition;
 use Shopware\Core\Checkout\Order\Aggregate\OrderDelivery\OrderDeliveryEntity;
 use Shopware\Core\Checkout\Order\OrderEntity;
 use Shopware\Core\Framework\Context;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\System\StateMachine\Aggregation\StateMachineState\StateMachineStateCollection;
 use Shopware\Core\System\StateMachine\Aggregation\StateMachineState\StateMachineStateEntity;
@@ -33,12 +33,12 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
     protected $configService;
 
     /**
-     * @var EntityRepositoryInterface
+     * @var EntityRepository
      */
     protected $orderRepository;
 
     /**
-     * @var EntityRepositoryInterface
+     * @var EntityRepository
      */
     protected $orderDeliveryRepository;
 
@@ -55,8 +55,8 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
     public function __construct(
         StateMachineRegistry $innerService,
         ConfigService $configService,
-        EntityRepositoryInterface $orderRepository,
-        EntityRepositoryInterface $orderDeliveryRepository,
+        EntityRepository $orderRepository,
+        EntityRepository $orderDeliveryRepository,
         MonduOperationService $monduOperationService
     ) {
         $this->innerService = $innerService;
@@ -83,7 +83,7 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
                     }
 
                     if ($transitionName == 'ship' || $transitionName == 'ship_partially') {
-                        if (!$this->canShipOrder($order, $order->getSalesChannelId(), $context)) {
+                        if (!$this->canShipOrder($order, $context, $order->getSalesChannelId())) {
                             throw new MonduException('Order can not be shipped. Invoice required.');
                         }
 
@@ -115,7 +115,7 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
         return true;
     }
 
-    protected function canShipOrder(OrderEntity $order, ?string $salesChannelId = null, Context $context): bool
+    protected function canShipOrder(OrderEntity $order, Context $context, ?string $salesChannelId = null): bool
     {
         /** @var OrderDataEntity $monduData */
         $monduData = $order->getExtension(OrderExtension::EXTENSION_NAME);
@@ -125,7 +125,7 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
         /**if ($monduData->getOrderState() === 'partially_shipped' || $monduData->getOrderState() === 'confirmed') {
          *
         } else */if ($monduData->getOrderState() === 'pending') {
-            $newState = $this->monduOperationService->syncOrder($monduData, $salesChannelId, $context);
+            $newState = $this->monduOperationService->syncOrder($monduData, $context, $salesChannelId);
             if ($newState !=='partially_shipped' && $newState !== 'confirmed') {
                 throw new MonduException('Mondu Order state must be confirmed or partially_shipped');
             }
@@ -134,7 +134,7 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
 
         if (!$invoiceNumber) {
             foreach ($order->getDocuments() as $document) {
-                if ($document->getDocumentType()->getTechnicalName() === InvoiceGenerator::INVOICE) {
+                if ($document->getDocumentType()->getTechnicalName() === 'invoice') {
                     $config = $document->getConfig();
 
                     return isset($config['custom']['invoiceNumber']);

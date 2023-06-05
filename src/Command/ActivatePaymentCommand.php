@@ -12,21 +12,21 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\ContainsFilter;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 
 class ActivatePaymentCommand extends Command
 {
     protected static $defaultName = 'Mond1SW6:Activate:Payment';
     private Context $context;
-    private EntityRepositoryInterface $salesChannelRepository;
-    private EntityRepositoryInterface $paymentMethodRepository;
-    private EntityRepositoryInterface $salesChannelPaymentMethodRepository;
+    private EntityRepository $salesChannelRepository;
+    private EntityRepository $paymentMethodRepository;
+    private EntityRepository $salesChannelPaymentMethodRepository;
 
 
     public function __construct(
-        EntityRepositoryInterface $salesChannelPaymentMethodRepository,
-        EntityRepositoryInterface $paymentMethodRepository,
-        EntityRepositoryInterface $salesChannelRepository
+        EntityRepository $salesChannelPaymentMethodRepository,
+        EntityRepository $paymentMethodRepository,
+        EntityRepository $salesChannelRepository
     )
     {
         parent::__construct();
