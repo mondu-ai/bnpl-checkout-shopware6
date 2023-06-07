@@ -10,6 +10,8 @@
 
         <service id="Mondu\MonduPayment\Components\Order\Controller\DocumentController">
             <argument key="$documentRepository" type="service" id="document.repository" />
+            <argument key="$documentService" type="service" id="Shopware\Core\Checkout\Document\DocumentService" />
+
             <call method="setContainer">
                 <argument id="service_container" type="service"/>
             </call>
