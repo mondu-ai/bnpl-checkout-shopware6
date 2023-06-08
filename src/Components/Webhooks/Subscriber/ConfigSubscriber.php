@@ -14,6 +14,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\Write\Command\ChangeSetAware;
 use Shopware\Core\Framework\DataAbstractionLayer\Write\Command\InsertCommand;
 use Shopware\Core\Framework\DataAbstractionLayer\Write\Command\UpdateCommand;
 use Mondu\MonduPayment\Components\Webhooks\Service\WebhookService;
+use Shopware\Core\System\SystemConfig\Event\SystemConfigChangedEvent;
 
 class ConfigSubscriber implements EventSubscriberInterface
 {
@@ -30,50 +31,27 @@ class ConfigSubscriber implements EventSubscriberInterface
 
     public static function getSubscribedEvents(): array
     {
-        // Return the events to listen to as array like this:  <event to listen to> => <method to execute>
-
         return [
-            PreWriteValidationEvent::class => 'triggerChangeSet',
-            'system_config.written' => 'onSystemConfigWritten',
+            SystemConfigChangedEvent::class => 'onSystemConfigWritten',
         ];
     }
 
-    public function triggerChangeSet(PreWriteValidationEvent $event): void
-    {
-        foreach ($event->getCommands() as $command) {
-            if (!$command instanceof ChangeSetAware) {
-                continue;
-            }
-
-            /** @var ChangeSetAware|InsertCommand|UpdateCommand $command */
-            if ($command->getDefinition()->getEntityName() !== SystemConfigDefinition::ENTITY_NAME) {
-                continue;
-            }
-
-            $command->requestChangeSet();
-        }
-    }
-
-    public function onSystemConfigWritten(EntityWrittenEvent $event): void
+    public function onSystemConfigWritten(SystemConfigChangedEvent $event): void
     {
 
-        foreach ($event->getWriteResults() as $result) {
-            $changeSet = $result->getChangeSet();
+        if ($event->getKey() == 'Mond1SW6.config.apiToken')
+        {  
+            $value = $event->getValue();
+            $salesChannelId = $event->getSalesChannelId();
 
-            if ($result->getProperty('configurationKey') == 'Mond1SW6.config.apiToken')
-            {  
-                $key = $result->getProperty('configurationValue');
-                $salesChannelId = $result->getProperty('salesChannelId');
-                $isApiTokenValid = !!$this->webhookService->setSalesChannelId($salesChannelId)->getSecret($key, $event->getContext());
+            $isApiTokenValid = !!$this->webhookService->setSalesChannelId($salesChannelId)->getSecret($value);
 
-                if(!$isApiTokenValid) {
-                    $this->configService->setSalesChannelId($salesChannelId)->setIsApiTokenValid(false);
-                } else {
-                    $this->configService->setSalesChannelId($salesChannelId)->setIsApiTokenValid(true);
-                    $this->webhookService->setSalesChannelId($salesChannelId)->register($event->getContext());    
-                }
+            if(!$isApiTokenValid) {
+                $this->configService->setSalesChannelId($salesChannelId)->setIsApiTokenValid(false);
+            } else {
+                $this->configService->setSalesChannelId($salesChannelId)->setIsApiTokenValid(true);
+                $this->webhookService->setSalesChannelId($salesChannelId)->register();    
             }
-
         }
     }   
 }
