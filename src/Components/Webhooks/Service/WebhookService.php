@@ -49,7 +49,7 @@ class WebhookService
         return $this;
     }
 
-    public function getSecret($key, $context)
+    public function getSecret($key)
     {
         try {
 
@@ -67,7 +67,7 @@ class WebhookService
         }
     }
 
-    public function register($context): bool
+    public function register(): bool
     {
         try {
             $webhooks = [
