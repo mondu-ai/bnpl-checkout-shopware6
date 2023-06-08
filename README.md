@@ -1,6 +1,6 @@
-### Installation
+## Installation
 
-#### Install using Shopware 6 Extensions
+### Install using Shopware 6 Extensions
 
 1. Navigate to the Shopware Administration -> Extensions -> My Extensions
 2. Click on "Upload Extension"
