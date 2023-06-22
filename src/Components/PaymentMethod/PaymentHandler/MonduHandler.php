@@ -73,6 +73,13 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
                     'Order not confirmed.'
                 );
             }
+
+            $this->monduClient
+                 ->setSalesChannelId($salesChannelContext->getSalesChannelId())
+                 ->updateExternalInfo(
+                     $paymentOrderUuid,
+                     ['external_reference_id' => $transaction->getOrder()->getOrderNumber()]
+                 );
             
             $this->createLocalOrder($transaction, $paymentOrderUuid, $salesChannelContext);
 
@@ -125,7 +132,7 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
             'success_url' => $returnUrl . '&payment=success',
             'cancel_url' => $returnUrl . '&payment=cancelled',
             'declined_url' => $returnUrl . '&payment=declined',
-            'external_reference_id' => $order->getOrderNumber(),
+            'external_reference_id' => uniqid('M_SW6_'),
             'gross_amount_cents' => round($order->getPrice()->getTotalPrice() * 100),
             'buyer' => [
                 'email' => $order->getOrderCustomer()->getEmail(),

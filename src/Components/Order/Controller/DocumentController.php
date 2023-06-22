@@ -19,12 +19,14 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class DocumentController extends AbstractController
 {
+    private DocumentGenerator $documentGenerator;
+
     /**
      * @internal
      */
-    public function __construct(
-        private readonly DocumentGenerator $documentGenerator
-    ) {
+    public function __construct(DocumentGenerator $documentGenerator)
+    {
+        $this->documentGenerator = $documentGenerator;
     }
 
     /**
