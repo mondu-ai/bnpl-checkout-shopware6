@@ -42,20 +42,6 @@ class CheckoutSubscriber implements EventSubscriberInterface
             throw new \RuntimeException('method ' . __CLASS__ . '::' . __METHOD__ . ' does not supports a parameter of type' . get_class($event));
         }
 
-        $paymentMethod = $event->getSalesChannelContext()->getPaymentMethod();
-        if (MethodHelper::isMonduPayment($paymentMethod) && $event->getPage()->getPaymentMethods()->has($paymentMethod->getId())) {
-            $extension = $event->getPage()->getExtension('mondu_checkout') ?? new ArrayStruct();
-            $extension->set('config',
-                [
-                    'src' => $this->configService->setSalesChannelId(
-                                $event->getSalesChannelContext()->getSalesChannelId()
-                             )->getWidgetUrl(),
-                    'payment_method' => MethodHelper::shortNameToMonduName($paymentMethod->getShortName())
-                ]
-            );
-            $event->getPage()->addExtension('mondu_checkout', $extension);
-        }
-
         $this->filterPaymentMethods($event);
     }
 

@@ -24,7 +24,7 @@ class PaymentMethods extends AbstractBootstrap
             'handlerIdentifier' => MonduHandler::class,
             'name' => 'Rechnungskauf - Später per Banküberweisung bezahlen',
             'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/gdpr-notification-for-buyers/]hier[/url].',
-            'afterOrderEnabled' => false,
+            'afterOrderEnabled' => true,
             'translations' => [
                 'de-DE' => [
                     'name' => 'Rechnungskauf - Später per Banküberweisung bezahlen',
@@ -48,7 +48,7 @@ class PaymentMethods extends AbstractBootstrap
             'handlerIdentifier' => MonduSepaHandler::class,
             'name' => 'SEPA - Später zahlen per Bankeinzug',
             'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
-            'afterOrderEnabled' => false,
+            'afterOrderEnabled' => true,
             'translations' => [
                 'de-DE' => [
                     'name' => 'SEPA - Später zahlen per Bankeinzug',
@@ -72,7 +72,7 @@ class PaymentMethods extends AbstractBootstrap
             'handlerIdentifier' => MonduInstallmentHandler::class,
             'name' => 'Ratenkauf - Bequem in Raten per Bankeinzug zahlen',
             'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
-            'afterOrderEnabled' => false,
+            'afterOrderEnabled' => true,
             'translations' => [
                 'de-DE' => [
                     'name' => 'Ratenkauf - Bequem in Raten per Bankeinzug zahlen',
