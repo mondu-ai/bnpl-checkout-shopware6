@@ -19,6 +19,7 @@ use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Checkout\Cart\Price\Struct\CartPrice;
 use Mondu\MonduPayment\Components\PaymentMethod\Util\MethodHelper;
+use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 
 class MonduHandler implements AsynchronousPaymentHandlerInterface
 {
@@ -26,14 +27,16 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
     private MonduClient $monduClient;
     private EntityRepository $productRepository;
     private EntityRepository $orderDataRepository;
+    private ConfigService $configService;
 
 
-    public function __construct(OrderTransactionStateHandler $transactionStateHandler, MonduClient $monduClient, EntityRepository $productRepository, EntityRepository $orderDataRepository)
+    public function __construct(OrderTransactionStateHandler $transactionStateHandler, MonduClient $monduClient, EntityRepository $productRepository, EntityRepository $orderDataRepository, ConfigService $configService)
     {
         $this->monduClient = $monduClient;
         $this->productRepository = $productRepository;
         $this->transactionStateHandler = $transactionStateHandler;
         $this->orderDataRepository = $orderDataRepository;
+        $this->configService = $configService;
     }
 
     /**
@@ -83,7 +86,20 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
             
             $this->createLocalOrder($transaction, $paymentOrderUuid, $salesChannelContext);
 
-            $this->transactionStateHandler->paid($transaction->getOrderTransaction()->getId(), $context);
+            $orderTransactionState = $this->configService->setSalesChannelId($salesChannelContext->getSalesChannelId())->orderTransactionState();
+
+            switch($orderTransactionState) {
+                case 'paid':
+                    $this->transactionStateHandler->paid($transaction->getOrderTransaction()->getId(), $salesChannelContext->getContext());
+                break;
+                case 'authorized':
+                    $this->transactionStateHandler->authorize($transaction->getOrderTransaction()->getId(), $salesChannelContext->getContext());
+                break;
+                default:
+                    $this->transactionStateHandler->paid($transaction->getOrderTransaction()->getId(), $salesChannelContext->getContext());
+                break;
+            }
+
         } else {
             $this->transactionStateHandler->fail($transaction->getOrderTransaction()->getId(), $context);
 

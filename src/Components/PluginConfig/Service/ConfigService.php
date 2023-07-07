@@ -135,6 +135,13 @@ class ConfigService
         return $this->getPlugin()->getVersion();
     }
 
+    public function orderTransactionState()
+    {
+        $config = $this->getPluginConfiguration();
+
+        return $config['orderTransactionState'] ?? 'paid';
+    }
+
     public function getPluginName()
     {
         return $this->getPlugin()->getName();
