@@ -130,6 +130,13 @@ class ConfigService
         return isset($config['stateEnabled']) && $config['stateEnabled'];
     }
 
+    public function orderTransactionState()
+    {
+        $config = $this->getPluginConfiguration();
+
+        return $config['orderTransactionState'] ?? 'paid';
+    }
+
     public function getPluginVersion()
     {
         return $this->getPlugin()->getVersion();

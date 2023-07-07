@@ -14,6 +14,7 @@ use Shopware\Core\Framework\Validation\DataBag\RequestDataBag;
 use Shopware\Core\System\SalesChannel\SalesChannelContext;
 use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler;
 use Symfony\Component\HttpFoundation\ParameterBag;
+use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 
 class MonduHandler implements SynchronousPaymentHandlerInterface
 {
@@ -21,13 +22,15 @@ class MonduHandler implements SynchronousPaymentHandlerInterface
     private MonduClient $monduClient;
     private $orderDataRepository;
     private $orderRepository;
+    private ConfigService $configService;
 
-    public function __construct(OrderTransactionStateHandler $transactionStateHandler, MonduClient $monduClient, $orderDataRepository, EntityRepositoryInterface $repository)
+    public function __construct(OrderTransactionStateHandler $transactionStateHandler, MonduClient $monduClient, $orderDataRepository, EntityRepositoryInterface $repository, ConfigService $configService)
     {
         $this->transactionStateHandler = $transactionStateHandler;
         $this->monduClient = $monduClient;
         $this->orderDataRepository = $orderDataRepository;
         $this->orderRepository = $repository;
+        $this->configService = $configService;
     }
 
     public function pay(SyncPaymentTransactionStruct $transaction, RequestDataBag $dataBag, SalesChannelContext $salesChannelContext): void
@@ -45,7 +48,16 @@ class MonduHandler implements SynchronousPaymentHandlerInterface
         }
 
         if($monduOrder['state'] === 'confirmed') {
-            $this->transactionStateHandler->paid($transaction->getOrderTransaction()->getId(), $salesChannelContext->getContext());
+            $orderTransactionState = $this->configService->setSalesChannelId($salesChannelContext->getSalesChannelId())->orderTransactionState();
+
+            switch($orderTransactionState) {
+                case 'paid':
+                    $this->transactionStateHandler->paid($transaction->getOrderTransaction()->getId(), $salesChannelContext->getContext());
+                break;
+                case 'authorized':
+                    $this->transactionStateHandler->authorize($transaction->getOrderTransaction()->getId(), $salesChannelContext->getContext());
+                break;
+            }
         }
         // Update external reference id on Mondu
 

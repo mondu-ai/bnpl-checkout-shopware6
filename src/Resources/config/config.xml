@@ -55,5 +55,34 @@
             <helpText lang="nl-NL">Als deze feature is ingeschakeld, zijn er geen validaties zoals factuurvalidatie bij het wijzigen van een orderstatus.</helpText>
             <helpText lang="fr-FR">Lorsque cette option est activée, il n'y aura pas de validations telles que la validation des factures lors du changement d'état d'une commande.</helpText>
         </input-field>
+
+        <input-field type="single-select">
+            <name>orderTransactionState</name>
+            <label>Order Payment State:</label>
+            <label lang="de-DE">Zahlungsstatus der Bestellung</label>
+            <label lang="nl-NL">Betaalstatus bestelling</label>
+            <label lang="fr-FR">Statut du paiement de la commande</label>
+            
+            <defaultValue>paid</defaultValue>
+            <options>
+                <option>
+                    <id>open</id>
+                    <name>Open</name>
+                </option>
+                <option>
+                    <id>authorized</id>
+                    <name>Authorized</name>
+                </option>
+                <option>
+                    <id>paid</id>
+                    <name>Paid</name>
+                </option>
+            </options>
+
+            <helpText>Choose order payment state that will be set after buyer succesfully places an order.</helpText>
+            <helpText lang="de-DE">Wählen Sie den Zahlungsstatus der Bestellung, der nach erfolgreicher Bestellung des Käufers festgelegt wird.</helpText>
+            <helpText lang="nl-NL">Kies de betaalstatus van de bestelling die wordt ingesteld nadat de koper met succes een bestelling heeft geplaatst.</helpText>
+            <helpText lang="fr-FR">Choisissez l'état du paiement de la commande qui sera défini lorsque l'acheteur aura passé sa commande avec succès.</helpText>
+        </input-field>
     </card>
 </config>
