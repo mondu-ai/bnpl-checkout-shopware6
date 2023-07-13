@@ -19,6 +19,7 @@
             <argument type="service" id="mondu.mondu_api"/>
             <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
             <argument key="$repository" type="service" id="order.repository"/>
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
             <tag name="shopware.payment.method.sync" />
         </service>
 
@@ -27,6 +28,7 @@
             <argument type="service" id="mondu.mondu_api"/>
             <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
             <argument key="$repository" type="service" id="order.repository"/>
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
             <tag name="shopware.payment.method.sync" />
         </service>
 
@@ -35,6 +37,7 @@
             <argument type="service" id="mondu.mondu_api"/>
             <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
             <argument key="$repository" type="service" id="order.repository"/>
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
             <tag name="shopware.payment.method.sync" />
         </service>
 
