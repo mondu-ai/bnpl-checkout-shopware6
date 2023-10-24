@@ -1,0 +1,32 @@
+version: "3.8"
+
+services: 
+    sw6-db:
+        image: mariadb:latest
+        environment:
+            MYSQL_ROOT_PASSWORD: root
+            MYSQL_DATABASE: sw6-db
+        volumes: 
+           - sw6_db:/var/lib/mysql
+        healthcheck:
+            test: ["CMD", "mysqladmin", "ping", "--silent"]
+
+    sw6-shop:
+        links:
+          - "sw6-db"
+        image: mondu/sw6
+        build: 
+            context: ./docker/web
+        environment:
+            DATABASE_URL: "mysql://root:root@sw6-db:3306/sw6-db"
+            BNPL_MERCHANT_API_TOKEN: ""
+        ports:
+            - "80:80"
+        volumes: 
+            - sw6_shop:/var/www/html
+        depends_on: 
+            - sw6-db
+
+volumes: 
+    sw6_db:
+    sw6_shop:

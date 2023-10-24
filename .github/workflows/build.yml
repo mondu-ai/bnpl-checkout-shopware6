@@ -1,0 +1,20 @@
+name: Deploy
+run-name: "Deploy from ${{ github.ref_name }}"
+
+on:
+  push:
+    branches: [ main, remote-environment-1 ]
+jobs:
+  # STAGE
+  build_stage:
+    name: Build and push image to stage
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/remote-environment-1' }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Build Docker Image
+      run: |
+        docker build -f Dockerfile.stage -t mondu/sw6 .
