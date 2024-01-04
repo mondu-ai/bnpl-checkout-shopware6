@@ -15,6 +15,7 @@ use Shopware\Core\System\SalesChannel\SalesChannelContext;
 use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler;
 use Symfony\Component\HttpFoundation\ParameterBag;
 use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
+use Psr\Log\LoggerInterface;
 
 class MonduHandler implements SynchronousPaymentHandlerInterface
 {
@@ -24,18 +25,31 @@ class MonduHandler implements SynchronousPaymentHandlerInterface
     private $orderRepository;
     private ConfigService $configService;
 
-    public function __construct(OrderTransactionStateHandler $transactionStateHandler, MonduClient $monduClient, $orderDataRepository, EntityRepositoryInterface $repository, ConfigService $configService)
-    {
+    private LoggerInterface $logger;
+
+    public function __construct(
+        OrderTransactionStateHandler $transactionStateHandler,
+        MonduClient $monduClient,
+        $orderDataRepository,
+        EntityRepositoryInterface $repository,
+        ConfigService $configService,
+        LoggerInterface $logger
+    ) {
         $this->transactionStateHandler = $transactionStateHandler;
         $this->monduClient = $monduClient;
         $this->orderDataRepository = $orderDataRepository;
         $this->orderRepository = $repository;
         $this->configService = $configService;
+        $this->logger = $logger;
     }
 
     public function pay(SyncPaymentTransactionStruct $transaction, RequestDataBag $dataBag, SalesChannelContext $salesChannelContext): void
     {
+        $this->logger->alert(__CLASS__ . '::' . __FUNCTION__ . '::start');
+
         $monduData = $dataBag->get('mondu_payment', new ParameterBag([]));
+
+        $this->logger->alert(__CLASS__ . '::' . __FUNCTION__, (array) $monduData);
 
         if ($monduData->count() === 0 || $monduData->has('order-id') === false || !$monduData->get('order-id')) {
             throw new SyncPaymentProcessException($transaction->getOrderTransaction()->getId(), 'unknown error during payment');
@@ -43,6 +57,8 @@ class MonduHandler implements SynchronousPaymentHandlerInterface
 
         $order = $transaction->getOrder();
         $monduOrder = $this->monduClient->setSalesChannelId($salesChannelContext->getSalesChannelId())->getMonduOrder($monduData->get('order-id'));
+
+        $this->logger->alert(__CLASS__ . '::' . __FUNCTION__, $monduOrder);
         if (!$monduOrder) {
             throw new SyncPaymentProcessException($transaction->getOrderTransaction()->getId(), 'unknown error during payment');
         }
@@ -60,14 +76,29 @@ class MonduHandler implements SynchronousPaymentHandlerInterface
             }
         }
         // Update external reference id on Mondu
+        $this->logger->alert(__CLASS__ . '::' . __FUNCTION__, [
+            'external_reference_id' => $order->getOrderNumber(),
+            'order-id' => $monduData->get('order-id'),
+            'sales-channel-id' => $salesChannelContext->getSalesChannelId()
+        ]);
 
-        $this->monduClient
+        try {
+            $data = $this->monduClient
                 ->setSalesChannelId($salesChannelContext->getSalesChannelId())
                 ->updateExternalInfo(
                     $monduData->get('order-id'),
                     ['external_reference_id' => $order->getOrderNumber()]
                 );
 
+            $this->logger->alert(__CLASS__ . '::' . __FUNCTION__, (array) $data);
+        } catch (\Exception $e) {
+            $this->logger->alert(__CLASS__ . '::' . __FUNCTION__ . '::Error',
+                [
+                    'message' => $e->getMessage(),
+                    'trace' => $e->getTrace()
+                ]
+            );
+        }
 
         $this->orderDataRepository->upsert([
             [
@@ -80,5 +111,7 @@ class MonduHandler implements SynchronousPaymentHandlerInterface
                 OrderDataEntity::FIELD_IS_SUCCESSFUL => true,
             ]
         ], $salesChannelContext->getContext());
+
+        $this->logger->alert(__CLASS__ . '::' . __FUNCTION__ . '::end');
     }
 }

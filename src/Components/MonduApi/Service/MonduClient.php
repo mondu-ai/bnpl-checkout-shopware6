@@ -82,6 +82,7 @@ class MonduClient
 
     public function updateExternalInfo($orderUuid, $body = []): ?array
     {
+        $this->logger->alert(__CLASS__ . '::' . __FUNCTION__ . '::' . $orderUuid, $body);
         $response = $this->sendRequest('orders/'. $orderUuid.'/update_external_info', 'POST', $body);
 
         return $response;
