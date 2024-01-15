@@ -29,7 +29,6 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
     private EntityRepository $orderDataRepository;
     private ConfigService $configService;
 
-
     public function __construct(OrderTransactionStateHandler $transactionStateHandler, MonduClient $monduClient, EntityRepository $productRepository, EntityRepository $orderDataRepository, ConfigService $configService)
     {
         $this->monduClient = $monduClient;
@@ -69,8 +68,11 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
             $paymentOrderUuid = $request->query->get('order_uuid');
 
             $confirmResponseState = $this->monduClient->setSalesChannelId($salesChannelContext->getSalesChannelId())->confirmOrder($paymentOrderUuid);
-            
-            if ($confirmResponseState != 'confirmed') {
+
+            if (
+                $confirmResponseState != 'confirmed' &&
+                $confirmResponseState != 'pending'
+            ) {
                 throw new CustomerCanceledAsyncPaymentException(
                     $transactionId,
                     'Order not confirmed.'
@@ -88,18 +90,16 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
 
             $orderTransactionState = $this->configService->setSalesChannelId($salesChannelContext->getSalesChannelId())->orderTransactionState();
 
-            switch($orderTransactionState) {
-                case 'paid':
-                    $this->transactionStateHandler->paid($transaction->getOrderTransaction()->getId(), $salesChannelContext->getContext());
-                break;
-                case 'authorized':
-                    $this->transactionStateHandler->authorize($transaction->getOrderTransaction()->getId(), $salesChannelContext->getContext());
-                break;
-                default:
-                    $this->transactionStateHandler->paid($transaction->getOrderTransaction()->getId(), $salesChannelContext->getContext());
-                break;
+            if (
+                $orderTransactionState == 'paid' &&
+                $confirmResponseState == 'pending'
+            ) {
+                $this->transactionStateHandler->processUnconfirmed($transaction->getOrderTransaction()->getId(), $salesChannelContext->getContext());
+            } else if ($orderTransactionState == 'authorized') {
+                $this->transactionStateHandler->authorize($transaction->getOrderTransaction()->getId(), $salesChannelContext->getContext());
+            } else {
+                $this->transactionStateHandler->paid($transaction->getOrderTransaction()->getId(), $salesChannelContext->getContext());
             }
-
         } else {
             $this->transactionStateHandler->fail($transaction->getOrderTransaction()->getId(), $context);
 
