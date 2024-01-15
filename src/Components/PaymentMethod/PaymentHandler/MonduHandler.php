@@ -23,6 +23,12 @@ use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 
 class MonduHandler implements AsynchronousPaymentHandlerInterface
 {
+    const PAYMENT_STATE_SUCCESS = 'success';
+    const RESPONSE_STATE_CONFIRMED = 'confirmed';
+    const RESPONSE_STATE_PENDING = 'pending';
+    const ORDER_TRANSACTION_STATE_PAID = 'paid';
+    const ORDER_TRANSACTION_STATE_AUTHORIZED = 'authorized';
+
     private OrderTransactionStateHandler $transactionStateHandler;
     private MonduClient $monduClient;
     private EntityRepository $productRepository;
@@ -64,15 +70,12 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         $paymentState = $request->query->getAlpha('payment');
         $context = $salesChannelContext->getContext();
 
-        if ($paymentState === 'success') {
+        if ($paymentState === self::PAYMENT_STATE_SUCCESS) {
             $paymentOrderUuid = $request->query->get('order_uuid');
 
             $confirmResponseState = $this->monduClient->setSalesChannelId($salesChannelContext->getSalesChannelId())->confirmOrder($paymentOrderUuid);
 
-            if (
-                $confirmResponseState != 'confirmed' &&
-                $confirmResponseState != 'pending'
-            ) {
+            if (!$this->isOrderConfirmed($confirmResponseState)) {
                 throw new CustomerCanceledAsyncPaymentException(
                     $transactionId,
                     'Order not confirmed.'
@@ -91,11 +94,11 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
             $orderTransactionState = $this->configService->setSalesChannelId($salesChannelContext->getSalesChannelId())->orderTransactionState();
 
             if (
-                $orderTransactionState == 'paid' &&
-                $confirmResponseState == 'pending'
+                $orderTransactionState == self::ORDER_TRANSACTION_STATE_PAID &&
+                $confirmResponseState == self::RESPONSE_STATE_PENDING
             ) {
                 $this->transactionStateHandler->processUnconfirmed($transaction->getOrderTransaction()->getId(), $salesChannelContext->getContext());
-            } else if ($orderTransactionState == 'authorized') {
+            } else if ($orderTransactionState == self::ORDER_TRANSACTION_STATE_AUTHORIZED) {
                 $this->transactionStateHandler->authorize($transaction->getOrderTransaction()->getId(), $salesChannelContext->getContext());
             } else {
                 $this->transactionStateHandler->paid($transaction->getOrderTransaction()->getId(), $salesChannelContext->getContext());
@@ -268,5 +271,10 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
                 OrderDataEntity::FIELD_IS_SUCCESSFUL => true,
             ]
         ], $salesChannelContext->getContext());
+    }
+
+    protected function isOrderConfirmed($confirmResponseState)
+    {
+        return $confirmResponseState != self::RESPONSE_STATE_CONFIRMED && $confirmResponseState != self::RESPONSE_STATE_PENDING;
     }
 }
