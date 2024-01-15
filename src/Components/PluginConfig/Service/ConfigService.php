@@ -6,7 +6,6 @@ namespace Mondu\MonduPayment\Components\PluginConfig\Service;
 
 use Shopware\Core\System\SystemConfig\SystemConfigService;
 use Shopware\Core\Framework\Context;
-use Shopware\Core\Framework\Plugin;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
@@ -29,6 +28,7 @@ class ConfigService
 
     /**
      * @param SystemConfigService $systemConfigService
+     * @param EntityRepository $pluginRepository
      */
     public function __construct(SystemConfigService $systemConfigService, EntityRepository $pluginRepository)
     {
@@ -52,12 +52,13 @@ class ConfigService
 
     public function isSandbox()
     {
-        if (!is_null($this->overrideSandbox))
+        if (!is_null($this->overrideSandbox)) {
             return $this->overrideSandbox;
+        }
 
         $config = $this->getPluginConfiguration();
 
-        return isset($config['sandbox']) ? $config['sandbox'] : false;
+        return $config['sandbox'] ?? false;
     }
 
     public function getBaseApiUrl(): string
@@ -152,8 +153,6 @@ class ConfigService
         $criteria = new Criteria();
         $criteria->addFilter(new EqualsFilter('name', 'Mond1SW6'));
 
-        $pluginEntity = $this->pluginRepository->search($criteria, new Context(new SystemSource()))->first();
-
-        return $pluginEntity;
+        return $this->pluginRepository->search($criteria, new Context(new SystemSource()))->first();
     }
 }

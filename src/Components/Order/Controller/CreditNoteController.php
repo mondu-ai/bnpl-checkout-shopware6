@@ -9,15 +9,10 @@ use Shopware\Core\Framework\Context;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
 use Shopware\Core\Framework\Routing\Annotation\RouteScope;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
-use Mondu\MonduPayment\Components\Order\Model\Extension\OrderExtension;
-use Mondu\MonduPayment\Components\Order\Model\OrderDataEntity;
-use Mondu\MonduPayment\Util\CriteriaHelper;
-use Shopware\Core\Checkout\Order\OrderEntity;
 
 /**
  * @Route(defaults={"_routeScope"={"api"}})
@@ -25,23 +20,21 @@ use Shopware\Core\Checkout\Order\OrderEntity;
 class CreditNoteController extends AbstractController
 {
     private MonduClient $monduClient;
-    private EntityRepository $orderRepository;
     private EntityRepository $invoiceDataRepository;
-    private EntityRepository $orderDataRepository;
     private EntityRepository $documentRepository;
 
-
+    /**
+     * @param MonduClient $monduClient
+     * @param EntityRepository $invoiceDataRepository
+     * @param EntityRepository $documentRepository
+     */
     public function __construct(
         MonduClient $monduClient,
-        EntityRepository $orderRepository,
         EntityRepository $invoiceDataRepository,
-        EntityRepository $orderDataRepository,
         EntityRepository $documentRepository
     ) {
         $this->monduClient = $monduClient;
-        $this->orderRepository = $orderRepository;
         $this->invoiceDataRepository = $invoiceDataRepository;
-        $this->orderDataRepository = $orderDataRepository;
         $this->documentRepository = $documentRepository;
     }
 
@@ -66,12 +59,12 @@ class CreditNoteController extends AbstractController
             $invoiceEntity = $this->invoiceDataRepository->search($invoiceCriteria, $context)->first();
 
             if ($invoiceEntity != null) {
-                $cancelation = $this->monduClient->setSalesChannelId($document->getOrder()->getSalesChannelId())->cancelCreditNote(
+                $cancellation = $this->monduClient->setSalesChannelId($document->getOrder()->getSalesChannelId())->cancelCreditNote(
                     $invoiceEntity->getExternalInvoiceUuid(),
                     $creditNoteEntity->getExternalInvoiceUuid()
                 );
 
-                if ($cancelation != null) {
+                if ($cancellation != null) {
                     return new Response(json_encode(['status' => 'ok', 'error' => '0']), Response::HTTP_OK);
                 }
 
@@ -79,7 +72,7 @@ class CreditNoteController extends AbstractController
             }
 
             return new Response(json_encode(['status' => 'not_found', 'error' => '2' ]), Response::HTTP_BAD_REQUEST);
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             return new Response(json_encode(['status' => 'error', 'error' => '3' ]), Response::HTTP_BAD_REQUEST);
         }
     }

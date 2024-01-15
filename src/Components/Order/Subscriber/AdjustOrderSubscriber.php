@@ -15,9 +15,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\Write\Command\InsertCommand;
 use Shopware\Core\Framework\DataAbstractionLayer\Write\Command\UpdateCommand;
 use Shopware\Core\Framework\DataAbstractionLayer\Write\Validation\PreWriteValidationEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityWriteResult;
 use Mondu\MonduPayment\Util\CriteriaHelper;
-use Mondu\MonduPayment\Components\StateMachine\Exception\MonduException;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
@@ -28,6 +26,9 @@ use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
 use Psr\Log\LoggerInterface;
 use Shopware\Core\Checkout\Cart\Price\Struct\CartPrice;
 
+/**
+ * Adjust Order Subscriber Class
+ */
 class AdjustOrderSubscriber implements EventSubscriberInterface
 {
     private StateMachineRegistry $stateMachineRegistry;
@@ -39,6 +40,16 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
     private MonduClient $monduClient;
     private LoggerInterface $logger;
 
+    /**
+     * @param StateMachineRegistry $stateMachineRegistry
+     * @param EntityRepository $orderRepository
+     * @param EntityRepository $orderDataRepository
+     * @param EntityRepository $invoiceDataRepository
+     * @param MonduClient $monduClient
+     * @param LoggerInterface $logger
+     * @param EntityRepository $productRepository
+     * @param EntityRepository $currencyRepository
+     */
     public function __construct(
         StateMachineRegistry $stateMachineRegistry,
         EntityRepository $orderRepository,
@@ -167,8 +178,9 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                 foreach ($order->getLineItems() as $lineItem) {
                     $discountLineItemType = 'discount';
 
-                    if (defined( '\Shopware\Core\Checkout\Cart\LineItem\LineItem::DISCOUNT_LINE_ITEM'))
+                    if (defined( '\Shopware\Core\Checkout\Cart\LineItem\LineItem::DISCOUNT_LINE_ITEM')) {
                         $discountLineItemType = \Shopware\Core\Checkout\Cart\LineItem\LineItem::DISCOUNT_LINE_ITEM;
+                    }
 
                     if ($lineItem->getType() !== \Shopware\Core\Checkout\Cart\LineItem\LineItem::PROMOTION_LINE_ITEM_TYPE &&
                         $lineItem->getType() !== $discountLineItemType) {
@@ -281,7 +293,6 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
             ), $context);
         } catch (\Exception $e) {
             $this->log('Adjust Order: transitionDeliveryState Failed', [$orderId, $state], $e);
-            // throw new MonduException($e->getMessage());
         }
     }
 }

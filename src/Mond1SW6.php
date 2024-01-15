@@ -14,6 +14,9 @@ use Shopware\Core\Framework\Plugin\Context\UninstallContext;
 use Shopware\Core\Framework\Plugin\Context\UpdateContext;
 use Shopware\Core\Framework\Plugin\Context\ActivateContext;
 
+/**
+ * Mond1SW6 Class
+ */
 class Mond1SW6 extends Plugin
 {
     public function install(InstallContext $installContext): void
@@ -23,9 +26,11 @@ class Mond1SW6 extends Plugin
         foreach ($bootstrapper as $bootstrap) {
             $bootstrap->preInstall();
         }
+
         foreach ($bootstrapper as $bootstrap) {
             $bootstrap->install();
         }
+
         foreach ($bootstrapper as $bootstrap) {
             $bootstrap->postInstall();
         }

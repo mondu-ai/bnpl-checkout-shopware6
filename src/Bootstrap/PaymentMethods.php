@@ -11,12 +11,10 @@ use Shopware\Core\Checkout\Payment\PaymentMethodEntity;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
-use Mondu\MonduPayment\Components\Order\Model\Definition\OrderDataDefinition;
-use Mondu\MonduPayment\Components\Invoice\InvoiceDataDefinition;
-use Doctrine\DBAL\Connection;
-use Mondu\MonduPayment\Bootstrap\MediaProvider;
-use Shopware\Core\Framework\Context;
 
+/**
+ * Payment Methods Class
+ */
 class PaymentMethods extends AbstractBootstrap
 {
     public const PAYMENT_METHODS = [
@@ -111,7 +109,6 @@ class PaymentMethods extends AbstractBootstrap
         }
 
         $this->updatePaymentMethodImage();
-        
     }
 
     public function install(): void

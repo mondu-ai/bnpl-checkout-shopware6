@@ -9,12 +9,9 @@ use Mondu\MonduPayment\Components\Order\Model\Extension\OrderExtension;
 use Mondu\MonduPayment\Components\Order\Model\OrderDataEntity;
 use Mondu\MonduPayment\Components\PaymentMethod\Util\MethodHelper;
 use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
-//use Mondu\MonduPayment\Components\StateMachine\Exception\InvoiceNumberMissingException;
 use Mondu\MonduPayment\Components\StateMachine\Exception\MonduException;
 use Mondu\MonduPayment\Util\CriteriaHelper;
-use Shopware\Core\Checkout\Document\Renderer\InvoiceRenderer;
 use Shopware\Core\Checkout\Order\Aggregate\OrderDelivery\OrderDeliveryDefinition;
-use Shopware\Core\Checkout\Order\Aggregate\OrderDelivery\OrderDeliveryEntity;
 use Shopware\Core\Checkout\Order\OrderEntity;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
@@ -25,27 +22,34 @@ use Shopware\Core\System\StateMachine\StateMachineEntity;
 use Shopware\Core\System\StateMachine\StateMachineRegistry;
 use Shopware\Core\System\StateMachine\Transition;
 
+/**
+ * State Machine Registry Decorator Class
+ */
 class StateMachineRegistryDecorator extends StateMachineRegistry // we must extend it, cause there is no interface
 {
     /**
      * @var ConfigService
      */
-    protected $configService;
+    protected ConfigService $configService;
 
     /**
      * @var EntityRepository
      */
-    protected $orderRepository;
+    protected EntityRepository $orderRepository;
 
     /**
      * @var EntityRepository
      */
-    protected $orderDeliveryRepository;
+    protected EntityRepository $orderDeliveryRepository;
 
     /**
      * @var StateMachineRegistry
      */
-    private $innerService;
+    private StateMachineRegistry $innerService;
+
+    /**
+     * @var MonduOperationService
+     */
     private MonduOperationService $monduOperationService;
 
     /**
@@ -71,7 +75,7 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
         if ($transition->getEntityName() === OrderDeliveryDefinition::ENTITY_NAME) {
             $orderDelivery = $this->orderDeliveryRepository->search(new Criteria([$transition->getEntityId()]), $context)->first();
             $order = $this->getOrder($orderDelivery->getOrderId(), $context);
-            $transaction = $order ? $order->getTransactions()->first() : null;
+            $transaction = $order?->getTransactions()->first();
             $paymentMethod = $transaction ? $transaction->getPaymentMethod() : null;
             $transitionName = $transition->getTransitionName();
 
@@ -122,14 +126,14 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
         if (!$monduData) {
             throw new MonduException('Corrupt order');
         }
-        /**if ($monduData->getOrderState() === 'partially_shipped' || $monduData->getOrderState() === 'confirmed') {
-         *
-        } else */if ($monduData->getOrderState() === 'pending') {
+
+        if ($monduData->getOrderState() === 'pending') {
             $newState = $this->monduOperationService->syncOrder($monduData, $context, $salesChannelId);
             if ($newState !=='partially_shipped' && $newState !== 'confirmed') {
                 throw new MonduException('Mondu Order state must be confirmed or partially_shipped');
             }
         }
+
         $invoiceNumber = $monduData->getExternalInvoiceNumber();
 
         if (!$invoiceNumber) {

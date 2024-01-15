@@ -7,6 +7,9 @@ namespace Mondu\MonduPayment\Components\StateMachine\Exception;
 use Shopware\Core\Framework\ShopwareHttpException;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Mondu Exception Class
+ */
 class MonduException extends ShopwareHttpException
 {
     public function __construct($message)

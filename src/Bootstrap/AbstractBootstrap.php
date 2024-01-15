@@ -12,6 +12,9 @@ use Shopware\Core\Framework\Plugin\PluginEntity;
 use Symfony\Component\DependencyInjection\ContainerAwareInterface;
 use Symfony\Component\DependencyInjection\ContainerAwareTrait;
 
+/**
+ * Abstract Bootstrap Class
+ */
 abstract class AbstractBootstrap implements ContainerAwareInterface
 {
     use ContainerAwareTrait;
@@ -19,27 +22,27 @@ abstract class AbstractBootstrap implements ContainerAwareInterface
     /**
      * @var Context
      */
-    protected $context;
+    protected Context $context;
 
     /**
      * @var InstallContext
      */
-    protected $installContext;
+    protected InstallContext $installContext;
 
     /**
      * @var UpdateContext
      */
-    protected $updateContext;
+    protected UpdateContext $updateContext;
 
     /**
      * @var Logger
      */
-    protected $logger;
+    protected Logger $logger;
 
     /**
      * @var PluginEntity
      */
-    protected $plugin;
+    protected PluginEntity $plugin;
 
     final public function __construct()
     {

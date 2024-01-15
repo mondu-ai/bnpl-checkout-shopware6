@@ -11,14 +11,16 @@ use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\ContainsFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\MultiFilter;
-use Shopware\Core\Framework\Context;
 
+/**
+ * Database Class
+ */
 class Database extends AbstractBootstrap
 {
     /**
      * @var Connection
      */
-    protected $connection;
+    protected Connection $connection;
 
     public function injectServices(): void
     {

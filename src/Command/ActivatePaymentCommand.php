@@ -2,11 +2,7 @@
 
 namespace Mondu\MonduPayment\Command;
 
-use Shopware\Core\Framework\Api\Controller\ApiController;
-use Shopware\Core\Framework\Api\Response\Type\Api\JsonType;
-use Shopware\Core\Framework\Api\Response\Type\Api\JsonApiType;
 use Shopware\Core\Framework\Context;
-use Symfony\Component\HttpFoundation\Request;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\ContainsFilter;
 use Symfony\Component\Console\Command\Command;
@@ -14,6 +10,9 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 
+/**
+ * Activate Payment Command
+ */
 class ActivatePaymentCommand extends Command
 {
     protected static $defaultName = 'Mond1SW6:Activate:Payment';
@@ -22,13 +21,16 @@ class ActivatePaymentCommand extends Command
     private EntityRepository $paymentMethodRepository;
     private EntityRepository $salesChannelPaymentMethodRepository;
 
-
+    /**
+     * @param EntityRepository $salesChannelPaymentMethodRepository
+     * @param EntityRepository $paymentMethodRepository
+     * @param EntityRepository $salesChannelRepository
+     */
     public function __construct(
         EntityRepository $salesChannelPaymentMethodRepository,
         EntityRepository $paymentMethodRepository,
         EntityRepository $salesChannelRepository
-    )
-    {
+    ) {
         parent::__construct();
 
         $this->context = Context::createDefaultContext();
@@ -44,7 +46,6 @@ class ActivatePaymentCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-
         $salesChannels = $this->salesChannelRepository->search(new Criteria(), $this->context);
 
         foreach ($salesChannels->getIterator() as $salesChannel) {

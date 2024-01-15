@@ -27,6 +27,9 @@ use Mondu\MonduPayment\Components\Invoice\InvoiceDataEntity;
 use Shopware\Core\Checkout\Cart\Price\Struct\CartPrice;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 
+/**
+ * Transition Subscriber Class
+ */
 class TransitionSubscriber implements EventSubscriberInterface
 {
     private ConfigService $configService;
@@ -34,12 +37,22 @@ class TransitionSubscriber implements EventSubscriberInterface
     private EntityRepository $orderRepository;
     private EntityRepository $invoiceDataRepository;
     private EntityRepository $currencyRepository;
-    private $operationService;
-    private $monduClient;
-    private $orderDataRepository;
-    private $documentUrlHelper;
-    private $logger;
+    private MonduClient $monduClient;
+    private EntityRepository $orderDataRepository;
+    private DocumentUrlHelper $documentUrlHelper;
+    private LoggerInterface $logger;
 
+    /**
+     * @param EntityRepository $orderDeliveryRepository
+     * @param EntityRepository $orderRepository
+     * @param ConfigService $configService
+     * @param MonduClient $monduClient
+     * @param EntityRepository $orderDataRepository
+     * @param EntityRepository $invoiceDataRepository
+     * @param DocumentUrlHelper $documentUrlHelper
+     * @param LoggerInterface $logger
+     * @param EntityRepository $currencyRepository
+     */
     public function __construct(
         EntityRepository $orderDeliveryRepository,
         EntityRepository $orderRepository,
@@ -89,7 +102,7 @@ class TransitionSubscriber implements EventSubscriberInterface
         }
 
         switch ($event->getToPlace()->getTechnicalName()) {
-            case 'cancelled': //$this->configService->getStateCancel():
+            case 'cancelled':
                 $state = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->cancelOrder($monduOrder->getReferenceId());
                 if ($state) {
                     $this->updateOrder($event->getContext(), $monduOrder, [
@@ -114,9 +127,7 @@ class TransitionSubscriber implements EventSubscriberInterface
 
     private function getMonduDataFromOrder(OrderEntity $order)
     {
-        $monduData = $order->getExtension(OrderExtension::EXTENSION_NAME);
-
-        return $monduData;
+        return $order->getExtension(OrderExtension::EXTENSION_NAME);
     }
 
     private function updateOrder(Context $context, OrderDataEntity $monduData, array $data): void
@@ -143,7 +154,6 @@ class TransitionSubscriber implements EventSubscriberInterface
 
         $invoiceNumber = $monduData->getExternalInvoiceNumber();
         $invoiceUrl = $monduData->getExternalInvoiceUrl();
-        $shippingUrl = $monduData->getExternalDeliveryNoteUrl();
 
         $attachedDocument = $context->getExtensions()['mail-attachments']->getDocumentIds()[0];
 
@@ -154,10 +164,6 @@ class TransitionSubscriber implements EventSubscriberInterface
                     $invoiceNumber = $config['custom']['invoiceNumber'] ?? null;
                     $invoiceUrl = $this->documentUrlHelper->generateRouteForDocument($document);
                 }
-            }
-
-            if ($document->getDocumentType()->getTechnicalName() === 'delivery_note') {
-                $shippingUrl = $this->documentUrlHelper->generateRouteForDocument($document);
             }
         }
 

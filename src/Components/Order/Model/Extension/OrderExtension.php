@@ -12,6 +12,9 @@ use Shopware\Core\Framework\DataAbstractionLayer\Field\Flag\RestrictDelete;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\OneToOneAssociationField;
 use Shopware\Core\Framework\DataAbstractionLayer\FieldCollection;
 
+/**
+ * Order Extension Class
+ */
 class OrderExtension extends EntityExtension
 {
     public const EXTENSION_NAME = 'monduData';

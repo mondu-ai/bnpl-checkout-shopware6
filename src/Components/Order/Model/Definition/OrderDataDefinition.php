@@ -97,16 +97,6 @@ class OrderDataDefinition extends EntityDefinition
                 'viban',
                 OrderDataEntity::FIELD_VIBAN
             )),
-//
-//            (new StringField(
-//                'bank_bic',
-//                OrderDataEntity::FIELD_BANK_BIC
-//            ))->addFlags(new Required()),
-
-//            (new StringField(
-//                'bank_name',
-//                OrderDataEntity::FIELD_BANK_NAME
-//            ))->addFlags(new Required()),
 
             (new IntField(
                 'duration',
@@ -118,7 +108,13 @@ class OrderDataDefinition extends EntityDefinition
                 OrderDataEntity::FIELD_IS_SUCCESSFUL
             ))->addFlags(new Required()),
 
-            new OneToOneAssociationField('order', 'order_id', 'id', OrderDefinition::class, false),
+            new OneToOneAssociationField(
+                'order',
+                'order_id',
+                'id',
+                OrderDefinition::class,
+                false
+            ),
         ]);
     }
 }

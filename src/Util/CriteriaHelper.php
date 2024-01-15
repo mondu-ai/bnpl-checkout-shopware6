@@ -7,6 +7,9 @@ namespace Mondu\MonduPayment\Util;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
 
+/**
+ * Criteria Helper Class
+ */
 class CriteriaHelper
 {
     public static function getCriteriaForOrder(string $orderId): Criteria

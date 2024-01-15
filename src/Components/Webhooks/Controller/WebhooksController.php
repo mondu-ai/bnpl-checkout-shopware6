@@ -11,7 +11,6 @@ use Shopware\Core\Framework\Routing\Annotation\RouteScope;
 use Shopware\Storefront\Controller\StorefrontController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
 
 /**
  * @Route(defaults={"_routeScope"={"storefront"}})
@@ -30,8 +29,9 @@ class WebhooksController extends StorefrontController
     }
 
     /**
-      * @Route("/mondu/webhooks", name="mondu-payment.webhooks", defaults={"csrf_protected"=false}, methods={"POST"})
-      */
+     * @Route("/mondu/webhooks", name="mondu-payment.webhooks", defaults={"csrf_protected"=false}, methods={"POST"})
+     * @throws \Exception
+     */
     public function process(Request $request, Context $context): Response
     {
         $content = $request->getContent();
@@ -46,20 +46,19 @@ class WebhooksController extends StorefrontController
         $topic = $params['topic'];
 
         switch ($topic) {
-        case 'order/confirmed':
-            [$resBody, $resStatus] = $this->webhookService->handleConfirmed($params, $context);
-            break;
-        case 'order/pending':
-            [$resBody, $resStatus] = $this->webhookService->handlePending($params, $context);
-            break;
-        case 'order/canceled':
-        case 'order/declined':
-            [$resBody, $resStatus] = $this->webhookService->handleDeclinedOrCanceled($params, $context);
-            break;
-        default:
-            throw new \Exception('Unregistered topic');
-      }
-
+            case 'order/confirmed':
+                [$resBody, $resStatus] = $this->webhookService->handleConfirmed($params, $context);
+                break;
+            case 'order/pending':
+                [$resBody, $resStatus] = $this->webhookService->handlePending($params, $context);
+                break;
+            case 'order/canceled':
+            case 'order/declined':
+                [$resBody, $resStatus] = $this->webhookService->handleDeclinedOrCanceled($params, $context);
+                break;
+            default:
+                throw new \Exception('Unregistered topic');
+        }
 
         return new Response(
             json_encode($resBody),

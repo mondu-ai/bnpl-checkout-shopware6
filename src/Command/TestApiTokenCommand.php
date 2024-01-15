@@ -9,6 +9,9 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Output\OutputInterface;
 
+/**
+ * Test API Token Command
+ */
 class TestApiTokenCommand extends Command
 {
     protected static $defaultName = 'Mond1SW6:Test';
@@ -16,8 +19,7 @@ class TestApiTokenCommand extends Command
 
     public function __construct(
         MonduClient $monduClient
-    )
-    {
+    ) {
         parent::__construct();
 
         $this->monduClient = $monduClient;

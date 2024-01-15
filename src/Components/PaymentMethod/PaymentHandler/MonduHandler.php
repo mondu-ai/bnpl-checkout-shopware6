@@ -29,9 +29,20 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
     private EntityRepository $orderDataRepository;
     private ConfigService $configService;
 
-
-    public function __construct(OrderTransactionStateHandler $transactionStateHandler, MonduClient $monduClient, EntityRepository $productRepository, EntityRepository $orderDataRepository, ConfigService $configService)
-    {
+    /**
+     * @param OrderTransactionStateHandler $transactionStateHandler
+     * @param MonduClient $monduClient
+     * @param EntityRepository $productRepository
+     * @param EntityRepository $orderDataRepository
+     * @param ConfigService $configService
+     */
+    public function __construct(
+        OrderTransactionStateHandler $transactionStateHandler,
+        MonduClient $monduClient,
+        EntityRepository $productRepository,
+        EntityRepository $orderDataRepository,
+        ConfigService $configService
+    ) {
         $this->monduClient = $monduClient;
         $this->productRepository = $productRepository;
         $this->transactionStateHandler = $transactionStateHandler;
@@ -42,8 +53,11 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
     /**
      * @throws AsyncPaymentProcessException
      */
-    public function pay(AsyncPaymentTransactionStruct $transaction, RequestDataBag $dataBag, SalesChannelContext $salesChannelContext): RedirectResponse
-    {
+    public function pay(
+        AsyncPaymentTransactionStruct $transaction,
+        RequestDataBag $dataBag,
+        SalesChannelContext $salesChannelContext
+    ): RedirectResponse {
         try {
             $redirectUrl = $this->createOrder($transaction, $salesChannelContext);
         } catch (\Exception $e) {
@@ -59,8 +73,11 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
     /**
      * @throws CustomerCanceledAsyncPaymentException
      */
-    public function finalize(AsyncPaymentTransactionStruct $transaction, Request $request, SalesChannelContext $salesChannelContext): void
-    {
+    public function finalize(
+        AsyncPaymentTransactionStruct $transaction,
+        Request $request,
+        SalesChannelContext $salesChannelContext
+    ): void {
         $transactionId = $transaction->getOrderTransaction()->getId();
         $paymentState = $request->query->getAlpha('payment');
         $context = $salesChannelContext->getContext();
@@ -89,9 +106,6 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
             $orderTransactionState = $this->configService->setSalesChannelId($salesChannelContext->getSalesChannelId())->orderTransactionState();
 
             switch($orderTransactionState) {
-                case 'paid':
-                    $this->transactionStateHandler->paid($transaction->getOrderTransaction()->getId(), $salesChannelContext->getContext());
-                break;
                 case 'authorized':
                     $this->transactionStateHandler->authorize($transaction->getOrderTransaction()->getId(), $salesChannelContext->getContext());
                 break;
@@ -127,8 +141,6 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         $context = $salesChannelContext->getContext();
 
         $lineItems = $this->getLineItems($order->getLineItems(), $context);
-        $shipping = $order->getShippingCosts()->getTotalPrice();
-
         $discount = $this->getDiscount($order->getLineItems(), $context);
 
         if ($context->getTaxState() === CartPrice::TAX_STATE_GROSS) {
@@ -138,7 +150,6 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         }
 
         $shippingAddress = $order->getDeliveries()->getShippingAddress()->first();
-
         $paymentMethod = MethodHelper::shortNameToMonduName($orderTransaction->getPaymentMethod()->getShortName());
 
         return [
@@ -249,7 +260,8 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         return $discountAmount;
     }
 
-    public function createLocalOrder($transaction, $orderUuid, $salesChannelContext) {
+    public function createLocalOrder($transaction, $orderUuid, $salesChannelContext)
+    {
         $order = $transaction->getOrder();
         $monduOrder = $this->monduClient->setSalesChannelId($salesChannelContext->getSalesChannelId())->getMonduOrder($orderUuid);
         

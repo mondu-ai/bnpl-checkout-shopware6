@@ -18,16 +18,17 @@ class MediaProvider
     /**
      * @var MediaService
      */
-    private $mediaService;
+    private MediaService $mediaService;
 
     /** @var EntityRepository */
 
-    private $mediaRepository;
+    private EntityRepository $mediaRepository;
 
     /**
      * Constructs a `MediaProvider`
      *
      * @param MediaService $mediaService
+     * @param EntityRepository $mediaRepository
      */
     public function __construct(MediaService $mediaService, EntityRepository $mediaRepository)
     {
@@ -71,8 +72,6 @@ class MediaProvider
             )
         );
 
-        $media = $this->mediaRepository->search($criteria, $context)->first();
-
-        return $media;
+        return $this->mediaRepository->search($criteria, $context)->first();
     }
 }

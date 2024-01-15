@@ -2,6 +2,9 @@
 
 namespace Mondu\MonduPayment\Components\Webhooks\Model;
 
+/**
+ * Webhook Class
+ */
 class Webhook
 {
     private string $topic;

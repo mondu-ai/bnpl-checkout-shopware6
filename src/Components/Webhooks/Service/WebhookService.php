@@ -19,20 +19,35 @@ use Psr\Log\LoggerInterface;
 use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
 use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 
-
-
+/**
+ * Webhook Service Class
+ */
 class WebhookService
 {
     private MonduClient $monduClient;
     private StateMachineRegistry $stateMachineRegistry;
     private EntityRepository $orderRepository;
     private LoggerInterface $logger;
-    private $orderDataRepository;
+    private EntityRepository $orderDataRepository;
     private ConfigService $configService;
-    private $salesChannelId;
+    private ?string $salesChannelId;
 
-    public function __construct(StateMachineRegistry $stateMachineRegistry, EntityRepository $orderRepository, LoggerInterface $logger, MonduClient $monduClient, EntityRepository $orderDataRepository, ConfigService $configService)
-    {
+    /**
+     * @param StateMachineRegistry $stateMachineRegistry
+     * @param EntityRepository $orderRepository
+     * @param LoggerInterface $logger
+     * @param MonduClient $monduClient
+     * @param EntityRepository $orderDataRepository
+     * @param ConfigService $configService
+     */
+    public function __construct(
+        StateMachineRegistry $stateMachineRegistry,
+        EntityRepository $orderRepository,
+        LoggerInterface $logger,
+        MonduClient $monduClient,
+        EntityRepository $orderDataRepository,
+        ConfigService $configService
+    ) {
         $this->stateMachineRegistry = $stateMachineRegistry;
         $this->orderRepository = $orderRepository;
         $this->logger = $logger;
@@ -52,11 +67,9 @@ class WebhookService
     public function getSecret($key)
     {
         try {
-
             $keys = $this->monduClient->setSalesChannelId($this->salesChannelId)->getWebhooksSecret($key);
 
-            if (isset($keys['webhook_secret']))
-            {
+            if (isset($keys['webhook_secret'])) {
                 $this->configService->setSalesChannelId($this->salesChannelId)->setWebhooksSecret($keys['webhook_secret']);
             }
 
@@ -98,7 +111,6 @@ class WebhookService
             }
 
             // Update vIBAN
-
             $criteria = new Criteria();
             $criteria->addFilter(new EqualsFilter('referenceId', $monduId));
 
@@ -130,7 +142,7 @@ class WebhookService
                 throw new MonduException('Required params missing');
             }
 
-            $transitionResult = $this->transitionOrderState($externalReferenceId, 'process', $context);
+            $this->transitionOrderState($externalReferenceId, 'process', $context);
             $transitionResult = $this->transitionTransactionState($externalReferenceId, 'reopen', $context);
 
             return [[ 'status' => $transitionResult->last()->getTechnicalName(), 'error' => 0 ], Response::HTTP_OK];
@@ -152,8 +164,8 @@ class WebhookService
                 throw new MonduException('Required params missing');
             }
 
-            $transitionResult = $this->transitionOrderState($externalReferenceId, 'cancel', $context);
-            $transitionResult = $this->transitionDeliveryState($externalReferenceId, 'cancel', $context);
+            $this->transitionOrderState($externalReferenceId, 'cancel', $context);
+            $this->transitionDeliveryState($externalReferenceId, 'cancel', $context);
             $transitionResult = $this->transitionTransactionState($externalReferenceId, 'cancel', $context);
 
             return [[ 'status' => $transitionResult->last()->getTechnicalName(), 'error' => 0 ], Response::HTTP_OK];
@@ -228,9 +240,7 @@ class WebhookService
             $criteria = new Criteria();
             $criteria->addFilter(new EqualsFilter('orderNumber', $externalReferenceId));
 
-            $orderId = $this->orderRepository->search($criteria, $context)->first()->getId();
-
-            return $orderId;
+            return $this->orderRepository->search($criteria, $context)->first()->getId();
         } catch (\Exception $e) {
             $this->log('getOrderUuid Failed', [$externalReferenceId], $e);
             throw new MonduException($e->getMessage());

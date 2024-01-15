@@ -17,6 +17,9 @@ use Symfony\Component\Routing\Annotation\Route;
 
 #[Route(defaults: ['_routeScope' => ['storefront']])]
 
+/**
+ * Document Controller Class
+ */
 class DocumentController extends AbstractController
 {
     private DocumentGenerator $documentGenerator;
@@ -48,7 +51,7 @@ class DocumentController extends AbstractController
         $generatedDocument = $this->documentGenerator->readDocument($documentId, $context, $deepLinkCode);
 
         if ($generatedDocument === null) {
-            return new JsonResponse(null, JsonResponse::HTTP_NO_CONTENT);
+            return new JsonResponse(null, Response::HTTP_NO_CONTENT);
         }
 
         return $this->createResponse(

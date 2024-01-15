@@ -8,6 +8,9 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Output\OutputInterface;
 
+/**
+ * Config API Token Command
+ */
 class ConfigApiTokenCommand extends Command
 {
     protected static $defaultName = 'Mond1SW6:Config:ApiToken';
@@ -16,7 +19,7 @@ class ConfigApiTokenCommand extends Command
 
     public function __construct(
         SystemConfigService $systemConfig
-    ){
+    ) {
         parent::__construct();
     
         $this->systemConfig = $systemConfig;
@@ -39,11 +42,11 @@ class ConfigApiTokenCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $api_token = (string)$input->getArgument('api_token');
+        $api_token = (string) $input->getArgument('api_token');
         $sandboxMode = boolval($input->getArgument('sandbox_mode'));
 
-        $this->systemConfig->set("Mond1SW6.config.apiToken", $api_token, null);
-        $this->systemConfig->set("Mond1SW6.config.sandbox", $sandboxMode, null);
+        $this->systemConfig->set("Mond1SW6.config.apiToken", $api_token);
+        $this->systemConfig->set("Mond1SW6.config.sandbox", $sandboxMode);
 
         $output->writeln("Api token successfully updated\n");
 

@@ -10,15 +10,22 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Request;
 use Psr\Log\LoggerInterface;
 
+/**
+ * Mondu Client Class
+ */
 class MonduClient
 {
     private ConfigService $config;
-    private $restClient;
+    private Client $restClient;
     private LoggerInterface $logger;
     private string $key;
     private ?string $salesChannelId;
     private ?bool $sandboxMode = null;
 
+    /**
+     * @param ConfigService $configService
+     * @param LoggerInterface $logger
+     */
     public function __construct(ConfigService $configService, LoggerInterface $logger)
     {
         $this->config = $configService;
@@ -82,44 +89,32 @@ class MonduClient
 
     public function adjustOrder($orderUuid, $body = []): ?array
     {
-        $response = $this->sendRequest('orders/'. $orderUuid .'/adjust', 'POST', $body);
-
-        return $response;
+        return $this->sendRequest( 'orders/' . $orderUuid . '/adjust', 'POST', $body);
     }
 
     public function updateExternalInfo($orderUuid, $body = []): ?array
     {
-        $response = $this->sendRequest('orders/'. $orderUuid.'/update_external_info', 'POST', $body);
-
-        return $response;
+        return $this->sendRequest( 'orders/' . $orderUuid . '/update_external_info', 'POST', $body);
     }
 
     public function cancelInvoice($orderUuid, $invoiceUuid): ?array
     {
-        $response = $this->sendRequest('orders/'. $orderUuid.'/invoices/' . $invoiceUuid . '/cancel', 'POST');
-
-        return $response;
+        return $this->sendRequest( 'orders/' . $orderUuid . '/invoices/' . $invoiceUuid . '/cancel', 'POST');
     }
 
     public function cancelCreditNote($invoiceUuid, $creditNoteUuid): ?array
     {
-        $response = $this->sendRequest('invoices/' . $invoiceUuid . '/credit_notes/' . $creditNoteUuid . '/cancel', 'POST');
-
-        return $response;
+        return $this->sendRequest( 'invoices/' . $invoiceUuid . '/credit_notes/' . $creditNoteUuid . '/cancel', 'POST');
     }
 
     public function createCreditNote($invoiceUuid, $body = []): ?array
     {
-        $response = $this->sendRequest('invoices/' . $invoiceUuid . '/credit_notes', 'POST', $body);
-
-        return $response;
+        return $this->sendRequest( 'invoices/' . $invoiceUuid . '/credit_notes', 'POST', $body);
     }
 
     public function registerWebhook($body = []): ?array
     {
-        $response = $this->sendRequest('webhooks', 'POST', $body);
-
-        return $response;
+        return $this->sendRequest('webhooks', 'POST', $body);
     }
 
     public function getWebhooksSecret($key, $sandboxMode = null): ?array
@@ -127,16 +122,12 @@ class MonduClient
         $this->key = $key;
         $this->sandboxMode = $sandboxMode;
 
-        $response = $this->sendRequest('webhooks/keys');
-
-        return $response;
+        return $this->sendRequest('webhooks/keys');
     }
 
     public function getPaymentMethods()
     {
-        $response = $this->sendRequest('payment_methods');
-
-        return $response;
+        return $this->sendRequest('payment_methods');
     }
 
     public function logEvent($body = [])
@@ -156,9 +147,8 @@ class MonduClient
 
         try {
             $response = $this->restClient->send($request);
-            $responseBody = json_decode($response->getBody()->getContents(), true);
 
-            return $responseBody;
+            return json_decode($response->getBody()->getContents(), true);
 
         } catch (GuzzleException $e) {
             $this->logger->alert("MonduClient [{$method} {$url}]: Failed with an exception message: {$e->getMessage()}");

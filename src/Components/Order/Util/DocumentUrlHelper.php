@@ -7,12 +7,17 @@ namespace Mondu\MonduPayment\Components\Order\Util;
 use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 use Shopware\Core\Checkout\Document\DocumentEntity;
 use Shopware\Storefront\Framework\Routing\Router;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 class DocumentUrlHelper
 {
     private ConfigService $configService;
     private Router $router;
 
+    /**
+     * @param ConfigService $configService
+     * @param Router $router
+     */
     public function __construct(
         ConfigService $configService,
         Router $router
@@ -27,7 +32,7 @@ class DocumentUrlHelper
             'documentId' => $document->getId(),
             'deepLinkCode' => $document->getDeepLinkCode(),
             'token' => $this->getToken(),
-        ], Router::ABSOLUTE_URL);
+        ], UrlGeneratorInterface::ABSOLUTE_URL);
     }
 
     public function getToken(): string

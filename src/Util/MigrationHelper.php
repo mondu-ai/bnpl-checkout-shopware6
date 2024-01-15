@@ -6,6 +6,9 @@ namespace Mondu\MonduPayment\Util;
 
 use Doctrine\DBAL\Connection;
 
+/**
+ * Migration Helper Class
+ */
 class MigrationHelper
 {
     public static function getExecuteStatementMethod(): string

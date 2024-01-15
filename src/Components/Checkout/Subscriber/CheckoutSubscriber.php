@@ -7,21 +7,24 @@ namespace Mondu\MonduPayment\Components\Checkout\Subscriber;
 use Mondu\MonduPayment\Components\MonduApi\Service\MonduOperationService;
 use Mondu\MonduPayment\Components\PaymentMethod\Util\MethodHelper;
 use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\NotFilter;
-use Shopware\Core\Framework\Struct\ArrayStruct;
-use Shopware\Core\System\SalesChannel\Event\SalesChannelProcessCriteriaEvent;
 use Shopware\Storefront\Page\Account\Order\AccountEditOrderPageLoadedEvent;
 use Shopware\Storefront\Page\Checkout\Confirm\CheckoutConfirmPageLoadedEvent;
 use Shopware\Storefront\Page\PageLoadedEvent;
 use Shopware\Core\Checkout\Payment\PaymentMethodEntity;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
+/**
+ * Checkout Subscriber Class
+ */
 class CheckoutSubscriber implements EventSubscriberInterface
 {
-    private $configService;
+    private ConfigService $configService;
     private MonduOperationService $monduOperationService;
 
+    /**
+     * @param ConfigService $configService
+     * @param MonduOperationService $monduOperationService
+     */
     public function __construct(ConfigService $configService, MonduOperationService $monduOperationService)
     {
         $this->configService = $configService;
@@ -45,7 +48,8 @@ class CheckoutSubscriber implements EventSubscriberInterface
         $this->filterPaymentMethods($event);
     }
 
-    public function filterPaymentMethods(PageLoadedEvent $event) {
+    public function filterPaymentMethods(PageLoadedEvent $event)
+    {
         $allowedPaymentMethods = $this->monduOperationService->getAllowedPaymentMethods($event->getSalesChannelContext()->getSalesChannelId());
         $disallowedPaymentMethods = [];
         $allPaymentMethods = MethodHelper::MONDU_PAYMENT_METHODS;

@@ -10,14 +10,25 @@ use Psr\Cache\CacheItemPoolInterface;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 
+/**
+ * Mondu Operation Service Class
+ */
 class MonduOperationService
 {
     private MonduClient $monduClient;
     private EntityRepository $orderDataRepository;
     private CacheItemPoolInterface $cache;
 
-    public function __construct(MonduClient $monduClient, EntityRepository $orderDataRepository, CacheItemPoolInterface $cache)
-    {
+    /**
+     * @param MonduClient $monduClient
+     * @param EntityRepository $orderDataRepository
+     * @param CacheItemPoolInterface $cache
+     */
+    public function __construct(
+        MonduClient $monduClient,
+        EntityRepository $orderDataRepository,
+        CacheItemPoolInterface $cache
+    ) {
         $this->monduClient = $monduClient;
         $this->orderDataRepository = $orderDataRepository;
         $this->cache = $cache;
@@ -29,7 +40,7 @@ class MonduOperationService
         $this->orderDataRepository->update([
             [
                 OrderDataEntity::FIELD_ID => $orderData->getId(),
-                OrderDataEntity::FIELD_VIBAN => null, //$order['buyer']['viban'],
+                OrderDataEntity::FIELD_VIBAN => null,
                 OrderDataEntity::FIELD_ORDER_STATE => $order['state'],
             ]
         ], $context);

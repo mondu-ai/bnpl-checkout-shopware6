@@ -10,6 +10,9 @@ use Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduSepaHandler;
 use Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduInstallmentHandler;
 use Shopware\Core\Checkout\Payment\PaymentMethodEntity;
 
+/**
+ * Method Helper Class
+ */
 class MethodHelper
 {
     const DEFAULT_MONDU_PAYMENT_METHOD = 'invoice';
@@ -28,7 +31,7 @@ class MethodHelper
             'mondu_installment_handler' => 'installment'
         ];
 
-        return isset($mapping[$paymentMethodName]) ? $mapping[$paymentMethodName] : self::DEFAULT_MONDU_PAYMENT_METHOD;
+        return $mapping[ $paymentMethodName ] ?? self::DEFAULT_MONDU_PAYMENT_METHOD;
     }
 
     public static function monduNameToHandler($paymentMethodName)
@@ -39,7 +42,7 @@ class MethodHelper
             'installment' => MonduInstallmentHandler::class
         ];
 
-        return isset($mapping[$paymentMethodName]) ? $mapping[$paymentMethodName] : '';
+        return $mapping[$paymentMethodName] ?? '';
     }
 
     public static function monduPaymentMethodOrDefault($paymentMethod)
