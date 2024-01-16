@@ -275,6 +275,6 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
 
     protected function isOrderConfirmed($confirmResponseState)
     {
-        return $confirmResponseState != self::RESPONSE_STATE_CONFIRMED && $confirmResponseState != self::RESPONSE_STATE_PENDING;
+        return in_array($confirmResponseState, [self::RESPONSE_STATE_CONFIRMED, self::RESPONSE_STATE_PENDING]);
     }
 }
