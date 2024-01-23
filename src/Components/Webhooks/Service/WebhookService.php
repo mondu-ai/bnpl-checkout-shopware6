@@ -89,7 +89,7 @@ class WebhookService
     public function handleConfirmed($params, $context): array
     {
         try {
-            $viban = $params['viban'];
+            $viban = $params['bank_account']['iban'] ?? null;
             $monduId = $params['order_uuid'];
             $externalReferenceId = $params['external_reference_id'];
 
