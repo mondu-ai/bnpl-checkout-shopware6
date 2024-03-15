@@ -9,8 +9,11 @@ use Symfony\Component\HttpFoundation\Response;
 
 class MonduException extends ShopwareHttpException
 {
-    public function __construct($message)
+    private int $monduStatusCode;
+
+    public function __construct($message, $statusCode = Response::HTTP_BAD_REQUEST)
     {
+        $this->monduStatusCode = $statusCode;
         parent::__construct(
             $message
         );
@@ -23,6 +26,6 @@ class MonduException extends ShopwareHttpException
 
     public function getStatusCode(): int
     {
-        return Response::HTTP_BAD_REQUEST;
+        return $this->monduStatusCode;
     }
 }

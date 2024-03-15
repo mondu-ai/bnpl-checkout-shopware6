@@ -39,26 +39,32 @@ class WebhooksController extends StorefrontController
 
         $signature = hash_hmac('sha256', $content, $this->configService->getWebhooksSecret());
         if ($signature !== $headers->get('X-Mondu-Signature')) {
-            throw new \Exception('Signature mismatch');
+            return new Response(
+                json_encode([
+                    'message' => 'Signature mismatch',
+                    'code' => 401
+                ]),
+                Response::HTTP_UNAUTHORIZED,
+            );
         }
 
         $params = json_decode($content, true);
         $topic = $params['topic'];
 
         switch ($topic) {
-        case 'order/confirmed':
-            [$resBody, $resStatus] = $this->webhookService->handleConfirmed($params, $context);
-            break;
-        case 'order/pending':
-            [$resBody, $resStatus] = $this->webhookService->handlePending($params, $context);
-            break;
-        case 'order/declined':
-            [$resBody, $resStatus] = $this->webhookService->handleDeclinedOrCanceled($params, $context);
-            break;
-        default:
-            throw new \Exception('Unregistered topic');
-      }
-
+            case 'order/confirmed':
+                [$resBody, $resStatus] = $this->webhookService->handleConfirmed($params, $context);
+                break;
+            case 'order/pending':
+                [$resBody, $resStatus] = $this->webhookService->handlePending($params, $context);
+                break;
+            case 'order/declined':
+                [$resBody, $resStatus] = $this->webhookService->handleDeclinedOrCanceled($params, $context);
+                break;
+            default:
+                $resBody = ['message' => 'Unregistered topic', 'code' => 200];
+                $resStatus = 200;
+        }
 
         return new Response(
             json_encode($resBody),
