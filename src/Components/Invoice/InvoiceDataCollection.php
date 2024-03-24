@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Mondu\MonduPayment\Components\Invoice;
 
-use Mondu\MonduPayment\Components\Invoice\InvoiceDataEntity;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityCollection;
 
 /**

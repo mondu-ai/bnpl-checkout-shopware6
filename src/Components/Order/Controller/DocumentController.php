@@ -19,15 +19,12 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class DocumentController extends AbstractController
 {
-    private DocumentGenerator $documentGenerator;
-
     /**
      * @internal
      */
-    public function __construct(DocumentGenerator $documentGenerator)
-    {
-        $this->documentGenerator = $documentGenerator;
-    }
+    public function __construct(
+        private readonly DocumentGenerator $documentGenerator
+    ) {}
 
     /**
      * @Route(name="mondu-payment.payment.document", path="/mondu/document/{documentId}/{deepLinkCode}/{token}")
@@ -42,7 +39,8 @@ class DocumentController extends AbstractController
         return $this->generateDocument($request, $documentId, $deepLinkCode, $context);
     }
 
-    private function generateDocument($request, $documentId, $deepLinkCode, $context) {
+    private function generateDocument($request, $documentId, $deepLinkCode, $context): JsonResponse|Response
+    {
         $download = $request->query->getBoolean('download');
 
         $generatedDocument = $this->documentGenerator->readDocument($documentId, $context, $deepLinkCode);

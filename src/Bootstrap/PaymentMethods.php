@@ -117,13 +117,19 @@ class PaymentMethods extends AbstractBootstrap
     /**
      * @var EntityRepository
      */
-    private $paymentRepository;
+    private EntityRepository $paymentRepository;
 
+    /**
+     * @return void
+     */
     public function injectServices(): void
     {
         $this->paymentRepository = $this->container->get('payment_method.repository');
     }
 
+    /**
+     * @return void
+     */
     public function update(): void
     {
         foreach (self::PAYMENT_METHODS as $paymentMethod) {
@@ -131,9 +137,12 @@ class PaymentMethods extends AbstractBootstrap
         }
 
         $this->updatePaymentMethodImage();
-        
+
     }
 
+    /**
+     * @return void
+     */
     public function install(): void
     {
         foreach (self::PAYMENT_METHODS as $paymentMethod) {
@@ -143,11 +152,19 @@ class PaymentMethods extends AbstractBootstrap
         $this->setActiveFlags(false);
     }
 
+    /**
+     * @param  bool  $keepUserData
+     *
+     * @return void
+     */
     public function uninstall(bool $keepUserData = false): void
     {
         $this->setActiveFlags(false);
     }
 
+    /**
+     * @return void
+     */
     public function activate(): void
     {
         $this->setActiveFlags(true);
@@ -155,11 +172,19 @@ class PaymentMethods extends AbstractBootstrap
         $this->updatePaymentMethodImage();
     }
 
+    /**
+     * @return void
+     */
     public function deactivate(): void
     {
         $this->setActiveFlags(false);
     }
 
+    /**
+     * @param  array  $paymentMethod
+     *
+     * @return void
+     */
     protected function upsertPaymentMethod(array $paymentMethod): void
     {
         $paymentSearchResult = $this->paymentRepository->search(
@@ -181,6 +206,11 @@ class PaymentMethods extends AbstractBootstrap
         $this->paymentRepository->upsert([$paymentMethod], $this->context);
     }
 
+    /**
+     * @param  bool  $activated
+     *
+     * @return void
+     */
     protected function setActiveFlags(bool $activated): void
     {
         $paymentEntities = $this->paymentRepository->search(
@@ -198,7 +228,10 @@ class PaymentMethods extends AbstractBootstrap
         $this->paymentRepository->update(array_values($updateData), $this->context);
     }
 
-    protected function updatePaymentMethodImage()
+    /**
+     * @return void
+     */
+    protected function updatePaymentMethodImage(): void
     {
         $mediaProvider = $this->container->get(MediaProvider::class);
 
@@ -215,10 +248,9 @@ class PaymentMethods extends AbstractBootstrap
             );
 
             $paymentMethodData = [
-            'id' => $paymentSearchResult->first()->getId(),
-            'mediaId' => $mediaId
-          ];
-
+                'id' => $paymentSearchResult->first()->getId(),
+                'mediaId' => $mediaId
+            ];
             $this->paymentRepository->update([$paymentMethodData], $this->context);
         }
     }

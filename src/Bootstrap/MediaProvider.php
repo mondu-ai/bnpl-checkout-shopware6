@@ -16,25 +16,21 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 class MediaProvider
 {
     /**
-     * @var MediaService
-     */
-    private $mediaService;
-
-    /** @var EntityRepository */
-
-    private $mediaRepository;
-
-    /**
      * Constructs a `MediaProvider`
      *
-     * @param MediaService $mediaService
+     * @param  MediaService  $mediaService
+     * @param  EntityRepository  $mediaRepository
      */
-    public function __construct(MediaService $mediaService, EntityRepository $mediaRepository)
-    {
-        $this->mediaService = $mediaService;
-        $this->mediaRepository = $mediaRepository;
-    }
+    public function __construct(
+        private readonly MediaService $mediaService,
+        private readonly EntityRepository $mediaRepository
+    ) {}
 
+    /**
+     * @param  Context  $context
+     *
+     * @return string
+     */
     public function getLogoMediaId(Context $context): string
     {
         $existingMedia = $this->hasMediaAlreadyInstalled($context);
@@ -53,6 +49,11 @@ class MediaProvider
         return $mediaId;
     }
 
+    /**
+     * @param  Context  $context
+     *
+     * @return void
+     */
     public function removePaymentLogo(Context $context): void
     {
         $existingMedia = $this->hasMediaAlreadyInstalled($context);
@@ -62,6 +63,11 @@ class MediaProvider
         }
     }
 
+    /**
+     * @param  Context  $context
+     *
+     * @return \Shopware\Core\Framework\DataAbstractionLayer\Entity|null
+     */
     protected function hasMediaAlreadyInstalled(Context $context)
     {
         $criteria = (new Criteria())->addFilter(
@@ -71,8 +77,6 @@ class MediaProvider
             )
         );
 
-        $media = $this->mediaRepository->search($criteria, $context)->first();
-
-        return $media;
+        return $this->mediaRepository->search($criteria, $context)->first();
     }
 }

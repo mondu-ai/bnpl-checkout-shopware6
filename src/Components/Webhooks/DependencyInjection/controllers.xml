@@ -8,7 +8,6 @@
             <tag name="controller.service_arguments"/>
         </defaults>
 
-
         <service id="Mondu\MonduPayment\Components\Webhooks\Controller\WebhooksController" public="true">
             <argument key="$configService" type="service" id="mondu.mondu_config"/>
             <argument key="$webhookService" type="service" id="mondu.webhook_service"/>

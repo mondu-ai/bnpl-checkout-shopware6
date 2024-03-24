@@ -7,10 +7,6 @@ namespace Mondu\MonduPayment\Components\Checkout\Subscriber;
 use Mondu\MonduPayment\Components\MonduApi\Service\MonduOperationService;
 use Mondu\MonduPayment\Components\PaymentMethod\Util\MethodHelper;
 use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\NotFilter;
-use Shopware\Core\Framework\Struct\ArrayStruct;
-use Shopware\Core\System\SalesChannel\Event\SalesChannelProcessCriteriaEvent;
 use Shopware\Storefront\Page\Account\Order\AccountEditOrderPageLoadedEvent;
 use Shopware\Storefront\Page\Checkout\Confirm\CheckoutConfirmPageLoadedEvent;
 use Shopware\Storefront\Page\PageLoadedEvent;
@@ -19,14 +15,10 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class CheckoutSubscriber implements EventSubscriberInterface
 {
-    private $configService;
-    private MonduOperationService $monduOperationService;
-
-    public function __construct(ConfigService $configService, MonduOperationService $monduOperationService)
-    {
-        $this->configService = $configService;
-        $this->monduOperationService = $monduOperationService;
-    }
+    public function __construct(
+        private readonly ConfigService $configService,
+        private readonly MonduOperationService $monduOperationService
+    ) {}
 
     public static function getSubscribedEvents(): array
     {

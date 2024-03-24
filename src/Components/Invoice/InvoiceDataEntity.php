@@ -28,38 +28,37 @@ class InvoiceDataEntity extends Entity
     /**
      * @var string
      */
-    protected $orderId;
+    protected string $orderId;
 
     /**
      * @var string
      */
-    protected $orderVersionId;
+    protected string $orderVersionId;
 
     /**
      * @var OrderEntity
      */
-    protected $order;
+    protected OrderEntity $order;
 
     /**
      * @var string
      */
-    protected $documentId;
+    protected string $documentId;
 
     /**
      * @var DocumentEntity
      */
-    protected $document;
+    protected DocumentEntity $document;
 
     /**
      * @var string|null
      */
-    protected $invoiceNumber;
+    protected ?string $invoiceNumber;
 
     /**
      * @var string|null
      */
-    protected $externalInvoiceUuid;
-
+    protected ?string $externalInvoiceUuid;
 
     public function getId(): ?string
     {

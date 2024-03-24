@@ -11,24 +11,32 @@ use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\ContainsFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\MultiFilter;
-use Shopware\Core\Framework\Context;
 
 class Database extends AbstractBootstrap
 {
     /**
      * @var Connection
      */
-    protected $connection;
+    protected Connection $connection;
 
+    /**
+     * @return void
+     */
     public function injectServices(): void
     {
         $this->connection = $this->container->get(Connection::class);
     }
 
+    /**
+     * @return void
+     */
     public function install(): void
     {
     }
 
+    /**
+     * @return void
+     */
     public function update(): void
     {
     }
@@ -68,10 +76,16 @@ class Database extends AbstractBootstrap
         $systemConfigRepository->delete($ids, $this->context);
     }
 
+    /**
+     * @return void
+     */
     public function activate(): void
     {
     }
 
+    /**
+     * @return void
+     */
     public function deactivate(): void
     {
     }

@@ -12,16 +12,11 @@ use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 
 class MonduOperationService
 {
-    private MonduClient $monduClient;
-    private EntityRepository $orderDataRepository;
-    private CacheItemPoolInterface $cache;
-
-    public function __construct(MonduClient $monduClient, EntityRepository $orderDataRepository, CacheItemPoolInterface $cache)
-    {
-        $this->monduClient = $monduClient;
-        $this->orderDataRepository = $orderDataRepository;
-        $this->cache = $cache;
-    }
+    public function __construct(
+        private readonly MonduClient $monduClient,
+        private readonly EntityRepository $orderDataRepository,
+        private readonly CacheItemPoolInterface $cache
+    ) {}
 
     public function syncOrder(OrderDataEntity $orderData, Context $context, $salesChannelId = null)
     {
@@ -29,7 +24,7 @@ class MonduOperationService
         $this->orderDataRepository->update([
             [
                 OrderDataEntity::FIELD_ID => $orderData->getId(),
-                OrderDataEntity::FIELD_VIBAN => null, //$order['buyer']['viban'],
+                OrderDataEntity::FIELD_VIBAN => null,
                 OrderDataEntity::FIELD_ORDER_STATE => $order['state'],
             ]
         ], $context);

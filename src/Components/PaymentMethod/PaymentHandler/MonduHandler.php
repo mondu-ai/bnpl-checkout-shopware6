@@ -3,6 +3,7 @@
 namespace Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler;
 
 use Mondu\MonduPayment\Components\Order\Model\OrderDataEntity;
+use Shopware\Core\Checkout\Cart\LineItem\LineItem;
 use Shopware\Core\Checkout\Payment\Cart\AsyncPaymentTransactionStruct;
 use Shopware\Core\Checkout\Payment\Cart\PaymentHandler\AsynchronousPaymentHandlerInterface;
 use Shopware\Core\Checkout\Payment\Exception\AsyncPaymentProcessException;
@@ -29,20 +30,13 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
     const ORDER_TRANSACTION_STATE_PAID = 'paid';
     const ORDER_TRANSACTION_STATE_AUTHORIZED = 'authorized';
 
-    private OrderTransactionStateHandler $transactionStateHandler;
-    private MonduClient $monduClient;
-    private EntityRepository $productRepository;
-    private EntityRepository $orderDataRepository;
-    private ConfigService $configService;
-
-    public function __construct(OrderTransactionStateHandler $transactionStateHandler, MonduClient $monduClient, EntityRepository $productRepository, EntityRepository $orderDataRepository, ConfigService $configService)
-    {
-        $this->monduClient = $monduClient;
-        $this->productRepository = $productRepository;
-        $this->transactionStateHandler = $transactionStateHandler;
-        $this->orderDataRepository = $orderDataRepository;
-        $this->configService = $configService;
-    }
+    public function __construct(
+        private readonly OrderTransactionStateHandler $transactionStateHandler,
+        private readonly MonduClient $monduClient,
+        private readonly EntityRepository $productRepository,
+        private readonly EntityRepository $orderDataRepository,
+        private readonly ConfigService $configService
+    ) {}
 
     /**
      * @throws AsyncPaymentProcessException
@@ -129,9 +123,7 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         $orderTransaction = $transaction->getOrderTransaction();
         $context = $salesChannelContext->getContext();
 
-        $lineItems = $this->getLineItems($order->getLineItems(), $context);
-        $shipping = $order->getShippingCosts()->getTotalPrice();
-
+        $lineItems = $this->getLineItems($order->getLineItems(), $context);;
         $discount = $this->getDiscount($order->getLineItems(), $context);
 
         if ($context->getTaxState() === CartPrice::TAX_STATE_GROSS) {
@@ -141,7 +133,6 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         }
 
         $shippingAddress = $order->getDeliveries()->getShippingAddress()->first();
-
         $paymentMethod = MethodHelper::shortNameToMonduName($orderTransaction->getPaymentMethod()->getShortName());
 
         return [
@@ -229,14 +220,14 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
     protected function getDiscount($collection, Context $context): float
     {
         $discountAmount = 0;
-        /** @var \Shopware\Core\Checkout\Cart\LineItem\LineItem|OrderLineItemEntity $lineItem */
+        /** @var LineItem|OrderLineItemEntity $lineItem */
         foreach ($collection->getIterator() as $lineItem) {
             $discountLineItemType = 'discount';
 
             if (defined( '\Shopware\Core\Checkout\Cart\LineItem\LineItem::DISCOUNT_LINE_ITEM'))
-                $discountLineItemType = \Shopware\Core\Checkout\Cart\LineItem\LineItem::DISCOUNT_LINE_ITEM;
+                $discountLineItemType = LineItem::DISCOUNT_LINE_ITEM;
 
-            if ($lineItem->getType() !== \Shopware\Core\Checkout\Cart\LineItem\LineItem::PROMOTION_LINE_ITEM_TYPE &&
+            if ($lineItem->getType() !== LineItem::PROMOTION_LINE_ITEM_TYPE &&
                 $lineItem->getType() !== $discountLineItemType) {
                 continue;
             }

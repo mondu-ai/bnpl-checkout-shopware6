@@ -30,7 +30,7 @@ class MethodHelper
             'mondu_installment_by_invoice_handler' => 'installment_by_invoice'
         ];
 
-        return isset($mapping[$paymentMethodName]) ? $mapping[$paymentMethodName] : self::DEFAULT_MONDU_PAYMENT_METHOD;
+        return $mapping[$paymentMethodName] ?? self::DEFAULT_MONDU_PAYMENT_METHOD;
     }
 
     public static function monduNameToHandler($paymentMethodName)
@@ -42,7 +42,7 @@ class MethodHelper
             'installment_by_invoice' => MonduInstallmentByInvoiceHandler::class
         ];
 
-        return isset($mapping[$paymentMethodName]) ? $mapping[$paymentMethodName] : '';
+        return $mapping[$paymentMethodName] ?? '';
     }
 
     public static function monduPaymentMethodOrDefault($paymentMethod)

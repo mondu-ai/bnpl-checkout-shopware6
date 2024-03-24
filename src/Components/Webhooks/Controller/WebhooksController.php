@@ -11,27 +11,22 @@ use Shopware\Core\Framework\Routing\Annotation\RouteScope;
 use Shopware\Storefront\Controller\StorefrontController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
 
 /**
  * @Route(defaults={"_routeScope"={"storefront"}})
  */
 class WebhooksController extends StorefrontController
 {
-    private ConfigService $configService;
-    private WebhookService $webhookService;
-
     public function __construct(
-        ConfigService $configService,
-        WebhookService $webhookService
-    ) {
-        $this->configService = $configService;
-        $this->webhookService = $webhookService;
-    }
+        private readonly ConfigService $configService,
+        private readonly WebhookService $webhookService
+    ) {}
 
     /**
-      * @Route("/mondu/webhooks", name="mondu-payment.webhooks", defaults={"csrf_protected"=false}, methods={"POST"})
-      */
+     * @Route("/mondu/webhooks", name="mondu-payment.webhooks", defaults={"csrf_protected"=false}, methods={"POST"})
+     *
+     * @throws \Exception
+     */
     public function process(Request $request, Context $context): Response
     {
         $content = $request->getContent();
@@ -57,8 +52,7 @@ class WebhooksController extends StorefrontController
             break;
         default:
             throw new \Exception('Unregistered topic');
-      }
-
+        }
 
         return new Response(
             json_encode($resBody),

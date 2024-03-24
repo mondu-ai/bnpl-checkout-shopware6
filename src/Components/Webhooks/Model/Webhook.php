@@ -4,13 +4,18 @@ namespace Mondu\MonduPayment\Components\Webhooks\Model;
 
 class Webhook
 {
-    private string $topic;
+    /**
+     * @var string
+     */
     private string $address;
 
-    public function __construct($topic)
-    {
-      $this->topic = $topic;
-      $this->address = $_SERVER['HTTP_ORIGIN'] . "/mondu/webhooks";
+    /**
+     * @param $topic
+     */
+    public function __construct(
+        private $topic
+    ) {
+        $this->address = $_SERVER['HTTP_ORIGIN'] . "/mondu/webhooks";
     }
 
     public function getTopic(): string
@@ -23,11 +28,11 @@ class Webhook
       return $this->address;
     }
 
-    public function getData()
+    public function getData(): array
     {
-      return [
-        'topic' => $this->getTopic(),
-        'address' => $this->getAddress()
-      ];
+        return [
+            'topic' => $this->getTopic(),
+            'address' => $this->getAddress()
+        ];
     }
 }

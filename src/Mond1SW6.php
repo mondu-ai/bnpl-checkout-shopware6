@@ -54,7 +54,6 @@ class Mond1SW6 extends Plugin
             $bootstrap->setUpdateContext($updateContext);
             $bootstrap->update();
         }
-
     }
 
     public function uninstall(UninstallContext $uninstallContext): void
@@ -74,7 +73,7 @@ class Mond1SW6 extends Plugin
         }
     }
 
-    protected function getBootstrapClasses(InstallContext $installContext)
+    protected function getBootstrapClasses(InstallContext $installContext): array
     {
         $bootstrapper = [
             new PaymentMethods(),

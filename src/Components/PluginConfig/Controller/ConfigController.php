@@ -9,21 +9,15 @@ use Shopware\Core\Framework\Context;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
 
 /**
  * @Route(defaults={"_routeScope"={"api"}})
  */
 class ConfigController extends AbstractController
 {
-    private MonduClient $monduClient;
-
-
     public function __construct(
-        MonduClient $monduClient
-    ) {
-        $this->monduClient = $monduClient;
-    }
+        private readonly MonduClient $monduClient
+    ) {}
 
     /**
      * @Route(name="mondu-payment.config.test", path="/api/mondu/config/test", defaults={"csrf_protected"=false}, methods={"POST"})
@@ -45,7 +39,7 @@ class ConfigController extends AbstractController
             
             return new Response(json_encode(['status' => 'request_failed', 'error' => '2' ]), Response::HTTP_BAD_REQUEST);
         
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             return new Response(json_encode(['status' => 'error', 'error' => '3' ]), Response::HTTP_BAD_REQUEST);
         }
     }
