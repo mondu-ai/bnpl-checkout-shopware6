@@ -19,8 +19,6 @@ use Psr\Log\LoggerInterface;
 use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
 use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 
-
-
 class WebhookService
 {
     private MonduClient $monduClient;
@@ -113,10 +111,10 @@ class WebhookService
 
             $transitionResult = $this->transitionTransactionState($externalReferenceId, 'paid', $context);
 
-            return [[ 'status' => $transitionResult->last()->getTechnicalName(), 'error' => 0 ], Response::HTTP_OK];
+            return [[ 'message' => $transitionResult->last()->getTechnicalName(), 'code' => Response::HTTP_OK ], Response::HTTP_OK];
         } catch (MonduException $e) {
             $this->log('handleConfirmed Webhook Failed', [$params], $e);
-            return [[ 'status' => $e->getMessage(), 'error' => 10 ], Response::HTTP_BAD_REQUEST];
+            return [[ 'message' => $e->getMessage(), 'code' => $e->getStatusCode() ], $e->getStatusCode()];
         }
     }
 
@@ -133,10 +131,10 @@ class WebhookService
             $transitionResult = $this->transitionOrderState($externalReferenceId, 'process', $context);
             $transitionResult = $this->transitionTransactionState($externalReferenceId, 'reopen', $context);
 
-            return [[ 'status' => $transitionResult->last()->getTechnicalName(), 'error' => 0 ], Response::HTTP_OK];
+            return [[ 'message' => $transitionResult->last()->getTechnicalName(), 'code' => Response::HTTP_OK ], Response::HTTP_OK];
         } catch (MonduException $e) {
             $this->log('handlePending Webhook Failed', [$params], $e);
-            return [[ 'status' => 'error', 'error' => 10 ], Response::HTTP_BAD_REQUEST];
+            return [[ 'message' => $e->getMessage(), 'code' => $e->getStatusCode() ], $e->getStatusCode()];
         }
     }
 
@@ -156,10 +154,10 @@ class WebhookService
             $transitionResult = $this->transitionDeliveryState($externalReferenceId, 'cancel', $context);
             $transitionResult = $this->transitionTransactionState($externalReferenceId, 'cancel', $context);
 
-            return [[ 'status' => $transitionResult->last()->getTechnicalName(), 'error' => 0 ], Response::HTTP_OK];
+            return [[ 'message' => $transitionResult->last()->getTechnicalName(), 'code' => Response::HTTP_OK ], Response::HTTP_OK];
         } catch (MonduException $e) {
             $this->log('handleDeclinedOrCanceled Webhook Failed', [$params], $e);
-            return [[ 'status' => $e->getMessage(), 'error' => 10 ], Response::HTTP_BAD_REQUEST];
+            return [[ 'message' => $e->getMessage(), 'code' => $e->getStatusCode() ], $e->getStatusCode()];
         }
     }
 
@@ -172,6 +170,8 @@ class WebhookService
                 $state,
                 'stateId'
             ), $context);
+        } catch (MonduException $e) {
+            throw $e;
         } catch (\Exception $e) {
             $this->log('transitionOrderState Failed', [$externalReferenceId, $state], $e);
             throw new MonduException($e->getMessage());
@@ -194,6 +194,8 @@ class WebhookService
                 $state,
                 'stateId'
             ), $context);
+        } catch (MonduException $e) {
+            throw $e;
         } catch (\Exception $e) {
             $this->log('transitionDeliveryState Failed', [$externalReferenceId, $state], $e);
             throw new MonduException($e->getMessage());
@@ -216,6 +218,8 @@ class WebhookService
                 $state,
                 'stateId'
             ), $context);
+        } catch (MonduException $e) {
+            throw $e;
         } catch (\Exception $e) {
             $this->log('transitionTransactionState Failed', [$externalReferenceId, $state], $e);
             throw new MonduException($e->getMessage());
@@ -227,10 +231,15 @@ class WebhookService
         try {
             $criteria = new Criteria();
             $criteria->addFilter(new EqualsFilter('orderNumber', $externalReferenceId));
+            $order = $this->orderRepository->search($criteria, $context)->first();
+            if (!$order) {
+                throw new MonduException('Order not found', 404);
+            }
 
-            $orderId = $this->orderRepository->search($criteria, $context)->first()->getId();
-
-            return $orderId;
+            return $order->getId();
+        } catch (MonduException $e) {
+            $this->log('getOrderUuid Failed', [$externalReferenceId], $e);
+            throw $e;
         } catch (\Exception $e) {
             $this->log('getOrderUuid Failed', [$externalReferenceId], $e);
             throw new MonduException($e->getMessage());
