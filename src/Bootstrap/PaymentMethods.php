@@ -90,24 +90,24 @@ class PaymentMethods extends AbstractBootstrap
         ],
         MonduInstallmentByInvoiceHandler::class => [
             'handlerIdentifier' => MonduInstallmentByInvoiceHandler::class,
-            'name' => 'Ratenkauf - Bequem in Raten per Bankeinzug zahlen',
+            'name' => 'Gesplittete Zahlungen - Ratenkauf per Banküberweisung',
             'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
             'afterOrderEnabled' => true,
             'translations' => [
                 'de-DE' => [
-                    'name' => 'Ratenkauf - Bequem in Raten per Bankeinzug zahlen',
+                    'name' => 'Gesplittete Zahlungen - Ratenkauf per Banküberweisung',
                     'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
                 ],
                 'en-GB' => [
-                    'name' => 'Split payments - Pay conveniently in instalments by direct debit',
+                    'name' => 'Split payments - Pay Later in Installments by Bank Transfer',
                     'description' => 'Information on the processing of your personal data by Mondu GmbH can be found [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]here[/url].',
                 ],
                 'nl-NL' => [
-                    'name' => 'Gespreid betalen, betaal gemakkelijk in termijnen via automatische incasso',
+                    'name' => 'Gesplitste betalingen - Betaal later in termijnen via bankoverschrijving',
                     'description' => 'Informatie over de verwerking van uw persoonsgegevens door Mondu GmbH vindt u [url=https://www.mondu.ai/nl/gdpr-notification-for-merchants/]hier[/url].'
                 ],
                 'fr-FR' => [
-                    'name' => 'Paiement échelonné - Payer confortablement en plusieurs fois par prélèvement automatique',
+                    'name' => 'Paiements fractionnés - Payer plus tard en plusieurs fois par virement bancaire',
                     'description' => "Plus d'informations sur la façon dont Mondu GmbH traite vos données personnelles peuvent être trouvées [url=https://mondu.ai/fr/gdpr-notification-for-buyers]ici[/url]."
                 ]
             ],
