@@ -21,6 +21,7 @@ class CreditNoteSubscriber implements EventSubscriberInterface
 {
     public function __construct(
         private readonly EntityRepository $orderRepository,
+        private readonly EntityRepository $orderDataRepository,
         private readonly EntityRepository $invoiceDataRepository,
         private readonly MonduClient $monduClient,
         private readonly LoggerInterface $logger
