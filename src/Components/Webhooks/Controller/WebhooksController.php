@@ -11,22 +11,27 @@ use Shopware\Core\Framework\Routing\Annotation\RouteScope;
 use Shopware\Storefront\Controller\StorefrontController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Annotation\Route;
 
 /**
  * @Route(defaults={"_routeScope"={"storefront"}})
  */
 class WebhooksController extends StorefrontController
 {
+    private ConfigService $configService;
+    private WebhookService $webhookService;
+
     public function __construct(
-        private readonly ConfigService $configService,
-        private readonly WebhookService $webhookService
-    ) {}
+        ConfigService $configService,
+        WebhookService $webhookService
+    ) {
+        $this->configService = $configService;
+        $this->webhookService = $webhookService;
+    }
 
     /**
-     * @Route("/mondu/webhooks", name="mondu-payment.webhooks", defaults={"csrf_protected"=false}, methods={"POST"})
-     *
-     * @throws \Exception
-     */
+      * @Route("/mondu/webhooks", name="mondu-payment.webhooks", defaults={"csrf_protected"=false}, methods={"POST"})
+      */
     public function process(Request $request, Context $context): Response
     {
         $content = $request->getContent();
@@ -34,24 +39,31 @@ class WebhooksController extends StorefrontController
 
         $signature = hash_hmac('sha256', $content, $this->configService->getWebhooksSecret());
         if ($signature !== $headers->get('X-Mondu-Signature')) {
-            throw new \Exception('Signature mismatch');
+            return new Response(
+                json_encode([
+                    'message' => 'Signature mismatch',
+                    'code' => 401
+                ]),
+                Response::HTTP_UNAUTHORIZED,
+            );
         }
 
         $params = json_decode($content, true);
         $topic = $params['topic'];
 
         switch ($topic) {
-        case 'order/confirmed':
-            [$resBody, $resStatus] = $this->webhookService->handleConfirmed($params, $context);
-            break;
-        case 'order/pending':
-            [$resBody, $resStatus] = $this->webhookService->handlePending($params, $context);
-            break;
-        case 'order/declined':
-            [$resBody, $resStatus] = $this->webhookService->handleDeclinedOrCanceled($params, $context);
-            break;
-        default:
-            throw new \Exception('Unregistered topic');
+            case 'order/confirmed':
+                [$resBody, $resStatus] = $this->webhookService->handleConfirmed($params, $context);
+                break;
+            case 'order/pending':
+                [$resBody, $resStatus] = $this->webhookService->handlePending($params, $context);
+                break;
+            case 'order/declined':
+                [$resBody, $resStatus] = $this->webhookService->handleDeclinedOrCanceled($params, $context);
+                break;
+            default:
+                $resBody = ['message' => 'Unregistered topic', 'code' => 200];
+                $resStatus = 200;
         }
 
         return new Response(
