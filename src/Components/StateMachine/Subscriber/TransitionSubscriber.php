@@ -12,11 +12,13 @@ use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 use Mondu\MonduPayment\Components\StateMachine\Exception\MonduException;
 use Mondu\MonduPayment\Util\CriteriaHelper;
 use Psr\Log\LoggerInterface;
+use Shopware\Core\Checkout\Cart\LineItem\LineItem;
 use Shopware\Core\Checkout\Document\DocumentGenerator\DeliveryNoteGenerator;
 use Shopware\Core\Checkout\Document\DocumentGenerator\InvoiceGenerator;
 use Shopware\Core\Checkout\Order\Aggregate\OrderDelivery\OrderDeliveryDefinition;
 use Shopware\Core\Checkout\Order\OrderDefinition;
 use Shopware\Core\Checkout\Order\OrderEntity;
+use Shopware\Core\Framework\Struct\Struct;
 use Shopware\Core\System\Currency\CurrencyEntity;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
@@ -29,47 +31,26 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 
 class TransitionSubscriber implements EventSubscriberInterface
 {
-    private ConfigService $configService;
-    private EntityRepository $orderDeliveryRepository;
-    private EntityRepository $orderRepository;
-    private EntityRepository $invoiceDataRepository;
-    private EntityRepository $currencyRepository;
-    private $operationService;
-    private $monduClient;
-    private $orderDataRepository;
-    private $documentUrlHelper;
-    private $logger;
-
     public function __construct(
-        EntityRepository $orderDeliveryRepository,
-        EntityRepository $orderRepository,
-        ConfigService $configService,
-        MonduClient $monduClient,
-        EntityRepository $orderDataRepository,
-        EntityRepository $invoiceDataRepository,
-        DocumentUrlHelper $documentUrlHelper,
-        LoggerInterface $logger,
-        EntityRepository $currencyRepository
-    ) {
-        $this->orderDeliveryRepository = $orderDeliveryRepository;
-        $this->orderRepository = $orderRepository;
-        $this->configService = $configService;
-        $this->monduClient = $monduClient;
-        $this->orderDataRepository = $orderDataRepository;
-        $this->invoiceDataRepository = $invoiceDataRepository;
-        $this->documentUrlHelper = $documentUrlHelper;
-        $this->logger = $logger;
-        $this->currencyRepository = $currencyRepository;
-    }
+        private readonly EntityRepository $orderDeliveryRepository,
+        private readonly EntityRepository $orderRepository,
+        private readonly ConfigService $configService,
+        private readonly MonduClient $monduClient,
+        private readonly EntityRepository $orderDataRepository,
+        private readonly EntityRepository $invoiceDataRepository,
+        private readonly DocumentUrlHelper $documentUrlHelper,
+        private readonly LoggerInterface $logger,
+        private readonly EntityRepository $currencyRepository
+    ) {}
 
-    public static function getSubscribedEvents()
+    public static function getSubscribedEvents(): array
     {
         return [
             StateMachineTransitionEvent::class => 'onTransition',
         ];
     }
 
-    public function onTransition(StateMachineTransitionEvent $event)
+    public function onTransition(StateMachineTransitionEvent $event): void
     {
         $eventName = $event->getEntityName();
 
@@ -89,7 +70,7 @@ class TransitionSubscriber implements EventSubscriberInterface
         }
 
         switch ($event->getToPlace()->getTechnicalName()) {
-            case 'cancelled': //$this->configService->getStateCancel():
+            case 'cancelled':
                 $state = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->cancelOrder($monduOrder->getReferenceId());
                 if ($state) {
                     $this->updateOrder($event->getContext(), $monduOrder, [
@@ -112,11 +93,9 @@ class TransitionSubscriber implements EventSubscriberInterface
         return $this->orderRepository->search($criteria, $context)->first();
     }
 
-    private function getMonduDataFromOrder(OrderEntity $order)
+    private function getMonduDataFromOrder(OrderEntity $order): ?Struct
     {
-        $monduData = $order->getExtension(OrderExtension::EXTENSION_NAME);
-
-        return $monduData;
+        return $order->getExtension(OrderExtension::EXTENSION_NAME);
     }
 
     private function updateOrder(Context $context, OrderDataEntity $monduData, array $data): void
@@ -129,16 +108,16 @@ class TransitionSubscriber implements EventSubscriberInterface
         ], $context);
     }
 
-    private function shipOrder(OrderEntity $order, Context $context, OrderDataEntity $monduData): bool
+    private function shipOrder(OrderEntity $order, Context $context, OrderDataEntity $monduData): void
     {
         $monduData = $this->getMonduDataFromOrder($order);
 
         if ($monduData->getOrderState() === 'shipped') {
-            return true;
+            return;
         }
 
         if ($this->configService->skipOrderStateValidation()) {
-            return true;
+            return;
         }
 
         $invoiceNumber = $monduData->getExternalInvoiceNumber();
@@ -204,8 +183,6 @@ class TransitionSubscriber implements EventSubscriberInterface
             );
             throw new MonduException('Error: ' . $e->getMessage());
         }
-
-        return true;
     }
 
     protected function getLineItems($order, Context $context): array
@@ -213,9 +190,9 @@ class TransitionSubscriber implements EventSubscriberInterface
         $collection = $order->getLineItems();
 
         $lineItems = [];
-        /** @var \Shopware\Core\Checkout\Cart\LineItem\LineItem|OrderLineItemEntity $lineItem */
+        /** @var LineItem|OrderLineItemEntity $lineItem */
         foreach ($collection->getIterator() as $lineItem) {
-            if ($lineItem->getType() !== \Shopware\Core\Checkout\Cart\LineItem\LineItem::PRODUCT_LINE_ITEM_TYPE) {
+            if ($lineItem->getType() !== LineItem::PRODUCT_LINE_ITEM_TYPE) {
                 continue;
             }
 
@@ -233,14 +210,15 @@ class TransitionSubscriber implements EventSubscriberInterface
         $collection = $order->getLineItems();
 
         $discountAmount = 0;
-        /** @var \Shopware\Core\Checkout\Cart\LineItem\LineItem|OrderLineItemEntity $lineItem */
+        /** @var LineItem|OrderLineItemEntity $lineItem */
         foreach ($collection->getIterator() as $lineItem) {
             $discountLineItemType = 'discount';
 
-            if (defined( '\Shopware\Core\Checkout\Cart\LineItem\LineItem::DISCOUNT_LINE_ITEM'))
-                $discountLineItemType = \Shopware\Core\Checkout\Cart\LineItem\LineItem::DISCOUNT_LINE_ITEM;
+            if (defined( '\Shopware\Core\Checkout\Cart\LineItem\LineItem::DISCOUNT_LINE_ITEM')) {
+                $discountLineItemType = LineItem::DISCOUNT_LINE_ITEM;
+            }
 
-            if ($lineItem->getType() !== \Shopware\Core\Checkout\Cart\LineItem\LineItem::PROMOTION_LINE_ITEM_TYPE &&
+            if ($lineItem->getType() !== LineItem::PROMOTION_LINE_ITEM_TYPE &&
                 $lineItem->getType() !== $discountLineItemType) {
                 continue;
             }

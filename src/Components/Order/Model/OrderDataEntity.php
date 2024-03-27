@@ -31,82 +31,78 @@ class OrderDataEntity extends Entity
     public const FIELD_EXTERNAL_DELIVERY_NOTE_URL = 'externalDeliveryNoteUrl';
 
     public const FIELD_VIBAN = 'viban';
-//
-//    public const FIELD_BANK_BIC = 'bankBic';
-
-//    public const FIELD_BANK_NAME = 'bankName';
 
     public const FIELD_DURATION = 'duration';
 
     /**
      * @var string
      */
-    protected $orderId;
+    protected string $orderId;
 
     /**
      * @var string
      */
-    protected $orderVersionId;
+    protected string $orderVersionId;
 
     /**
      * @var OrderEntity
      */
-    protected $order;
+    protected OrderEntity $order;
 
     /**
      * @var string
      */
-    protected $orderState;
+    protected string $orderState;
 
     /**
      * @var string
      */
-    protected $referenceId;
+    protected string $referenceId;
 
     /**
      * @var string|null
      */
-    protected $externalInvoiceNumber;
+    protected ?string $externalInvoiceNumber;
 
     /**
      * @var string|null
      */
-    protected $externalInvoiceUrl;
+    protected ?string $externalInvoiceUrl;
 
     /**
      * @var string|null
      */
-    protected $externalDeliveryNoteUrl;
+    protected ?string $externalDeliveryNoteUrl;
 
     /**
      * @var string|null
      */
-    protected $bankIban;
+    protected ?string $bankIban;
 
     /**
      * @var string|null
      */
-    protected $bankBic;
+    protected ?string $bankBic;
 
     /**
      * @var string|null
      */
-    protected $bankName;
+    protected ?string $bankName;
 
     /**
      * @var int|null
      */
-    protected $duration;
+    protected ?int $duration;
 
     /**
      * @var bool
      */
-    protected $successful;
+    protected bool $successful;
 
     /**
      * @var string|null
      */
-    protected $viban;
+    protected ?string $viban;
 
     public function getOrderId(): string
     {
@@ -172,9 +168,4 @@ class OrderDataEntity extends Entity
     {
         return $this->duration;
     }
-
-//    public function isSuccessful(): bool
-//    {
-//        return $this->successful;
-//    }
 }

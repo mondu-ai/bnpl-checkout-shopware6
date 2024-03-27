@@ -7,38 +7,25 @@ namespace Mondu\MonduPayment\Components\Order\Subscriber;
 use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
 use Mondu\MonduPayment\Util\CriteriaHelper;
 use Psr\Log\LoggerInterface;
-use Shopware\Core\Checkout\Order\OrderDefinition;
 use Shopware\Core\Checkout\Order\OrderEntity;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Event\EntityWrittenEvent;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
-use Shopware\Core\Framework\DataAbstractionLayer\Write\Command\ChangeSetAware;
-use Shopware\Core\Framework\DataAbstractionLayer\Write\Command\InsertCommand;
-use Shopware\Core\Framework\DataAbstractionLayer\Write\Command\UpdateCommand;
-use Shopware\Core\Framework\DataAbstractionLayer\Write\Validation\PreWriteValidationEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Mondu\MonduPayment\Components\StateMachine\Exception\MonduException;
 use Mondu\MonduPayment\Components\Invoice\InvoiceDataEntity;
-use Mondu\MonduPayment\Components\Invoice\InvoiceDataCollection;
 
 class CreditNoteSubscriber implements EventSubscriberInterface
 {
-    private EntityRepository $orderRepository;
-    private EntityRepository $orderDataRepository;
-    private EntityRepository $invoiceDataRepository;
-    private MonduClient $monduClient;
-    private LoggerInterface $logger;
-
-    public function __construct(EntityRepository $orderRepository, EntityRepository $orderDataRepository, EntityRepository $invoiceDataRepository, MonduClient $monduClient, LoggerInterface $logger)
-    {
-        $this->orderRepository = $orderRepository;
-        $this->orderDataRepository = $orderDataRepository;
-        $this->invoiceDataRepository = $invoiceDataRepository;
-        $this->monduClient = $monduClient;
-        $this->logger = $logger;
-    }
+    public function __construct(
+        private readonly EntityRepository $orderRepository,
+        private readonly EntityRepository $orderDataRepository,
+        private readonly EntityRepository $invoiceDataRepository,
+        private readonly MonduClient $monduClient,
+        private readonly LoggerInterface $logger
+    ) {}
 
     public static function getSubscribedEvents(): array
     {
@@ -58,8 +45,6 @@ class CreditNoteSubscriber implements EventSubscriberInterface
                 if (!isset($payload['config']['custom']['creditNoteNumber'])){
                     return;
                 }
-
-                $creditNoteNumber = $payload['config']['custom']['creditNoteNumber'];
 
                 if ($payload['config']['name'] == 'credit_note') {
                     $creditNoteNumber = $payload['config']['custom']['creditNoteNumber'];

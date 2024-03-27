@@ -12,14 +12,10 @@ class ConfigApiTokenCommand extends Command
 {
     protected static $defaultName = 'Mond1SW6:Config:ApiToken';
 
-    private SystemConfigService $systemConfig;
-
     public function __construct(
-        SystemConfigService $systemConfig
-    ){
+        private readonly SystemConfigService $systemConfig
+    ) {
         parent::__construct();
-    
-        $this->systemConfig = $systemConfig;
     }
 
     protected function configure(): void
@@ -42,8 +38,8 @@ class ConfigApiTokenCommand extends Command
         $api_token = (string)$input->getArgument('api_token');
         $sandboxMode = boolval($input->getArgument('sandbox_mode'));
 
-        $this->systemConfig->set("Mond1SW6.config.apiToken", $api_token, null);
-        $this->systemConfig->set("Mond1SW6.config.sandbox", $sandboxMode, null);
+        $this->systemConfig->set("Mond1SW6.config.apiToken", $api_token);
+        $this->systemConfig->set("Mond1SW6.config.sandbox", $sandboxMode);
 
         $output->writeln("Api token successfully updated\n");
 

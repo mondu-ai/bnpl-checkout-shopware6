@@ -41,6 +41,15 @@
             <tag name="shopware.payment.method.async" />
         </service>
 
+        <service id="Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduInstallmentByInvoiceHandler">
+            <argument type="service" id="Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler"/>
+            <argument type="service" id="mondu.mondu_api"/>
+            <argument key="$productRepository" type="service" id="product.repository"/>
+            <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
+            <tag name="shopware.payment.method.async" />
+        </service>
+
         <service id="mondu.mondu_api" class="Mondu\MonduPayment\Components\MonduApi\Service\MonduClient" public="true">
             <argument type="service" id="mondu.mondu_config"/>
             <argument key="$logger" type="service" id="mondu.logger"/>

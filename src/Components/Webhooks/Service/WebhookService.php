@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Mondu\MonduPayment\Components\Webhooks\Service;
 
+use Shopware\Core\Checkout\Order\OrderEntity;
+use Shopware\Core\System\StateMachine\Aggregation\StateMachineState\StateMachineStateCollection;
 use Symfony\Component\HttpFoundation\Response;
 use Shopware\Core\System\StateMachine\StateMachineRegistry;
 use Shopware\Core\System\StateMachine\Transition;
@@ -21,26 +23,23 @@ use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 
 class WebhookService
 {
-    private MonduClient $monduClient;
-    private StateMachineRegistry $stateMachineRegistry;
-    private EntityRepository $orderRepository;
-    private LoggerInterface $logger;
-    private $orderDataRepository;
-    private ConfigService $configService;
+    /**
+     * @var null
+     */
     private $salesChannelId;
 
-    public function __construct(StateMachineRegistry $stateMachineRegistry, EntityRepository $orderRepository, LoggerInterface $logger, MonduClient $monduClient, EntityRepository $orderDataRepository, ConfigService $configService)
-    {
-        $this->stateMachineRegistry = $stateMachineRegistry;
-        $this->orderRepository = $orderRepository;
-        $this->logger = $logger;
-        $this->monduClient = $monduClient;
-        $this->orderDataRepository = $orderDataRepository;
-        $this->configService = $configService;
+    public function __construct(
+        private readonly StateMachineRegistry $stateMachineRegistry,
+        private readonly EntityRepository $orderRepository,
+        private readonly LoggerInterface $logger,
+        private readonly MonduClient $monduClient,
+        private readonly EntityRepository $orderDataRepository,
+        private readonly ConfigService $configService
+    ) {
         $this->salesChannelId = null;
     }
 
-    public function setSalesChannelId($salesChannelId = null)
+    public function setSalesChannelId($salesChannelId = null): static
     {
         $this->salesChannelId = $salesChannelId;
 
@@ -96,7 +95,6 @@ class WebhookService
             }
 
             // Update vIBAN
-
             $criteria = new Criteria();
             $criteria->addFilter(new EqualsFilter('referenceId', $monduId));
 
@@ -128,7 +126,7 @@ class WebhookService
                 throw new MonduException('Required params missing');
             }
 
-            $transitionResult = $this->transitionOrderState($externalReferenceId, 'process', $context);
+            $this->transitionOrderState($externalReferenceId, 'process', $context);
             $transitionResult = $this->transitionTransactionState($externalReferenceId, 'reopen', $context);
 
             return [[ 'message' => $transitionResult->last()->getTechnicalName(), 'code' => Response::HTTP_OK ], Response::HTTP_OK];
@@ -150,8 +148,8 @@ class WebhookService
                 throw new MonduException('Required params missing');
             }
 
-            $transitionResult = $this->transitionOrderState($externalReferenceId, 'cancel', $context);
-            $transitionResult = $this->transitionDeliveryState($externalReferenceId, 'cancel', $context);
+            $this->transitionOrderState($externalReferenceId, 'cancel', $context);
+            $this->transitionDeliveryState($externalReferenceId, 'cancel', $context);
             $transitionResult = $this->transitionTransactionState($externalReferenceId, 'cancel', $context);
 
             return [[ 'message' => $transitionResult->last()->getTechnicalName(), 'code' => Response::HTTP_OK ], Response::HTTP_OK];
@@ -161,7 +159,7 @@ class WebhookService
         }
     }
 
-    protected function transitionOrderState($externalReferenceId, $state, $context)
+    protected function transitionOrderState($externalReferenceId, $state, $context): StateMachineStateCollection
     {
         try {
             return $this->stateMachineRegistry->transition(new Transition(
@@ -178,7 +176,7 @@ class WebhookService
         }
     }
 
-    protected function transitionDeliveryState($externalReferenceId, $state, $context)
+    protected function transitionDeliveryState($externalReferenceId, $state, $context): StateMachineStateCollection
     {
         try {
             $criteria = new Criteria([$this->getOrderUuid($externalReferenceId, $context)]);
@@ -202,7 +200,7 @@ class WebhookService
         }
     }
 
-    protected function transitionTransactionState($externalReferenceId, $state, $context)
+    protected function transitionTransactionState($externalReferenceId, $state, $context): StateMachineStateCollection
     {
         try {
             $criteria = new Criteria([$this->getOrderUuid($externalReferenceId, $context)]);
@@ -246,7 +244,7 @@ class WebhookService
         }
     }
 
-    protected function log($message, $data, $exception = null)
+    protected function log($message, $data, $exception = null): void
     {
         $exceptionMessage = "";
 

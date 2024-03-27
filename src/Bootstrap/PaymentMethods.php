@@ -5,17 +5,13 @@ declare(strict_types=1);
 namespace Mondu\MonduPayment\Bootstrap;
 
 use Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduHandler;
+use Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduInstallmentByInvoiceHandler;
 use Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduSepaHandler;
 use Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduInstallmentHandler;
 use Shopware\Core\Checkout\Payment\PaymentMethodEntity;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
-use Mondu\MonduPayment\Components\Order\Model\Definition\OrderDataDefinition;
-use Mondu\MonduPayment\Components\Invoice\InvoiceDataDefinition;
-use Doctrine\DBAL\Connection;
-use Mondu\MonduPayment\Bootstrap\MediaProvider;
-use Shopware\Core\Framework\Context;
 
 class PaymentMethods extends AbstractBootstrap
 {
@@ -92,18 +88,48 @@ class PaymentMethods extends AbstractBootstrap
                 ]
             ],
         ],
+        MonduInstallmentByInvoiceHandler::class => [
+            'handlerIdentifier' => MonduInstallmentByInvoiceHandler::class,
+            'name' => 'Gesplittete Zahlungen - Ratenkauf per Banküberweisung',
+            'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
+            'afterOrderEnabled' => true,
+            'translations' => [
+                'de-DE' => [
+                    'name' => 'Gesplittete Zahlungen - Ratenkauf per Banküberweisung',
+                    'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
+                ],
+                'en-GB' => [
+                    'name' => 'Split payments - Pay Later in Installments by Bank Transfer',
+                    'description' => 'Information on the processing of your personal data by Mondu GmbH can be found [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]here[/url].',
+                ],
+                'nl-NL' => [
+                    'name' => 'Gesplitste betalingen - Betaal later in termijnen via bankoverschrijving',
+                    'description' => 'Informatie over de verwerking van uw persoonsgegevens door Mondu GmbH vindt u [url=https://www.mondu.ai/nl/gdpr-notification-for-merchants/]hier[/url].'
+                ],
+                'fr-FR' => [
+                    'name' => 'Paiements fractionnés - Payer plus tard en plusieurs fois par virement bancaire',
+                    'description' => "Plus d'informations sur la façon dont Mondu GmbH traite vos données personnelles peuvent être trouvées [url=https://mondu.ai/fr/gdpr-notification-for-buyers]ici[/url]."
+                ]
+            ],
+        ],
     ];
 
     /**
      * @var EntityRepository
      */
-    private $paymentRepository;
+    private EntityRepository $paymentRepository;
 
+    /**
+     * @return void
+     */
     public function injectServices(): void
     {
         $this->paymentRepository = $this->container->get('payment_method.repository');
     }
 
+    /**
+     * @return void
+     */
     public function update(): void
     {
         foreach (self::PAYMENT_METHODS as $paymentMethod) {
@@ -111,9 +137,12 @@ class PaymentMethods extends AbstractBootstrap
         }
 
         $this->updatePaymentMethodImage();
-        
+
     }
 
+    /**
+     * @return void
+     */
     public function install(): void
     {
         foreach (self::PAYMENT_METHODS as $paymentMethod) {
@@ -123,11 +152,19 @@ class PaymentMethods extends AbstractBootstrap
         $this->setActiveFlags(false);
     }
 
+    /**
+     * @param  bool  $keepUserData
+     *
+     * @return void
+     */
     public function uninstall(bool $keepUserData = false): void
     {
         $this->setActiveFlags(false);
     }
 
+    /**
+     * @return void
+     */
     public function activate(): void
     {
         $this->setActiveFlags(true);
@@ -135,11 +172,19 @@ class PaymentMethods extends AbstractBootstrap
         $this->updatePaymentMethodImage();
     }
 
+    /**
+     * @return void
+     */
     public function deactivate(): void
     {
         $this->setActiveFlags(false);
     }
 
+    /**
+     * @param  array  $paymentMethod
+     *
+     * @return void
+     */
     protected function upsertPaymentMethod(array $paymentMethod): void
     {
         $paymentSearchResult = $this->paymentRepository->search(
@@ -161,6 +206,11 @@ class PaymentMethods extends AbstractBootstrap
         $this->paymentRepository->upsert([$paymentMethod], $this->context);
     }
 
+    /**
+     * @param  bool  $activated
+     *
+     * @return void
+     */
     protected function setActiveFlags(bool $activated): void
     {
         $paymentEntities = $this->paymentRepository->search(
@@ -178,7 +228,10 @@ class PaymentMethods extends AbstractBootstrap
         $this->paymentRepository->update(array_values($updateData), $this->context);
     }
 
-    protected function updatePaymentMethodImage()
+    /**
+     * @return void
+     */
+    protected function updatePaymentMethodImage(): void
     {
         $mediaProvider = $this->container->get(MediaProvider::class);
 
@@ -195,10 +248,9 @@ class PaymentMethods extends AbstractBootstrap
             );
 
             $paymentMethodData = [
-            'id' => $paymentSearchResult->first()->getId(),
-            'mediaId' => $mediaId
-          ];
-
+                'id' => $paymentSearchResult->first()->getId(),
+                'mediaId' => $mediaId
+            ];
             $this->paymentRepository->update([$paymentMethodData], $this->context);
         }
     }

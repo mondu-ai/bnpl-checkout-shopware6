@@ -12,15 +12,11 @@ use Symfony\Component\Console\Output\OutputInterface;
 class TestApiTokenCommand extends Command
 {
     protected static $defaultName = 'Mond1SW6:Test';
-    private MonduClient $monduClient;
 
     public function __construct(
-        MonduClient $monduClient
-    )
-    {
+        private readonly MonduClient $monduClient
+    ) {
         parent::__construct();
-
-        $this->monduClient = $monduClient;
     }
 
     protected function configure(): void

@@ -2,11 +2,7 @@
 
 namespace Mondu\MonduPayment\Command;
 
-use Shopware\Core\Framework\Api\Controller\ApiController;
-use Shopware\Core\Framework\Api\Response\Type\Api\JsonType;
-use Shopware\Core\Framework\Api\Response\Type\Api\JsonApiType;
 use Shopware\Core\Framework\Context;
-use Symfony\Component\HttpFoundation\Request;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\ContainsFilter;
 use Symfony\Component\Console\Command\Command;
@@ -17,24 +13,20 @@ use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 class ActivatePaymentCommand extends Command
 {
     protected static $defaultName = 'Mond1SW6:Activate:Payment';
-    private Context $context;
-    private EntityRepository $salesChannelRepository;
-    private EntityRepository $paymentMethodRepository;
-    private EntityRepository $salesChannelPaymentMethodRepository;
 
+    /**
+     * @var Context
+     */
+    private Context $context;
 
     public function __construct(
-        EntityRepository $salesChannelPaymentMethodRepository,
-        EntityRepository $paymentMethodRepository,
-        EntityRepository $salesChannelRepository
-    )
-    {
+        private readonly EntityRepository $salesChannelPaymentMethodRepository,
+        private readonly EntityRepository $paymentMethodRepository,
+        private readonly EntityRepository $salesChannelRepository
+    ) {
         parent::__construct();
 
         $this->context = Context::createDefaultContext();
-        $this->salesChannelPaymentMethodRepository = $salesChannelPaymentMethodRepository;
-        $this->paymentMethodRepository = $paymentMethodRepository;
-        $this->salesChannelRepository = $salesChannelRepository;
     }
 
     protected function configure(): void
@@ -44,7 +36,6 @@ class ActivatePaymentCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-
         $salesChannels = $this->salesChannelRepository->search(new Criteria(), $this->context);
 
         foreach ($salesChannels->getIterator() as $salesChannel) {

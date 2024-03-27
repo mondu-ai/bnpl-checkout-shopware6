@@ -12,23 +12,35 @@ use Psr\Log\LoggerInterface;
 
 class MonduClient
 {
-    private ConfigService $config;
-    private $restClient;
-    private LoggerInterface $logger;
+    /**
+     * @var Client
+     */
+    private Client $restClient;
+
+    /**
+     * @var string
+     */
     private string $key;
+
+    /**
+     * @var string|null
+     */
     private ?string $salesChannelId;
+
+    /**
+     * @var bool|null
+     */
     private ?bool $sandboxMode = null;
 
-    public function __construct(ConfigService $configService, LoggerInterface $logger)
-    {
-        $this->config = $configService;
+    public function __construct(
+        private readonly ConfigService $configService,
+        private readonly LoggerInterface $logger
+    ) {
         $this->restClient = new Client();
-        $this->logger = $logger;
-
         $this->salesChannelId = null;
     }
 
-    public function setSalesChannelId($salesChannelId = null)
+    public function setSalesChannelId($salesChannelId = null): static
     {
         $this->salesChannelId = $salesChannelId;
 
@@ -82,44 +94,32 @@ class MonduClient
 
     public function adjustOrder($orderUuid, $body = []): ?array
     {
-        $response = $this->sendRequest('orders/'. $orderUuid .'/adjust', 'POST', $body);
-
-        return $response;
+        return $this->sendRequest('orders/'. $orderUuid .'/adjust', 'POST', $body);
     }
 
     public function updateExternalInfo($orderUuid, $body = []): ?array
     {
-        $response = $this->sendRequest('orders/'. $orderUuid.'/update_external_info', 'POST', $body);
-
-        return $response;
+        return $this->sendRequest('orders/'. $orderUuid.'/update_external_info', 'POST', $body);
     }
 
     public function cancelInvoice($orderUuid, $invoiceUuid): ?array
     {
-        $response = $this->sendRequest('orders/'. $orderUuid.'/invoices/' . $invoiceUuid . '/cancel', 'POST');
-
-        return $response;
+        return $this->sendRequest('orders/'. $orderUuid.'/invoices/' . $invoiceUuid . '/cancel', 'POST');
     }
 
     public function cancelCreditNote($invoiceUuid, $creditNoteUuid): ?array
     {
-        $response = $this->sendRequest('invoices/' . $invoiceUuid . '/credit_notes/' . $creditNoteUuid . '/cancel', 'POST');
-
-        return $response;
+        return $this->sendRequest('invoices/' . $invoiceUuid . '/credit_notes/' . $creditNoteUuid . '/cancel', 'POST');
     }
 
     public function createCreditNote($invoiceUuid, $body = []): ?array
     {
-        $response = $this->sendRequest('invoices/' . $invoiceUuid . '/credit_notes', 'POST', $body);
-
-        return $response;
+        return $this->sendRequest('invoices/' . $invoiceUuid . '/credit_notes', 'POST', $body);
     }
 
     public function registerWebhook($body = []): ?array
     {
-        $response = $this->sendRequest('webhooks', 'POST', $body);
-
-        return $response;
+        return $this->sendRequest('webhooks', 'POST', $body);
     }
 
     public function getWebhooksSecret($key, $sandboxMode = null): ?array
@@ -127,19 +127,15 @@ class MonduClient
         $this->key = $key;
         $this->sandboxMode = $sandboxMode;
 
-        $response = $this->sendRequest('webhooks/keys');
-
-        return $response;
+        return $this->sendRequest('webhooks/keys');
     }
 
     public function getPaymentMethods()
     {
-        $response = $this->sendRequest('payment_methods');
-
-        return $response;
+        return $this->sendRequest('payment_methods');
     }
 
-    public function logEvent($body = [])
+    public function logEvent($body = []): void
     {
         try {
             $this->restClient->send(
@@ -156,9 +152,8 @@ class MonduClient
 
         try {
             $response = $this->restClient->send($request);
-            $responseBody = json_decode($response->getBody()->getContents(), true);
 
-            return $responseBody;
+            return json_decode($response->getBody()->getContents(), true);
 
         } catch (GuzzleException $e) {
             $this->logger->alert("MonduClient [{$method} {$url}]: Failed with an exception message: {$e->getMessage()}");
@@ -184,7 +179,7 @@ class MonduClient
 
     private function getRequestObject($url, $method = 'GET', $body = []): Request
     {
-        $api = $this->config->setSalesChannelId($this->salesChannelId);
+        $api = $this->configService->setSalesChannelId($this->salesChannelId);
 
         if (!is_null($this->sandboxMode)) {
             $api = $api->setOverrideSandbox($this->sandboxMode);
@@ -198,13 +193,13 @@ class MonduClient
         );
     }
 
-    private function getRequestHeaders()
+    private function getRequestHeaders(): array
     {
         return [
             'Content-Type' => 'application/json', 
-            'Api-Token' => $this->key ?? $this->config->setSalesChannelId($this->salesChannelId)->getApiToken(),
-            'x-plugin-version' => $this->config->getPluginVersion(),
-            'x-plugin-name' => $this->config->getPluginName()
+            'Api-Token' => $this->key ?? $this->configService->setSalesChannelId($this->salesChannelId)->getApiToken(),
+            'x-plugin-version' => $this->configService->getPluginVersion(),
+            'x-plugin-name' => $this->configService->getPluginName()
         ];
     }
 }

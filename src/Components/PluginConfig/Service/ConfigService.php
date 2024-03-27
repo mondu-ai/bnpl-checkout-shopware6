@@ -6,7 +6,6 @@ namespace Mondu\MonduPayment\Components\PluginConfig\Service;
 
 use Shopware\Core\System\SystemConfig\SystemConfigService;
 use Shopware\Core\Framework\Context;
-use Shopware\Core\Framework\Plugin;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
@@ -20,109 +19,166 @@ class ConfigService
     public const SANDBOX_WIDGET_URL = 'https://checkout.demo.mondu.ai/widget.js';
 
     /**
-     * @var SystemConfigService
+     * @var string|null
      */
-    private SystemConfigService $systemConfigService;
     private ?string $salesChannelId = null;
-    private ?bool $overrideSandbox = null;
-    private EntityRepository $pluginRepository;
 
     /**
-     * @param SystemConfigService $systemConfigService
+     * @var bool|null
      */
-    public function __construct(SystemConfigService $systemConfigService, EntityRepository $pluginRepository)
-    {
-        $this->systemConfigService = $systemConfigService;
-        $this->pluginRepository = $pluginRepository;
-    }
+    private ?bool $overrideSandbox = null;
 
-    public function setSalesChannelId($salesChannelId = null)
+    /**
+     * @param  SystemConfigService  $systemConfigService
+     * @param  EntityRepository     $pluginRepository
+     */
+    public function __construct(
+        private readonly SystemConfigService $systemConfigService,
+        private readonly EntityRepository $pluginRepository
+    ) {}
+
+    /**
+     * @param $salesChannelId
+     *
+     * @return $this
+     */
+    public function setSalesChannelId($salesChannelId = null): static
     {
         $this->salesChannelId = $salesChannelId;
 
         return $this;
     }
 
-    public function setOverrideSandbox($mode)
+    /**
+     * @param $mode
+     *
+     * @return $this
+     */
+    public function setOverrideSandbox($mode): static
     {
         $this->overrideSandbox = $mode;
 
         return $this;
     }
 
-    public function isSandbox()
+    /**
+     * @return bool|mixed|null
+     */
+    public function isSandbox(): mixed
     {
         if (!is_null($this->overrideSandbox))
             return $this->overrideSandbox;
 
         $config = $this->getPluginConfiguration();
 
-        return isset($config['sandbox']) ? $config['sandbox'] : false;
+        return $config['sandbox'] ?? false;
     }
 
+    /**
+     * @return string
+     */
     public function getBaseApiUrl(): string
     {
         return $this->isSandbox() ? self::SANDBOX_API_URL : self::API_URL;
     }
 
-    public function getWidgetUrl()
+    /**
+     * @return string
+     */
+    public function getWidgetUrl(): string
     {
         return $this->isSandbox() ? self::SANDBOX_WIDGET_URL : self::WIDGET_URL;
     }
 
+    /**
+     * @param $url
+     *
+     * @return string
+     */
     public function getApiUrl($url): string
     {
         return $this->getBaseApiUrl().'/'.$url;
     }
 
-    public function getPluginConfiguration()
+    /**
+     * @return array|float|int|bool|string
+     */
+    public function getPluginConfiguration(): array|float|int|bool|string
     {
         return $this->systemConfigService->get('Mond1SW6.config', $this->salesChannelId) ?: [];
     }
 
-    public function getPluginCustomConfiguration()
+    /**
+     * @return array|bool|float|int|mixed[]|string
+     */
+    public function getPluginCustomConfiguration(): array|float|int|bool|string
     {
         return $this->systemConfigService->get('Mond1SW6.customConfig', $this->salesChannelId) ?: [];
     }
 
-    public function getApiToken()
+    /**
+     * @return mixed|string|null
+     */
+    public function getApiToken(): mixed
     {
         $config = $this->getPluginConfiguration();
 
         return $config['apiToken'] ?? null;
     }
 
-    public function getWebhooksSecret()
+    /**
+     * @return mixed|string|null
+     */
+    public function getWebhooksSecret(): mixed
     {
         $config = $this->getPluginCustomConfiguration();
 
         return $config['webhooksSecret'] ?? null;
     }
 
-    public function getApiTokenValid()
+    /**
+     * @return false|mixed|string
+     */
+    public function getApiTokenValid(): mixed
     {
         $config = $this->getPluginCustomConfiguration();
 
         return $config['apiTokenValid'] ?? false;
     }
 
-    public function skipOrderStateValidation()
+    /**
+     * @return false|mixed|string
+     */
+    public function skipOrderStateValidation(): mixed
     {
         $config = $this->getPluginConfiguration();
 
         return $config['skipOrderStateValidation'] ?? false;
     }
 
-    public function setWebhooksSecret($secret = '')
+    /**
+     * @param  string  $secret
+     *
+     * @return null
+     */
+    public function setWebhooksSecret(string $secret = ''): null
     {
         return $this->systemConfigService->set('Mond1SW6.customConfig.webhooksSecret', $secret, $this->salesChannelId);
     }
 
-    public function setIsApiTokenValid(bool $val = false)
+    /**
+     * @param  bool  $val
+     *
+     * @return void
+     */
+    public function setIsApiTokenValid(bool $val = false): void
     {
         $this->systemConfigService->set('Mond1SW6.customConfig.apiTokenValid', $val, $this->salesChannelId);
     }
 
+    /**
+     * @return bool
+     */
     public function isStateWatchingEnabled(): bool
     {
         $config = $this->getPluginConfiguration();
@@ -130,30 +186,40 @@ class ConfigService
         return isset($config['stateEnabled']) && $config['stateEnabled'];
     }
 
+    /**
+     * @return mixed
+     */
     public function getPluginVersion()
     {
         return $this->getPlugin()->getVersion();
     }
 
-    public function orderTransactionState()
+    /**
+     * @return mixed|string
+     */
+    public function orderTransactionState(): mixed
     {
         $config = $this->getPluginConfiguration();
 
         return $config['orderTransactionState'] ?? 'paid';
     }
 
+    /**
+     * @return mixed
+     */
     public function getPluginName()
     {
         return $this->getPlugin()->getName();
     }
 
+    /**
+     * @return \Shopware\Core\Framework\DataAbstractionLayer\Entity|null
+     */
     public function getPlugin()
     {
         $criteria = new Criteria();
         $criteria->addFilter(new EqualsFilter('name', 'Mond1SW6'));
 
-        $pluginEntity = $this->pluginRepository->search($criteria, new Context(new SystemSource()))->first();
-
-        return $pluginEntity;
+        return $this->pluginRepository->search($criteria, new Context(new SystemSource()))->first();
     }
 }
