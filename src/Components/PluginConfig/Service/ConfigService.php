@@ -159,9 +159,9 @@ class ConfigService
     /**
      * @param  string  $secret
      *
-     * @return null
+     * @return mixed
      */
-    public function setWebhooksSecret(string $secret = ''): null
+    public function setWebhooksSecret(string $secret = '')
     {
         return $this->systemConfigService->set('Mond1SW6.customConfig.webhooksSecret', $secret, $this->salesChannelId);
     }
