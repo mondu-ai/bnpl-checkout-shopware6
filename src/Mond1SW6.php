@@ -13,6 +13,7 @@ use Shopware\Core\Framework\Plugin\Context\InstallContext;
 use Shopware\Core\Framework\Plugin\Context\UninstallContext;
 use Shopware\Core\Framework\Plugin\Context\UpdateContext;
 use Shopware\Core\Framework\Plugin\Context\ActivateContext;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 class Mond1SW6 extends Plugin
 {
@@ -76,8 +77,8 @@ class Mond1SW6 extends Plugin
     protected function getBootstrapClasses(InstallContext $installContext): array
     {
         $bootstrapper = [
-            new PaymentMethods(),
-            new Database()
+            new PaymentMethods($this->container),
+            new Database($this->container)
         ];
 
         $pluginRepository = $this->container->get('plugin.repository');
@@ -91,7 +92,6 @@ class Mond1SW6 extends Plugin
         foreach ($bootstrapper as $bootstrap) {
             $bootstrap->setContext($installContext->getContext());
             $bootstrap->setInstallContext($installContext);
-            $bootstrap->setContainer($this->container);
             $bootstrap->injectServices();
             $bootstrap->setPlugin($plugin);
         }

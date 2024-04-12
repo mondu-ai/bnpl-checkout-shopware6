@@ -47,7 +47,7 @@ class OrderDataEntity extends Entity
     /**
      * @var OrderEntity
      */
-    protected OrderEntity $order;
+    protected $order;
 
     /**
      * @var string

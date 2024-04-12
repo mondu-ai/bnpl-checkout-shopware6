@@ -10,14 +10,11 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-use Shopware\Core\Framework\Routing\Annotation\RouteScope;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 
-/**
- * @Route(defaults={"_routeScope"={"api"}})
- */
+#[Route(defaults: ['_routeScope' => ['api']])]
 class CreditNoteController extends AbstractController
 {
     public function __construct(
@@ -28,9 +25,7 @@ class CreditNoteController extends AbstractController
         private readonly EntityRepository $documentRepository
     ) {}
 
-    /**
-     * @Route(name="mondu-payment.credit_note.cancel", path="/api/mondu/orders/{orderId}/credit_notes/{creditNoteId}/cancel", defaults={"csrf_protected"=false}, methods={"POST"})
-     */
+    #[Route(path: '/api/mondu/orders/{orderId}/credit_notes/{creditNoteId}/cancel', name: 'mondu-payment.credit_note.cancel', methods: ['POST'])]
     public function cancel(Request $request, string $orderId, string $creditNoteId, Context $context): Response
     {
         try {
