@@ -16,7 +16,6 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
 
 #[Route(defaults: ['_routeScope' => ['storefront']])]
-
 class DocumentController extends AbstractController
 {
     /**
@@ -26,9 +25,7 @@ class DocumentController extends AbstractController
         private readonly DocumentGenerator $documentGenerator
     ) {}
 
-    /**
-     * @Route(name="mondu-payment.payment.document", path="/mondu/document/{documentId}/{deepLinkCode}/{token}")
-     */
+    #[Route(path: '/mondu/document/{documentId}/{deepLinkCode}/{token}', name: 'mondu-payment.payment.document')]
     public function downloadDocument(Request $request, string $documentId, string $deepLinkCode, Context $context): Response
     {
         $documentUrlHelper = $this->container->get(DocumentUrlHelper::class);

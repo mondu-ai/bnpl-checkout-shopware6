@@ -13,9 +13,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
-/**
- * @Route(defaults={"_routeScope"={"storefront"}})
- */
+#[Route(defaults: ['_routeScope' => ['storefront']])]
 class WebhooksController extends StorefrontController
 {
     private ConfigService $configService;
@@ -29,9 +27,7 @@ class WebhooksController extends StorefrontController
         $this->webhookService = $webhookService;
     }
 
-    /**
-      * @Route("/mondu/webhooks", name="mondu-payment.webhooks", defaults={"csrf_protected"=false}, methods={"POST"})
-      */
+    #[Route(path: '/mondu/webhooks', name: 'mondu-payment.webhooks', methods: ['POST'])]
     public function process(Request $request, Context $context): Response
     {
         $content = $request->getContent();

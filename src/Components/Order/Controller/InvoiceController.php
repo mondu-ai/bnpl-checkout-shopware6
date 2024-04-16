@@ -15,9 +15,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Mondu\MonduPayment\Util\CriteriaHelper;
 
-/**
- * @Route(defaults={"_routeScope"={"api"}})
- */
+#[Route(defaults: ['_routeScope' => ['api']])]
 class InvoiceController extends AbstractController
 {
     public function __construct(
@@ -27,9 +25,7 @@ class InvoiceController extends AbstractController
         private readonly EntityRepository $orderDataRepository
     ) {}
 
-    /**
-     * @Route(name="mondu-payment.invoice.cancel", path="/api/mondu/orders/{orderId}/{invoiceId}/cancel", defaults={"csrf_protected"=false}, methods={"POST"})
-     */
+    #[Route(path: '/api/mondu/orders/{orderId}/{invoiceId}/cancel', name: 'mondu-payment.invoice.cancel', methods: ['POST'])]
     public function cancel(Request $request, string $orderId, string $invoiceId, Context $context): Response
     {
         try {
