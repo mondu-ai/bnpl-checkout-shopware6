@@ -1,0 +1,9 @@
+monolog:
+  channels: ["mondu"]
+
+  handlers:
+    monduLogHandler:
+      type: rotating_file
+      path: "%kernel.logs_dir%/mondu_%kernel.environment%.log"
+      level: error
+      channels: [ "mondu" ]
