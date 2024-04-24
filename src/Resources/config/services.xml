@@ -52,7 +52,7 @@
 
         <service id="mondu.mondu_api" class="Mondu\MonduPayment\Components\MonduApi\Service\MonduClient" public="true">
             <argument type="service" id="mondu.mondu_config"/>
-            <argument key="$logger" type="service" id="mondu.logger"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
         </service>
 
         <service id="Mondu\MonduPayment\Components\MonduApi\Service\MonduOperationService">
@@ -85,7 +85,7 @@
             <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
             <argument key="$invoiceDataRepository" type="service" id="mondu_invoice_data.repository"/>
             <argument key="$monduClient" type="service" id="mondu.mondu_api"/>
-            <argument key="$logger" type="service" id="mondu.logger"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
             <argument key="$productRepository" type="service" id="product.repository"/>
             <argument key="$currencyRepository" type="service" id="currency.repository"/>
         </service>
@@ -96,19 +96,12 @@
             <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
             <argument key="$invoiceDataRepository" type="service" id="mondu_invoice_data.repository"/>
             <argument key="$monduClient" type="service" id="mondu.mondu_api"/>
-            <argument key="$logger" type="service" id="mondu.logger"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
         </service>
 
         <service id="Mondu\MonduPayment\Bootstrap\MediaProvider" public="true">
             <argument type="service" key="$mediaService" id="Shopware\Core\Content\Media\MediaService"/>
             <argument type="service" key="$mediaRepository" id="media.repository"/>
-        </service>
-
-        <service id="Mondu\MonduPayment\Pos\Run\LoggerFactory"/>
-
-        <service id="mondu.logger" class="Monolog\Logger">
-            <factory service="Mondu\MonduPayment\Pos\Run\LoggerFactory" method="createLogger"/>
-            <argument type="string">mondu_payment</argument>
         </service>
 
         <service id="Mondu\MonduPayment\Command\ConfigApiTokenCommand">
