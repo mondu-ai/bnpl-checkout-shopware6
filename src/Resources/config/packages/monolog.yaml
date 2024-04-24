@@ -1,5 +1,5 @@
 monolog:
-  channels: ['mondu']
+  channels: ["mondu"]
 
   handlers:
     monduLogHandler:

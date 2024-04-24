@@ -41,9 +41,7 @@ class TransitionSubscriber implements EventSubscriberInterface
         private readonly DocumentUrlHelper $documentUrlHelper,
         private readonly LoggerInterface $logger,
         private readonly EntityRepository $currencyRepository
-    ) {
-
-    }
+    ) {}
 
     public static function getSubscribedEvents(): array
     {

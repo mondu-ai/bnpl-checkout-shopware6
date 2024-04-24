@@ -49,7 +49,7 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
                 if (!$this->configService->skipOrderStateValidation()) {
 
                     if ($transitionName == 'reopen' && !$this->canCancelOrder($order)) {
-//                        throw new MonduException('Order was canceled.');
+                        throw new MonduException('Order was canceled.');
                     }
 
                     if ($transitionName == 'ship' || $transitionName == 'ship_partially') {
