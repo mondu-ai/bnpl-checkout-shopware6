@@ -6,6 +6,7 @@ namespace Mondu\MonduPayment\Components\Webhooks\Service;
 
 use Shopware\Core\Checkout\Order\OrderEntity;
 use Shopware\Core\System\StateMachine\Aggregation\StateMachineState\StateMachineStateCollection;
+use Shopware\Core\System\StateMachine\Aggregation\StateMachineTransition\StateMachineTransitionActions;
 use Symfony\Component\HttpFoundation\Response;
 use Shopware\Core\System\StateMachine\StateMachineRegistry;
 use Shopware\Core\System\StateMachine\Transition;
@@ -107,7 +108,8 @@ class WebhookService
                 ]
             ], $context);
 
-            $transitionResult = $this->transitionTransactionState($externalReferenceId, 'paid', $context);
+            $this->transitionOrderState($externalReferenceId, 'process', $context, $monduId);
+            $transitionResult = $this->transitionTransactionState($externalReferenceId, 'paid', $context, $monduId);
 
             return [[ 'message' => $transitionResult->last()->getTechnicalName(), 'code' => Response::HTTP_OK ], Response::HTTP_OK];
         } catch (MonduException $e) {
@@ -126,8 +128,13 @@ class WebhookService
                 throw new MonduException('Required params missing');
             }
 
-            $this->transitionOrderState($externalReferenceId, 'process', $context);
-            $transitionResult = $this->transitionTransactionState($externalReferenceId, 'reopen', $context);
+            $this->transitionOrderState($externalReferenceId, 'process', $context, $monduId);
+            $transitionResult = $this->transitionTransactionState(
+                $externalReferenceId,
+                StateMachineTransitionActions::ACTION_PROCESS_UNCONFIRMED,
+                $context,
+                $monduId
+            );
 
             return [[ 'message' => $transitionResult->last()->getTechnicalName(), 'code' => Response::HTTP_OK ], Response::HTTP_OK];
         } catch (MonduException $e) {
@@ -148,23 +155,25 @@ class WebhookService
                 throw new MonduException('Required params missing');
             }
 
-            $this->transitionOrderState($externalReferenceId, 'cancel', $context);
-            $this->transitionDeliveryState($externalReferenceId, 'cancel', $context);
-            $transitionResult = $this->transitionTransactionState($externalReferenceId, 'cancel', $context);
+            $this->transitionOrderState($externalReferenceId, 'cancel', $context, $monduId);
+            $this->transitionDeliveryState($externalReferenceId, 'cancel', $context, $monduId);
+            $transitionResult = $this->transitionTransactionState($externalReferenceId, 'cancel', $context, $monduId);
 
             return [[ 'message' => $transitionResult->last()->getTechnicalName(), 'code' => Response::HTTP_OK ], Response::HTTP_OK];
         } catch (MonduException $e) {
             $this->log('handleDeclinedOrCanceled Webhook Failed', [$params], $e);
-            return [[ 'message' => $e->getMessage(), 'code' => $e->getStatusCode() ], $e->getStatusCode()];
+
+            // 200 status because if order is declined from the hosted checkout it's not saved
+            return [[ 'message' => $e->getMessage(), 'code' => $e->getStatusCode() ], 200];
         }
     }
 
-    protected function transitionOrderState($externalReferenceId, $state, $context): StateMachineStateCollection
+    protected function transitionOrderState($externalReferenceId, $state, $context, $monduId = null): StateMachineStateCollection
     {
         try {
             return $this->stateMachineRegistry->transition(new Transition(
                 OrderDefinition::ENTITY_NAME,
-                $this->getOrderUuid($externalReferenceId, $context),
+                $this->getOrderUuid($externalReferenceId, $context, $monduId),
                 $state,
                 'stateId'
             ), $context);
@@ -176,10 +185,10 @@ class WebhookService
         }
     }
 
-    protected function transitionDeliveryState($externalReferenceId, $state, $context): StateMachineStateCollection
+    protected function transitionDeliveryState($externalReferenceId, $state, $context, $monduId = null): StateMachineStateCollection
     {
         try {
-            $criteria = new Criteria([$this->getOrderUuid($externalReferenceId, $context)]);
+            $criteria = new Criteria([$this->getOrderUuid($externalReferenceId, $context, $monduId)]);
             $criteria->addAssociation('deliveries');
 
             /** @var OrderEntity $orderEntity */
@@ -200,10 +209,10 @@ class WebhookService
         }
     }
 
-    protected function transitionTransactionState($externalReferenceId, $state, $context): StateMachineStateCollection
+    protected function transitionTransactionState($externalReferenceId, $state, $context, $monduId = null): StateMachineStateCollection
     {
         try {
-            $criteria = new Criteria([$this->getOrderUuid($externalReferenceId, $context)]);
+            $criteria = new Criteria([$this->getOrderUuid($externalReferenceId, $context, $monduId)]);
             $criteria->addAssociation('transactions');
 
             /** @var OrderEntity $orderEntity */
@@ -224,16 +233,23 @@ class WebhookService
         }
     }
 
-    protected function getOrderUuid($externalReferenceId, $context)
+    protected function getOrderUuid($externalReferenceId, $context, $monduId = null)
     {
         try {
             $criteria = new Criteria();
             $criteria->addFilter(new EqualsFilter('orderNumber', $externalReferenceId));
             $order = $this->orderRepository->search($criteria, $context)->first();
+
+            if (!$order) {
+                $criteria = new Criteria();
+                $criteria->addFilter(new EqualsFilter('referenceId', $monduId));
+                $orderData = $this->orderDataRepository->search($criteria, $context)->first();
+                if ($orderData) return $orderData->getOrderId();
+            }
+
             if (!$order) {
                 throw new MonduException('Order not found', 404);
             }
-
             return $order->getId();
         } catch (MonduException $e) {
             $this->log('getOrderUuid Failed', [$externalReferenceId], $e);
