@@ -31,6 +31,7 @@ class ActivatePaymentCommand extends Command
 
     protected function configure(): void
     {
+        $this->setName(self::$defaultName);
         $this->setDescription('Adds Mondu Payment methods to the sales channels.');
     }
 
