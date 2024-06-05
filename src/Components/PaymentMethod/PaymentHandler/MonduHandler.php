@@ -206,7 +206,7 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
 
             $lineItems[] = [
                 'external_reference_id' => $lineItem->getReferencedId(),
-                'product_id' => $product->getProductNumber(),
+                'product_id' => $lineItem->getPayload()['productNumber'],
                 'quantity' => $lineItem->getQuantity(),
                 'title' => $lineItem->getLabel(),
                 'net_price_cents' => round($unitNetPrice * $lineItem->getQuantity()),
