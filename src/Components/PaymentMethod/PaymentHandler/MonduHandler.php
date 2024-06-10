@@ -43,7 +43,6 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         try {
             $redirectUrl = $this->createOrder($transaction, $salesChannelContext);
         } catch (\Exception $e) {
-            dd($e);
             throw new AsyncPaymentProcessException(
                 $transaction->getOrderTransaction()->getId(),
                 'An error occurred during the communication with external payment gateway' . PHP_EOL . $e->getMessage()
@@ -108,7 +107,6 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
     private function createOrder(AsyncPaymentTransactionStruct $transaction, SalesChannelContext $salesChannelContext): string
     {
         $orderData = $this->getOrderData($transaction, $salesChannelContext);
-        dd($orderData);
         $monduOrder = $this->monduClient->setSalesChannelId($salesChannelContext->getSalesChannelId())->createOrder($orderData);
 
         return $monduOrder['hosted_checkout_url'];
