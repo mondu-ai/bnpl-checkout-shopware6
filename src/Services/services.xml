@@ -1,0 +1,14 @@
+<?xml version="1.0" ?>
+
+<container xmlns="http://symfony.com/schema/dic/services"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+    <services>
+        <defaults autowire="true"/>
+
+        <service id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderAdditionalCostsService" class="Mondu\MonduPayment\Services\OrderServices\OrderAdditionalCostsService" />
+        <service id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLineItemsService" class="Mondu\MonduPayment\Services\OrderServices\OrderLineItemsService" />
+        <service id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService" class="Mondu\MonduPayment\Services\OrderServices\OrderLinesService" />
+        <service id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderDiscountService" class="Mondu\MonduPayment\Services\OrderServices\OrderDiscountService" />
+    </services>
+</container>
