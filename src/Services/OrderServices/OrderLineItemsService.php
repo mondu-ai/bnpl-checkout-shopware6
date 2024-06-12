@@ -2,8 +2,6 @@
 
 namespace Mondu\MonduPayment\Services\OrderServices;
 
-use Shopware\Core\Checkout\Cart\LineItem\LineItem;
-use Shopware\Core\Checkout\Cart\Price\Struct\CartPrice;
 use Shopware\Core\Checkout\Order\Aggregate\OrderLineItem\OrderLineItemEntity;
 use Shopware\Core\Checkout\Order\OrderEntity;
 use Shopware\Core\Framework\Context;
@@ -16,7 +14,12 @@ class OrderLineItemsService extends AbstractOrderLineItemsService
         throw new DecorationPatternException(self::class);
     }
 
-    public function getLineItems(OrderEntity $order, Context $context, ?callable $isLineItemCallback = null): array
+    public function getLineItems(
+        OrderEntity $order,
+        Context $context,
+        bool $forInvoice = false,
+        ?callable $isLineItemCallback = null
+    ): array
     {
         $shopwareLineItems = $order->getLineItems();
         $lineItems = [];
@@ -28,58 +31,48 @@ class OrderLineItemsService extends AbstractOrderLineItemsService
         foreach ($shopwareLineItems as $shopwareLineItem) {
             if (
                 isset($isLineItemCallback) && !$isLineItemCallback($shopwareLineItem) ||
-                !$this->isLineItem($shopwareLineItem)
+                !$this->orderUtilsService->isLineItem($shopwareLineItem)
             ) {
                 continue;
             }
 
-            $quantity = $shopwareLineItem->getQuantity();
-            $unitNetPrice = $this->getUnitNetPrice($shopwareLineItem, $order->getTaxStatus());
-            $productNumber = $shopwareLineItem->getPayload()['productNumber'] ?? null;
-            $lineItems[] = [
-                'external_reference_id' => $shopwareLineItem->getReferencedId() ?? $shopwareLineItem->getUniqueIdentifier(),
-                'product_id' => $productNumber ?? $shopwareLineItem->getUniqueIdentifier(),
-                'quantity' => $quantity,
-                'title' => $shopwareLineItem->getLabel(),
-                'net_price_per_item_cents' => $this->toCents($unitNetPrice),
-                'net_price_cents' => $this->toCents($unitNetPrice * $quantity),
-            ];
+
+            $lineItems[] = $forInvoice ? $this->getLineItemForInvoice($shopwareLineItem, $order) :
+                $this->getLineItemForOrder($shopwareLineItem, $order);
         }
 
         return $lineItems;
     }
 
-    /**
-     * Checks whether line item is a product ( not a discount )
-     *
-     * @param mixed $lineItem
-     * @return bool
-     */
-    protected function isLineItem(mixed $lineItem): bool
+    protected function getLineItemForOrder(OrderLineItemEntity $shopwareLineItem, OrderEntity $order): array
     {
-        return $lineItem instanceof OrderLineItemEntity
-            && $lineItem->getPrice()->getTotalPrice() >= 0
-            && in_array($lineItem->getType(), [
-                LineItem::PRODUCT_LINE_ITEM_TYPE,
-                LineItem::CONTAINER_LINE_ITEM,
-                LineItem::CUSTOM_LINE_ITEM_TYPE
-            ]);
+        return $this->getLineItemData($shopwareLineItem, $order->getTaxStatus());
     }
 
-    protected function getUnitNetPrice(OrderLineItemEntity $shopwareLineItem, string $taxStatus): float
+    protected function getLineItemForInvoice(OrderLineItemEntity $shopwareLineItem, OrderEntity $order): array
     {
-        $calculatedPrice = $shopwareLineItem->getPrice();
+        $data = $this->getLineItemData($shopwareLineItem, $order->getTaxStatus());
+
+        return [
+            'external_reference_id' => $data['external_reference_id'],
+            'quantity' => $data['quantity']
+        ];
+    }
+
+    protected function getLineItemData(OrderLineItemEntity $shopwareLineItem, string $taxStatus): array
+    {
         $quantity = $shopwareLineItem->getQuantity();
+        $unitNetPrice = $this->orderUtilsService->getLineItemNetPrice($shopwareLineItem, $taxStatus);
 
-        if ($taxStatus !== CartPrice::TAX_STATE_GROSS) {
-            return $calculatedPrice->getUnitPrice();
-        }
+        $productNumber = $shopwareLineItem->getPayload()['productNumber'] ?? null;
 
-        return $calculatedPrice->getUnitPrice() - ($calculatedPrice->getCalculatedTaxes()->getAmount() / $quantity);
-    }
-
-    protected function toCents($price): int
-    {
-        return (int) round($price * 100);
+        return [
+            'external_reference_id' => $shopwareLineItem->getReferencedId() ?? $shopwareLineItem->getUniqueIdentifier(),
+            'quantity' => $quantity,
+            'product_id' => $productNumber ?? $shopwareLineItem->getUniqueIdentifier(),
+            'title' => $shopwareLineItem->getLabel(),
+            'net_price_per_item_cents' => $this->orderUtilsService->priceToCents($unitNetPrice),
+            'net_price_cents' => $this->orderUtilsService->priceToCents($unitNetPrice * $quantity),
+        ];
     }
 }

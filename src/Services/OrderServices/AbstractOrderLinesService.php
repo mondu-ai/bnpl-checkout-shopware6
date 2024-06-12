@@ -10,7 +10,8 @@ abstract class AbstractOrderLinesService
     public function __construct(
         protected readonly AbstractOrderAdditionalCostsService $additionalCostsService,
         protected readonly AbstractOrderLineItemsService       $orderLineItemsService,
-        protected readonly AbstractOrderDiscountService        $orderDiscountService
+        protected readonly AbstractOrderDiscountService        $orderDiscountService,
+        protected readonly AbstractOrderUtilsService           $orderUtilsService
     ) {}
 
     abstract public function getDecorated(): AbstractOrderLinesService;

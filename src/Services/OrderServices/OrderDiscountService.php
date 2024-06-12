@@ -23,7 +23,7 @@ class OrderDiscountService extends AbstractOrderDiscountService
         foreach ($order->getLineItems() as $shopwareLineItem) {
             if (
                 isset($isDiscountCallback) && !$isDiscountCallback($shopwareLineItem) ||
-                !$this->isDiscount($shopwareLineItem)
+                !$this->orderUtilsService->isDiscount($shopwareLineItem)
             ) {
                 continue;
             }
@@ -37,24 +37,6 @@ class OrderDiscountService extends AbstractOrderDiscountService
             $discountAmount += abs($unitNetPrice);
         }
 
-        return (int) round($discountAmount * 100);
-    }
-
-    /**
-     * Checks whether the line item is Discount ( not product )
-     *
-     * @param mixed $lineItem
-     * @return bool
-     */
-    protected function isDiscount(mixed $lineItem): bool
-    {
-        return $lineItem instanceof OrderLineItemEntity
-            && $lineItem->getPrice()->getTotalPrice() < 0
-            && in_array($lineItem->getType(), [
-                LineItem::DISCOUNT_LINE_ITEM,
-                LineItem::CREDIT_LINE_ITEM_TYPE,
-                LineItem::PROMOTION_LINE_ITEM_TYPE,
-                LineItem::CUSTOM_LINE_ITEM_TYPE
-            ]);
+        return $this->orderUtilsService->priceToCents($discountAmount);
     }
 }

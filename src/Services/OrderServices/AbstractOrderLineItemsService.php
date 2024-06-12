@@ -7,6 +7,10 @@ use Shopware\Core\Framework\Context;
 
 abstract class AbstractOrderLineItemsService
 {
+    public function __construct(
+        protected readonly AbstractOrderUtilsService $orderUtilsService,
+    ) {}
+
     abstract public function getDecorated(): AbstractOrderLineItemsService;
 
     /**
@@ -14,8 +18,9 @@ abstract class AbstractOrderLineItemsService
      *
      * @param OrderEntity $order
      * @param Context $context
+     * @param bool $forInvoice
      * @param callable|null $isLineItemCallback
      * @return array
      */
-    abstract public function getLineItems(OrderEntity $order, Context $context, ?callable $isLineItemCallback = null): array;
+    abstract public function getLineItems(OrderEntity $order, Context $context, bool $forInvoice = false, ?callable $isLineItemCallback = null): array;
 }

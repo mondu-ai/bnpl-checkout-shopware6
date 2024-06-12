@@ -6,9 +6,12 @@
     <services>
         <defaults autowire="true"/>
 
+        <service id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderUtilsService" class="Mondu\MonduPayment\Services\OrderServices\OrderUtilsService" />
         <service id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderAdditionalCostsService" class="Mondu\MonduPayment\Services\OrderServices\OrderAdditionalCostsService" />
         <service id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLineItemsService" class="Mondu\MonduPayment\Services\OrderServices\OrderLineItemsService" />
         <service id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService" class="Mondu\MonduPayment\Services\OrderServices\OrderLinesService" />
         <service id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderDiscountService" class="Mondu\MonduPayment\Services\OrderServices\OrderDiscountService" />
+
+        <service id="Mondu\MonduPayment\Services\InvoiceServices\AbstractInvoiceDataService" class="Mondu\MonduPayment\Services\InvoiceServices\InvoiceDataService" />
     </services>
 </container>
