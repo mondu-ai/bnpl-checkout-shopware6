@@ -81,8 +81,7 @@ class TransitionSubscriber implements EventSubscriberInterface
     protected function getOrder(string $orderId, Context $context): OrderEntity
     {
         $criteria = CriteriaHelper::getCriteriaForOrder($orderId);
-        $criteria->addAssociation('documents.documentType');
-
+        $criteria->addAssociation('documents.documentType')->addAssociation('currency');
         return $this->orderRepository->search($criteria, $context)->first();
     }
 
