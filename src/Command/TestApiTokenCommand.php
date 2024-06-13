@@ -21,6 +21,7 @@ class TestApiTokenCommand extends Command
 
     protected function configure(): void
     {
+        $this->setName(self::$defaultName);
         $this->setDescription('Tests if API token is valid.');
         $this->addArgument(
             'api_token',

@@ -20,6 +20,7 @@ class ConfigApiTokenCommand extends Command
 
     protected function configure(): void
     {
+        $this->setName(self::$defaultName);
         $this->setDescription('Adds API token to plugin configuration.');
         $this->addArgument(
             'api_token',
