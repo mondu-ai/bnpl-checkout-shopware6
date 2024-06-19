@@ -16,7 +16,6 @@
             <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
             <argument key="$invoiceDataRepository" type="service" id="mondu_invoice_data.repository"/>
             <argument key="$logger" type="service" id="monolog.logger.mondu"/>
-            <argument key="$currencyRepository" id="currency.repository" type="service" />
         </service>
 
     </services>

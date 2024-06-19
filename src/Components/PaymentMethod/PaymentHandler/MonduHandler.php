@@ -3,22 +3,18 @@
 namespace Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler;
 
 use Mondu\MonduPayment\Components\Order\Model\OrderDataEntity;
-use Shopware\Core\Checkout\Cart\LineItem\LineItem;
+use Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService;
 use Shopware\Core\Checkout\Payment\Cart\AsyncPaymentTransactionStruct;
 use Shopware\Core\Checkout\Payment\Cart\PaymentHandler\AsynchronousPaymentHandlerInterface;
 use Shopware\Core\Checkout\Payment\Exception\AsyncPaymentProcessException;
 use Shopware\Core\Checkout\Payment\Exception\CustomerCanceledAsyncPaymentException;
 use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler;
-use Shopware\Core\Framework\Context;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\Validation\DataBag\RequestDataBag;
 use Shopware\Core\System\SalesChannel\SalesChannelContext;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Shopware\Core\Checkout\Order\Aggregate\OrderLineItem\OrderLineItemEntity;
 use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
-use Shopware\Core\Checkout\Cart\Price\Struct\CartPrice;
 use Mondu\MonduPayment\Components\PaymentMethod\Util\MethodHelper;
 use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 
@@ -35,7 +31,8 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         private readonly MonduClient $monduClient,
         private readonly EntityRepository $productRepository,
         private readonly EntityRepository $orderDataRepository,
-        private readonly ConfigService $configService
+        private readonly ConfigService $configService,
+        private readonly AbstractOrderLinesService $orderLinesService
     ) {}
 
     /**
@@ -110,7 +107,6 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
     private function createOrder(AsyncPaymentTransactionStruct $transaction, SalesChannelContext $salesChannelContext): string
     {
         $orderData = $this->getOrderData($transaction, $salesChannelContext);
-
         $monduOrder = $this->monduClient->setSalesChannelId($salesChannelContext->getSalesChannelId())->createOrder($orderData);
 
         return $monduOrder['hosted_checkout_url'];
@@ -121,16 +117,6 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         $order = $transaction->getOrder();
         $returnUrl = $transaction->getReturnUrl();
         $orderTransaction = $transaction->getOrderTransaction();
-        $context = $salesChannelContext->getContext();
-
-        $lineItems = $this->getLineItems($order->getLineItems(), $context);;
-        $discount = $this->getDiscount($order->getLineItems(), $context);
-
-        if ($context->getTaxState() === CartPrice::TAX_STATE_GROSS) {
-            $shipping = $order->getShippingCosts()->getTotalPrice() - $order->getShippingCosts()->getCalculatedTaxes()->getAmount();
-        } else {
-            $shipping = $order->getShippingCosts()->getTotalPrice();
-        }
 
         $shippingAddress = $order->getDeliveries()->getShippingAddress()->first();
         $paymentMethod = MethodHelper::shortNameToMonduName($orderTransaction->getPaymentMethod()->getShortName());
@@ -166,81 +152,8 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
                 'country_code' => $shippingAddress->getCountry()->getIso(),
                 'zip_code' => $shippingAddress->getZipCode(),
             ],
-            'lines' => [
-                [
-                    'tax_cents' => round($order->getPrice()->getCalculatedTaxes()->getAmount() * 100),
-                    'shipping_price_cents' => round($shipping * 100),
-                    'discount_cents' => round($discount),
-                    'line_items' => $lineItems
-                ]
-            ]
+            'lines' => $this->orderLinesService->getLines($order, $salesChannelContext->getContext())
         ];
-    }
-
-    protected function getLineItems($collection, Context $context): array
-    {
-        $productIds = $collection->fmap(
-            function ($lineItem) {
-                return $lineItem->getProductId(); 
-            }
-        );
-
-        $products = $this->productRepository->search(new Criteria($productIds), $context);
-
-        $lineItems = [];
-        
-        foreach ($collection->getIterator() as $lineItem) {
-            if ($lineItem->getType() !== 'product') {
-                continue;
-            }
-
-            $product = $products->filter(function ($product) use ($lineItem) {
-                return $product->getId() == $lineItem->getProductId();
-            })->first();
-
-            if ($context->getTaxState() === CartPrice::TAX_STATE_GROSS) {
-                $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - ($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity())) * 100;
-            } else {
-                $unitNetPrice = $lineItem->getPrice()->getUnitPrice() * 100;
-            }
-
-            $lineItems[] = [
-                'external_reference_id' => $lineItem->getReferencedId(),
-                'product_id' => $lineItem->getPayload()['productNumber'],
-                'quantity' => $lineItem->getQuantity(),
-                'title' => $lineItem->getLabel(),
-                'net_price_cents' => round($unitNetPrice * $lineItem->getQuantity()),
-                'net_price_per_item_cents' => round($unitNetPrice)
-            ];
-        }
-
-        return $lineItems;
-    }
-
-    protected function getDiscount($collection, Context $context): float
-    {
-        $discountAmount = 0;
-        /** @var LineItem|OrderLineItemEntity $lineItem */
-        foreach ($collection->getIterator() as $lineItem) {
-            $discountLineItemType = 'discount';
-
-            if (defined( '\Shopware\Core\Checkout\Cart\LineItem\LineItem::DISCOUNT_LINE_ITEM'))
-                $discountLineItemType = LineItem::DISCOUNT_LINE_ITEM;
-
-            if ($lineItem->getType() !== LineItem::PROMOTION_LINE_ITEM_TYPE &&
-                $lineItem->getType() !== $discountLineItemType) {
-                continue;
-            }
-
-            if ($context->getTaxState() === CartPrice::TAX_STATE_GROSS) {
-                $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - ($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity())) * 100;
-            } else {
-                $unitNetPrice = $lineItem->getPrice()->getUnitPrice() * 100;
-            }
-            $discountAmount += abs($unitNetPrice);
-        }
-
-        return $discountAmount;
     }
 
     public function createLocalOrder($transaction, $orderUuid, $salesChannelContext) {

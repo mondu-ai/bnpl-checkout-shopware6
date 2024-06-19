@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mondu\MonduPayment\Components\Order\Subscriber;
 
+use Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService;
 use Shopware\Core\Checkout\Cart\LineItem\LineItem;
 use Shopware\Core\Checkout\Order\OrderDefinition;
 use Shopware\Core\Checkout\Order\OrderEvents;
@@ -37,7 +38,8 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
         private readonly MonduClient $monduClient,
         private readonly LoggerInterface $logger,
         private readonly EntityRepository $productRepository,
-        private readonly EntityRepository $currencyRepository
+        private readonly EntityRepository $currencyRepository,
+        private readonly AbstractOrderLinesService $orderLinesService
     ) {}
 
     public static function getSubscribedEvents(): array
@@ -71,7 +73,7 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                 if ($result->getExistence() !== null && $result->getExistence()->exists()) {
                     break;
                 }
-    
+
                 $payload = $result->getPayload();
 
                 if (empty($payload)) {
@@ -85,12 +87,12 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                 $criteria = new Criteria();
                 $criteria->addFilter(new EqualsFilter('orderId', $orderId));
                 $monduOrderEntity = $this->orderDataRepository->search($criteria, $context)->first();
-                
+
                 if (!isset($monduOrderEntity)) {
                     return;
                 }
-                    
-                if ($monduOrderEntity->getOrderState() == 'canceled') {
+
+                if ($monduOrderEntity->getOrderState() === 'canceled') {
                     $this->transitionDeliveryState($orderId, 'cancel', $context);
                 }
 
@@ -117,59 +119,18 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                 }
 
                 $netPrice = 0;
-                $lineItems = [];
                 foreach ($order->getLineItems() as $lineItem) {
                     if ($lineItem->getType() !== LineItem::PRODUCT_LINE_ITEM_TYPE) {
                         continue;
                     }
 
-                    $product = $this->productRepository->search(new Criteria([$lineItem->getIdentifier()]), $context)->first();
-
                     if ($order->getTaxStatus() === CartPrice::TAX_STATE_GROSS) {
                         $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - ($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity())) * 100;
                     } else {
                         $unitNetPrice = $lineItem->getPrice()->getUnitPrice() * 100;
                     }
-
-                    $lineItems[] = [
-                        'external_reference_id' => $lineItem->getReferencedId(),
-                        'product_id' => $lineItem->getPayload()['productNumber'],
-                        'quantity' => $lineItem->getQuantity(),
-                        'title' => $lineItem->getLabel(),
-                        'net_price_cents' => round($unitNetPrice * $lineItem->getQuantity()),
-                        'net_price_per_item_cents' => round($unitNetPrice)
-                    ];
 
                     $netPrice += $unitNetPrice * $lineItem->getQuantity();
-                }
-
-                $discountAmount = 0;
-
-                foreach ($order->getLineItems() as $lineItem) {
-                    $discountLineItemType = 'discount';
-
-                    if (defined( '\Shopware\Core\Checkout\Cart\LineItem\LineItem::DISCOUNT_LINE_ITEM'))
-                        $discountLineItemType = LineItem::DISCOUNT_LINE_ITEM;
-
-                    if ($lineItem->getType() !== LineItem::PROMOTION_LINE_ITEM_TYPE &&
-                        $lineItem->getType() !== $discountLineItemType) {
-                        continue;
-                    }
-
-
-                    if ($order->getTaxStatus() === CartPrice::TAX_STATE_GROSS) {
-                        $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - ($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity())) * 100;
-                    } else {
-                        $unitNetPrice = $lineItem->getPrice()->getUnitPrice() * 100;
-                    }
-
-                    $discountAmount += abs($unitNetPrice);
-                }
-
-                if ($order->getTaxStatus() === CartPrice::TAX_STATE_GROSS) {
-                    $shipping = ($order->getShippingCosts()->getUnitPrice() - ($order->getShippingCosts()->getCalculatedTaxes()->getAmount() / $order->getShippingCosts()->getQuantity()));
-                } else {
-                    $shipping = $order->getShippingCosts()->getUnitPrice();
                 }
 
                 $adjustParams = [
@@ -180,14 +141,7 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                         'tax_cents' => round($order->getPrice()->getCalculatedTaxes()->getAmount() * 100),
                         'gross_amount_cents' => round($order->getPrice()->getTotalPrice() * 100)
                     ],
-                    'lines' => [
-                        [
-                            'tax_cents' => round($order->getPrice()->getCalculatedTaxes()->getAmount() * 100),
-                            'shipping_price_cents' => round($shipping * 100),
-                            'discount_cents' => round($discountAmount),
-                            'line_items' => $lineItems
-                        ]
-                    ]
+                    'lines' => $this->orderLinesService->getLines($order, $context),
                 ];
 
                 $response = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->adjustOrder(
@@ -198,7 +152,7 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                 if ($response == null) {
                     $this->log('Adjust Order Response Failed', [$event]);
                 }
-            
+
             }
         } catch (\Exception $e) {
             $this->log('Adjust Order Failed', [$event], $e);

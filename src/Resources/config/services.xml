@@ -4,6 +4,7 @@
            xsi:schemaLocation="https://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
 
     <imports>
+        <import resource="../../Services/services.xml"/>
         <import resource="../../Components/*/DependencyInjection/services.xml"/>
         <import resource="../../Components/*/DependencyInjection/subscriber.xml"/>
         <import resource="../../Components/*/DependencyInjection/controllers.xml"/>

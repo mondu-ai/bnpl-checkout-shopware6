@@ -54,18 +54,8 @@ class MonduClient
         return $response['order'] ?? null;
     }
 
-    public function invoiceOrder($orderUid, $referenceId, $grossAmount, $invoiceUrl, $line_items = [], $discount = 0, $shipping = 0, $currency = 'EUR')
+    public function invoiceOrder($orderUid, $body)
     {
-        $body = [
-            'currency' => $currency,
-            'external_reference_id' => $referenceId,
-            'invoice_url' => $invoiceUrl,
-            'gross_amount_cents' => $grossAmount,
-            'discount_cents' => $discount,
-            'shipping_price_cents' => $shipping,
-            'line_items' => $line_items
-        ];
-
         $response = $this->sendRequest('orders/'.$orderUid.'/invoices', 'POST', $body);
 
         return $response['invoice'] ?? null;
