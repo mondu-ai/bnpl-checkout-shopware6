@@ -1,7 +1,7 @@
 {
   "name": "mondu/shopware6-payment",
   "description": "Mondu payment for Shopware 6",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "type": "shopware-platform-plugin",
   "license": "proprietary",
   "authors": [

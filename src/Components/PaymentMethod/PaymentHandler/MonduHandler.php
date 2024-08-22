@@ -138,7 +138,10 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
                 'phone' => $order->getBillingAddress()->getPhoneNumber(),
                 'address_line1' => $order->getBillingAddress()->getStreet(),
                 'zip_code' => $order->getBillingAddress()->getZipCode(),
-                'is_registered' => !$order->getOrderCustomer()->getCustomer()->getGuest()
+                'external_reference_id' => $order->getOrderCustomer()->getCustomer()->getCustomerNumber(),
+                'account_created_at' => !$order->getOrderCustomer()->getCustomer()->getCreatedAt(),
+                'account_updated_at' => !$order->getOrderCustomer()->getCustomer()->getUpdatedAt(),
+
             ],
             'billing_address' => [
                 'address_line1' => $order->getBillingAddress()->getStreet(),
