@@ -75,9 +75,9 @@ class MonduClient
         return $response['order']['state'] ?? null;
     }
 
-    public function confirmOrder($orderUuid): ?string
+    public function confirmOrder($orderUuid, $data): ?string
     {
-        $response = $this->sendRequest('orders/'. $orderUuid .'/confirm', 'POST');
+        $response = $this->sendRequest('orders/'. $orderUuid .'/confirm', 'POST', $data);
 
         return $response['order']['state'] ?? null;
     }

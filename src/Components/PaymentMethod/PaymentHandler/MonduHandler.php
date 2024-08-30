@@ -64,7 +64,12 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         if ($paymentState === self::PAYMENT_STATE_SUCCESS) {
             $paymentOrderUuid = $request->query->get('order_uuid');
 
-            $confirmResponseState = $this->monduClient->setSalesChannelId($salesChannelContext->getSalesChannelId())->confirmOrder($paymentOrderUuid);
+            $confirmResponseState = $this->monduClient->setSalesChannelId(
+                $salesChannelContext->getSalesChannelId()
+            )->confirmOrder(
+                $paymentOrderUuid,
+                ['external_reference_id' => $transaction->getOrder()->getOrderNumber()]
+            );
 
             if (!$this->isOrderConfirmed($confirmResponseState)) {
                 throw new CustomerCanceledAsyncPaymentException(
