@@ -2,6 +2,7 @@
 
 namespace Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler;
 
+use DateTimeInterface;
 use Mondu\MonduPayment\Components\Order\Model\OrderDataEntity;
 use Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService;
 use Shopware\Core\Checkout\Payment\Cart\AsyncPaymentTransactionStruct;
@@ -145,8 +146,8 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
                 'zip_code' => $order->getBillingAddress()->getZipCode(),
                 'is_registered' => !$order->getOrderCustomer()->getCustomer()->getGuest(),
                 'external_reference_id' => $order->getOrderCustomer()->getCustomer()->getCustomerNumber(),
-                'account_created_at' => $order->getOrderCustomer()->getCustomer()->getCreatedAt(),
-                'account_updated_at' => $order->getOrderCustomer()->getCustomer()->getUpdatedAt(),
+                'account_created_at' => $order->getOrderCustomer()->getCustomer()->getCreatedAt()->format(DateTimeInterface::ATOM),
+                'account_updated_at' => $order->getOrderCustomer()->getCustomer()->getUpdatedAt()->format(DateTimeInterface::ATOM),
 
             ],
             'billing_address' => [
