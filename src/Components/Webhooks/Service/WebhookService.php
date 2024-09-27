@@ -168,7 +168,7 @@ class WebhookService
         }
     }
 
-    protected function transitionOrderState($externalReferenceId, $state, $context, $monduId = null): StateMachineStateCollection
+    protected function transitionOrderState($externalReferenceId, $state, $context, $monduId = null): ?StateMachineStateCollection
     {
         try {
             return $this->stateMachineRegistry->transition(new Transition(
@@ -177,15 +177,13 @@ class WebhookService
                 $state,
                 'stateId'
             ), $context);
-        } catch (MonduException $e) {
-            throw $e;
         } catch (\Exception $e) {
             $this->log('transitionOrderState Failed', [$externalReferenceId, $state], $e);
-            throw new MonduException($e->getMessage());
+            return null;
         }
     }
 
-    protected function transitionDeliveryState($externalReferenceId, $state, $context, $monduId = null): StateMachineStateCollection
+    protected function transitionDeliveryState($externalReferenceId, $state, $context, $monduId = null): ?StateMachineStateCollection
     {
         try {
             $criteria = new Criteria([$this->getOrderUuid($externalReferenceId, $context, $monduId)]);
@@ -201,11 +199,9 @@ class WebhookService
                 $state,
                 'stateId'
             ), $context);
-        } catch (MonduException $e) {
-            throw $e;
         } catch (\Exception $e) {
             $this->log('transitionDeliveryState Failed', [$externalReferenceId, $state], $e);
-            throw new MonduException($e->getMessage());
+            return null;
         }
     }
 
