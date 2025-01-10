@@ -2,17 +2,12 @@
 
 namespace Mondu\MonduPayment\Services\InvoiceServices;
 
-use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 use Shopware\Core\Checkout\Order\OrderEntity;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\Plugin\Exception\DecorationPatternException;
 
 class InvoiceDataService extends AbstractInvoiceDataService
 {
-    public function __construct(
-        private readonly ConfigService $configService
-    ) {}
-
     public function getDecorated(): AbstractInvoiceDataService
     {
         throw new DecorationPatternException(self::class);
@@ -22,12 +17,10 @@ class InvoiceDataService extends AbstractInvoiceDataService
     {
         [ $invoiceNumber, $invoiceUrl ] = $this->getInvoiceNumberAndUrl($order, $context);
 
-        $isRequireInvoiceDocumentToShipEnabled = $this->configService->isRequireInvoiceDocumentToShipEnabled();
-
         return [
             'currency' => $this->orderUtilsService->getOrderCurrency($order),
-            'external_reference_id' => $isRequireInvoiceDocumentToShipEnabled ? $order->getId() : $invoiceNumber,
-            'invoice_url' => $isRequireInvoiceDocumentToShipEnabled ? '' : $invoiceUrl,
+            'external_reference_id' => $invoiceNumber,
+            'invoice_url' => $invoiceUrl,
             'gross_amount_cents' => $this->orderUtilsService->priceToCents($order->getPrice()->getTotalPrice()),
             'discount_cents' => $this->orderDiscountService->getOrderDiscountCents($order, $context),
             'shipping_price_cents' => $this->orderUtilsService->getShippingPriceCents($order),
