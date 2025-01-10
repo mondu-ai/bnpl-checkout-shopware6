@@ -108,7 +108,10 @@ class TransitionSubscriber implements EventSubscriberInterface
             return;
         }
 
-        if ($this->configService->skipOrderStateValidation()) {
+        if (
+            $this->configService->skipOrderStateValidation() &&
+            !$this->configService->isRequireInvoiceDocumentToShipEnabled()
+        ) {
             return;
         }
 
