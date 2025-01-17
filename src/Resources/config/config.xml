@@ -17,16 +17,6 @@
             <defaultValue>1</defaultValue>
         </input-field>
 
-        <input-field type="bool">
-            <name>requireInvoiceDocumentToShip</name>
-            <label>Require SWR invoice document to ship</label>
-            <label lang="de-DE">Für den Versand ist ein SWR-Rechnungsdokument erforderlich</label>
-            <label lang="nl-NL">Vereist SWR-factuurdocument voor verzending</label>
-            <label lang="fr-FR">Exiger le document de facture SWR pour l'expédition</label>
-            <value>0</value>
-            <defaultValue>0</defaultValue>
-        </input-field>
-
         <input-field type="password">
             <name>apiToken</name>
             <label>API Key</label>
@@ -66,6 +56,15 @@
             <helpText lang="fr-FR">Lorsque cette option est activée, il n'y aura pas de validations telles que la validation des factures lors du changement d'état d'une commande.</helpText>
         </input-field>
 
+        <input-field type="bool">
+            <name>requireInvoiceDocumentToShip</name>
+            <label>Require SWR invoice document to ship</label>
+            <label lang="de-DE">Für den Versand ist ein SWR-Rechnungsdokument erforderlich</label>
+            <label lang="nl-NL">Vereist SWR-factuurdocument voor verzending</label>
+            <label lang="fr-FR">Exiger le document de facture SWR pour l'expédition</label>
+            <value>0</value>
+            <defaultValue>0</defaultValue>
+        </input-field>
 
         <input-field type="single-select">
             <name>orderTransactionState</name>

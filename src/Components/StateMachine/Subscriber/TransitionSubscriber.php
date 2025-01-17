@@ -115,7 +115,11 @@ class TransitionSubscriber implements EventSubscriberInterface
             return;
         }
 
-        $invoiceData = $this->invoiceDataService->getInvoiceData($order, $context);
+        $invoiceData = $this->invoiceDataService->getInvoiceData(
+            $order,
+            $context,
+            $this->configService->isRequireInvoiceDocumentToShipEnabled()
+        );
 
         try {
             $invoice = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->invoiceOrder(

@@ -3,7 +3,6 @@
 namespace Mondu\MonduPayment\Services\InvoiceServices;
 
 use Mondu\MonduPayment\Components\Order\Util\DocumentUrlHelper;
-use Mondu\MonduPayment\Services\OrderServices\AbstractOrderAdditionalCostsService;
 use Mondu\MonduPayment\Services\OrderServices\AbstractOrderDiscountService;
 use Mondu\MonduPayment\Services\OrderServices\AbstractOrderLineItemsService;
 use Mondu\MonduPayment\Services\OrderServices\AbstractOrderUtilsService;
@@ -25,8 +24,13 @@ abstract class AbstractInvoiceDataService
      * Get invoice data that is being sent to Mondu API
      *
      * @param OrderEntity $order
-     * @param Context $context
+     * @param Context     $context
+     * @param bool        $isRequireInvoiceDocumentToShipEnabled
      * @return array
      */
-    abstract public function getInvoiceData(OrderEntity $order, Context $context): array;
+    abstract public function getInvoiceData(
+        OrderEntity $order,
+        Context $context,
+        bool $isRequireInvoiceDocumentToShipEnabled
+    ): array;
 }

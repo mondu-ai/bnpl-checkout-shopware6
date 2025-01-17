@@ -2,27 +2,23 @@
 
 namespace Mondu\MonduPayment\Services\InvoiceServices;
 
-use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 use Shopware\Core\Checkout\Order\OrderEntity;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\Plugin\Exception\DecorationPatternException;
 
 class InvoiceDataService extends AbstractInvoiceDataService
 {
-    public function __construct(
-        private readonly ConfigService $configService
-    ) {}
-
     public function getDecorated(): AbstractInvoiceDataService
     {
         throw new DecorationPatternException(self::class);
     }
 
-    public function getInvoiceData(OrderEntity $order, Context $context): array
-    {
+    public function getInvoiceData(
+        OrderEntity $order,
+        Context $context,
+        bool $isRequireInvoiceDocumentToShipEnabled
+    ): array {
         [ $invoiceNumber, $invoiceUrl ] = $this->getInvoiceNumberAndUrl($order, $context);
-
-        $isRequireInvoiceDocumentToShipEnabled = $this->configService->isRequireInvoiceDocumentToShipEnabled();
 
         return [
             'currency' => $this->orderUtilsService->getOrderCurrency($order),
