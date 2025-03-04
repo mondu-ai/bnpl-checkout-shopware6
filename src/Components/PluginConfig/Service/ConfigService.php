@@ -167,6 +167,30 @@ class ConfigService
     }
 
     /**
+     * @param bool $requireInvoiceDocumentToShip
+     *
+     * @return void
+     */
+    public function setRequireInvoiceDocumentToShip(bool $requireInvoiceDocumentToShip): void
+    {
+        $this->systemConfigService->set(
+            'Mond1SW6.customConfig.webhooksSecret',
+            $requireInvoiceDocumentToShip,
+            $this->salesChannelId
+        );
+    }
+
+    /**
+     * @return bool
+     */
+    public function isRequireInvoiceDocumentToShipEnabled(): bool
+    {
+        $config = $this->getPluginConfiguration();
+
+        return isset($config['requireInvoiceDocumentToShip']) && $config['requireInvoiceDocumentToShip'];
+    }
+
+    /**
      * @param  bool  $val
      *
      * @return void
