@@ -2,12 +2,12 @@
 
 namespace Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler;
 
+use Shopware\Core\Checkout\Payment\PaymentException;
 use Mondu\MonduPayment\Components\Order\Model\OrderDataEntity;
 use Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService;
 use Shopware\Core\Checkout\Payment\Cart\AsyncPaymentTransactionStruct;
 use Shopware\Core\Checkout\Payment\Cart\PaymentHandler\AsynchronousPaymentHandlerInterface;
 use Shopware\Core\Checkout\Payment\Exception\AsyncPaymentProcessException;
-use Shopware\Core\Checkout\Payment\Exception\CustomerCanceledAsyncPaymentException;
 use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler;
 use Shopware\Core\Framework\Validation\DataBag\RequestDataBag;
 use Shopware\Core\System\SalesChannel\SalesChannelContext;
@@ -72,7 +72,7 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
             );
 
             if (!$this->isOrderConfirmed($confirmResponseState)) {
-                throw new CustomerCanceledAsyncPaymentException(
+                throw PaymentException::customerCanceled(
                     $transactionId,
                     'Order not confirmed.'
                 );
@@ -102,7 +102,7 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         } else {
             $this->transactionStateHandler->fail($transaction->getOrderTransaction()->getId(), $context);
 
-            throw new CustomerCanceledAsyncPaymentException(
+            throw PaymentException::customerCanceled(
                 $transactionId,
                 'Canceled/declined payment in Mondu Checkout.'
             );
