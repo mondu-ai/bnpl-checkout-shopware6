@@ -53,7 +53,10 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
     }
 
     /**
-     * @throws CustomerCanceledAsyncPaymentException
+     * @param AsyncPaymentTransactionStruct $transaction
+     * @param Request                       $request
+     * @param SalesChannelContext           $salesChannelContext
+     * @return void
      */
     public function finalize(AsyncPaymentTransactionStruct $transaction, Request $request, SalesChannelContext $salesChannelContext): void
     {
