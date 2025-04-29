@@ -100,7 +100,9 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                     return;
                 }
 
-                $liveOrder = $this->monduClient->getMonduOrder($monduOrderEntity->getReferenceId());
+                $liveOrder = $this->monduClient
+                    ->setSalesChannelId($order->getSalesChannelId())
+                    ->getMonduOrder($monduOrderEntity->getReferenceId());
 
                 if (!isset($liveOrder['real_price_cents'])) {
                     $this->logger->critical(
