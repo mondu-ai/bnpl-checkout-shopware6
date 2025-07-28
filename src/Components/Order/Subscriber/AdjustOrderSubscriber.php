@@ -57,8 +57,7 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                 continue;
             }
 
-            /** @var ChangeSetAware|InsertCommand|UpdateCommand $command */
-            if ($command->getDefinition()->getEntityName() !== OrderDefinition::ENTITY_NAME) {
+            if ($command->getEntityName() !== OrderDefinition::ENTITY_NAME) {
                 continue;
             }
 

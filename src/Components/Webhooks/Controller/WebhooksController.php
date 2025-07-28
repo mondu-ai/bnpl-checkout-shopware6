@@ -7,7 +7,6 @@ namespace Mondu\MonduPayment\Components\Webhooks\Controller;
 use Shopware\Core\Framework\Context;
 use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 use Mondu\MonduPayment\Components\Webhooks\Service\WebhookService;
-use Shopware\Core\Framework\Routing\Annotation\RouteScope;
 use Shopware\Storefront\Controller\StorefrontController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

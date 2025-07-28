@@ -5,9 +5,9 @@ namespace Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler;
 use Shopware\Core\Checkout\Payment\PaymentException;
 use Mondu\MonduPayment\Components\Order\Model\OrderDataEntity;
 use Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService;
-use Shopware\Core\Checkout\Payment\Cart\AsyncPaymentTransactionStruct;
-use Shopware\Core\Checkout\Payment\Cart\PaymentHandler\AsynchronousPaymentHandlerInterface;
-use Shopware\Core\Checkout\Payment\Exception\AsyncPaymentProcessException;
+use Shopware\Core\Checkout\Payment\Cart\PaymentTransactionStruct;
+use Shopware\Core\Checkout\Payment\Cart\PaymentHandler\AbstractPaymentHandler;
+use Shopware\Core\Checkout\Payment\Cart\PaymentHandler\PaymentHandlerType;
 use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler;
 use Shopware\Core\Framework\Validation\DataBag\RequestDataBag;
 use Shopware\Core\System\SalesChannel\SalesChannelContext;
@@ -17,8 +17,12 @@ use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Mondu\MonduPayment\Components\PaymentMethod\Util\MethodHelper;
 use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
+use Shopware\Core\Checkout\Cart\Cart;
+use Shopware\Core\Framework\Context;
+use Shopware\Core\Framework\Struct\Struct;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 
-class MonduHandler implements AsynchronousPaymentHandlerInterface
+class MonduHandler extends AbstractPaymentHandler
 {
     const PAYMENT_STATE_SUCCESS = 'success';
     const RESPONSE_STATE_CONFIRMED = 'confirmed';
@@ -32,18 +36,29 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         private readonly EntityRepository $productRepository,
         private readonly EntityRepository $orderDataRepository,
         private readonly ConfigService $configService,
-        private readonly AbstractOrderLinesService $orderLinesService
+        private readonly AbstractOrderLinesService $orderLinesService,
+        private readonly EntityRepository $orderRepository,
+        private readonly EntityRepository $orderTransactionRepository
     ) {}
 
-    /**
-     * @throws AsyncPaymentProcessException
-     */
-    public function pay(AsyncPaymentTransactionStruct $transaction, RequestDataBag $dataBag, SalesChannelContext $salesChannelContext): RedirectResponse
-    {
+    public function supports(
+        PaymentHandlerType $type,
+        string $paymentMethodId,
+        Context $context
+    ): bool {
+        return $type === PaymentHandlerType::PAYMENT;
+    }
+
+    public function pay(
+        Request $request,
+        PaymentTransactionStruct $transaction,
+        Context $context,
+        ?Struct $validateStruct
+    ): ?RedirectResponse {
         try {
-            $redirectUrl = $this->createOrder($transaction, $salesChannelContext);
+            $redirectUrl = $this->createOrder($transaction, $context);
         } catch (\Exception $e) {
-            throw new AsyncPaymentProcessException(
+            throw PaymentException::asyncProcessInterrupted(
                 $transaction->getOrderTransaction()->getId(),
                 'An error occurred during the communication with external payment gateway' . PHP_EOL . $e->getMessage()
             );
@@ -52,26 +67,25 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         return new RedirectResponse($redirectUrl);
     }
 
-    /**
-     * @param AsyncPaymentTransactionStruct $transaction
-     * @param Request                       $request
-     * @param SalesChannelContext           $salesChannelContext
-     * @return void
-     */
-    public function finalize(AsyncPaymentTransactionStruct $transaction, Request $request, SalesChannelContext $salesChannelContext): void
-    {
-        $transactionId = $transaction->getOrderTransaction()->getId();
+    public function finalize(
+        Request $request,
+        PaymentTransactionStruct $transaction,
+        Context $context
+    ): void {
+        $transactionId = $transaction->getOrderTransactionId();
         $paymentState = $request->query->getAlpha('payment');
-        $context = $salesChannelContext->getContext();
 
         if ($paymentState === self::PAYMENT_STATE_SUCCESS) {
             $paymentOrderUuid = $request->query->get('order_uuid');
 
-            $confirmResponseState = $this->monduClient->setSalesChannelId(
-                $salesChannelContext->getSalesChannelId()
-            )->confirmOrder(
+            // Get sales channel ID from the order
+            $orderTransaction = $this->getOrderTransaction($transactionId, $context);
+            $order = $orderTransaction->getOrder();
+            $salesChannelId = $order->getSalesChannelId();
+
+            $confirmResponseState = $this->monduClient->setSalesChannelId($salesChannelId)->confirmOrder(
                 $paymentOrderUuid,
-                ['external_reference_id' => $transaction->getOrder()->getOrderNumber()]
+                ['external_reference_id' => $order->getOrderNumber()]
             );
 
             if (!$this->isOrderConfirmed($confirmResponseState)) {
@@ -82,28 +96,28 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
             }
 
             $this->monduClient
-                 ->setSalesChannelId($salesChannelContext->getSalesChannelId())
+                 ->setSalesChannelId($salesChannelId)
                  ->updateExternalInfo(
                      $paymentOrderUuid,
-                     ['external_reference_id' => $transaction->getOrder()->getOrderNumber()]
+                     ['external_reference_id' => $order->getOrderNumber()]
                  );
             
-            $this->createLocalOrder($transaction, $paymentOrderUuid, $salesChannelContext);
+            $this->createLocalOrder($transaction, $paymentOrderUuid, $context);
 
-            $orderTransactionState = $this->configService->setSalesChannelId($salesChannelContext->getSalesChannelId())->orderTransactionState();
+            $orderTransactionState = $this->configService->setSalesChannelId($salesChannelId)->orderTransactionState();
 
             if (
                 $orderTransactionState == self::ORDER_TRANSACTION_STATE_PAID &&
                 $confirmResponseState == self::RESPONSE_STATE_PENDING
             ) {
-                $this->transactionStateHandler->processUnconfirmed($transaction->getOrderTransaction()->getId(), $salesChannelContext->getContext());
+                $this->transactionStateHandler->processAuthorize($transactionId, $context);
             } else if ($orderTransactionState == self::ORDER_TRANSACTION_STATE_AUTHORIZED) {
-                $this->transactionStateHandler->authorize($transaction->getOrderTransaction()->getId(), $salesChannelContext->getContext());
+                $this->transactionStateHandler->authorize($transactionId, $context);
             } else {
-                $this->transactionStateHandler->paid($transaction->getOrderTransaction()->getId(), $salesChannelContext->getContext());
+                $this->transactionStateHandler->paid($transactionId, $context);
             }
         } else {
-            $this->transactionStateHandler->fail($transaction->getOrderTransaction()->getId(), $context);
+            $this->transactionStateHandler->fail($transactionId, $context);
 
             throw PaymentException::customerCanceled(
                 $transactionId,
@@ -112,22 +126,28 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         }
     }
 
-    private function createOrder(AsyncPaymentTransactionStruct $transaction, SalesChannelContext $salesChannelContext): string
+    private function createOrder(PaymentTransactionStruct $transaction, Context $context): string
     {
-        $orderData = $this->getOrderData($transaction, $salesChannelContext);
-        $monduOrder = $this->monduClient->setSalesChannelId($salesChannelContext->getSalesChannelId())->createOrder($orderData);
+        $orderData = $this->getOrderData($transaction, $context);
+        $orderTransaction = $this->getOrderTransaction($transaction->getOrderTransactionId(), $context);
+        $order = $orderTransaction->getOrder();
+        $salesChannelId = $order->getSalesChannelId();
+        $monduOrder = $this->monduClient->setSalesChannelId($salesChannelId)->createOrder($orderData);
 
         return $monduOrder['hosted_checkout_url'];
     }
 
-    protected function getOrderData(AsyncPaymentTransactionStruct $transaction, SalesChannelContext $salesChannelContext)
+    protected function getOrderData(PaymentTransactionStruct $transaction, Context $context)
     {
-        $order = $transaction->getOrder();
+        $orderTransaction = $this->getOrderTransaction($transaction->getOrderTransactionId(), $context);
+        $order = $orderTransaction->getOrder();
         $returnUrl = $transaction->getReturnUrl();
-        $orderTransaction = $transaction->getOrderTransaction();
 
         $shippingAddress = $order->getDeliveries()->getShippingAddress()->first();
         $paymentMethod = MethodHelper::shortNameToMonduName($orderTransaction->getPaymentMethod()->getShortName());
+
+        // Use billing address as fallback if shipping address is not available
+        $addressForShipping = $shippingAddress ?? $order->getBillingAddress();
 
         return [
             'currency' => $order->getCurrency()->getIsoCode(),
@@ -159,21 +179,23 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
                 'zip_code' => $order->getBillingAddress()->getZipCode(),
             ],
             'shipping_address' => [
-                'address_line1' => $shippingAddress->getStreet(),
-                'city' => $shippingAddress->getCity(),
-                'country_code' => $shippingAddress->getCountry()->getIso(),
-                'zip_code' => $shippingAddress->getZipCode(),
+                'address_line1' => $addressForShipping->getStreet(),
+                'city' => $addressForShipping->getCity(),
+                'country_code' => $addressForShipping->getCountry()->getIso(),
+                'zip_code' => $addressForShipping->getZipCode(),
             ],
-            'lines' => $this->orderLinesService->getLines($order, $salesChannelContext->getContext())
+            'lines' => $this->orderLinesService->getLines($order, $context)
         ];
     }
 
-    public function createLocalOrder($transaction, $orderUuid, $salesChannelContext) {
-        $order = $transaction->getOrder();
-        $monduOrder = $this->monduClient->setSalesChannelId($salesChannelContext->getSalesChannelId())->getMonduOrder($orderUuid);
+    public function createLocalOrder($transaction, $orderUuid, $context) {
+        $orderTransaction = $this->getOrderTransaction($transaction->getOrderTransactionId(), $context);
+        $order = $orderTransaction->getOrder();
+        $salesChannelId = $order->getSalesChannelId();
+        $monduOrder = $this->monduClient->setSalesChannelId($salesChannelId)->getMonduOrder($orderUuid);
         
         if (!$monduOrder) {
-            throw new AsyncPaymentProcessException($transaction->getOrderTransaction()->getId(), 'Could not fetch Mondu Order.');
+            throw PaymentException::asyncProcessInterrupted($transaction->getOrderTransactionId(), 'Could not fetch Mondu Order.');
         }
 
         $this->orderDataRepository->upsert([
@@ -186,11 +208,38 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
                 OrderDataEntity::FIELD_DURATION => $monduOrder['authorized_net_term'],
                 OrderDataEntity::FIELD_IS_SUCCESSFUL => true,
             ]
-        ], $salesChannelContext->getContext());
+        ], $context);
     }
 
     protected function isOrderConfirmed($confirmResponseState)
     {
         return in_array($confirmResponseState, [self::RESPONSE_STATE_CONFIRMED, self::RESPONSE_STATE_PENDING]);
+    }
+
+    private function getOrderTransaction(string $transactionId, Context $context)
+    {
+        $criteria = new Criteria([$transactionId]);
+        $criteria->addAssociation('order.orderCustomer.customer');
+        $criteria->addAssociation('order.billingAddress.country');
+        $criteria->addAssociation('order.deliveries.shippingAddress.country');
+        $criteria->addAssociation('order.currency');
+        $criteria->addAssociation('order.lineItems');
+        $criteria->addAssociation('order.price.calculatedTaxes');
+        $criteria->addAssociation('paymentMethod');
+
+        return $this->orderTransactionRepository->search($criteria, $context)->first();
+    }
+
+    private function getOrder(string $orderId, Context $context)
+    {
+        $criteria = new Criteria([$orderId]);
+        $criteria->addAssociation('orderCustomer.customer');
+        $criteria->addAssociation('billingAddress.country');
+        $criteria->addAssociation('deliveries.shippingAddress.country');
+        $criteria->addAssociation('currency');
+        $criteria->addAssociation('lineItems');
+        $criteria->addAssociation('price.calculatedTaxes');
+
+        return $this->orderRepository->search($criteria, $context)->first();
     }
 }

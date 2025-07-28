@@ -18,6 +18,7 @@ class PaymentMethods extends AbstractBootstrap
     public const PAYMENT_METHODS = [
         MonduHandler::class => [
             'handlerIdentifier' => MonduHandler::class,
+            'technicalName' => 'mondu_payment',
             'name' => 'Rechnungskauf - Später per Banküberweisung bezahlen',
             'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/gdpr-notification-for-buyers/]hier[/url].',
             'afterOrderEnabled' => true,
@@ -42,6 +43,7 @@ class PaymentMethods extends AbstractBootstrap
         ],
         MonduSepaHandler::class => [
             'handlerIdentifier' => MonduSepaHandler::class,
+            'technicalName' => 'mondu_sepa_payment',
             'name' => 'SEPA - Später zahlen per Bankeinzug',
             'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
             'afterOrderEnabled' => true,
@@ -66,6 +68,7 @@ class PaymentMethods extends AbstractBootstrap
         ],
         MonduInstallmentHandler::class => [
             'handlerIdentifier' => MonduInstallmentHandler::class,
+            'technicalName' => 'mondu_installment_payment',
             'name' => 'Ratenkauf - Bequem in Raten per Bankeinzug zahlen',
             'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
             'afterOrderEnabled' => true,
@@ -90,6 +93,7 @@ class PaymentMethods extends AbstractBootstrap
         ],
         MonduInstallmentByInvoiceHandler::class => [
             'handlerIdentifier' => MonduInstallmentByInvoiceHandler::class,
+            'technicalName' => 'mondu_installment_by_invoice_payment',
             'name' => 'Gesplittete Zahlungen - Ratenkauf per Banküberweisung',
             'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
             'afterOrderEnabled' => true,
