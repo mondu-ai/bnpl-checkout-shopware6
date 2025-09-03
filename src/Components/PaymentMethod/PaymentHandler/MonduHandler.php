@@ -110,7 +110,7 @@ class MonduHandler extends AbstractPaymentHandler
                 $orderTransactionState == self::ORDER_TRANSACTION_STATE_PAID &&
                 $confirmResponseState == self::RESPONSE_STATE_PENDING
             ) {
-                $this->transactionStateHandler->processAuthorize($transactionId, $context);
+                $this->transactionStateHandler->process($transactionId, $context);
             } else if ($orderTransactionState == self::ORDER_TRANSACTION_STATE_AUTHORIZED) {
                 $this->transactionStateHandler->authorize($transactionId, $context);
             } else {
