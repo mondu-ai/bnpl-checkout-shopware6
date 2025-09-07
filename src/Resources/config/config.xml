@@ -25,14 +25,6 @@
             <label lang="fr-FR">Clé API</label>
         </input-field>
 
-        <component name="mondu-test-api-button">
-            <name>testLiveClientCredentialsButton</name>
-            <label>Validate API Credentials</label>
-            <label lang="de-DE">API Zugangsdaten validieren</label>
-            <label lang="nl-NL">API Credentials valideren</label>
-            <label lang="fr-FR">Valider les informations d'identification de l'API</label>
-            <apiMode>live</apiMode>
-        </component>
     </card>
 
     <card>

@@ -1,2 +1,22 @@
+# Node.js dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs (автоматически создаются при сборке)
+src/Resources/app/administration/node_modules/
+src/Resources/app/storefront/node_modules/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
 .DS_Store
-.env
+Thumbs.db
+
+# Logs
+*.log
