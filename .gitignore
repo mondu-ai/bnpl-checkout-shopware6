@@ -4,7 +4,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Build outputs (автоматически создаются при сборке)
+# Build outputs
 src/Resources/app/administration/node_modules/
 src/Resources/app/storefront/node_modules/
 
