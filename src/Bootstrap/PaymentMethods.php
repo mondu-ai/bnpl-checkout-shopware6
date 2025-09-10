@@ -8,6 +8,7 @@ use Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduHandler;
 use Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduInstallmentByInvoiceHandler;
 use Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduSepaHandler;
 use Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduInstallmentHandler;
+use Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduPayNowHandler;
 use Shopware\Core\Checkout\Payment\PaymentMethodEntity;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
@@ -18,6 +19,7 @@ class PaymentMethods extends AbstractBootstrap
     public const PAYMENT_METHODS = [
         MonduHandler::class => [
             'handlerIdentifier' => MonduHandler::class,
+            'technicalName' => 'mondu_payment',
             'name' => 'Rechnungskauf - Später per Banküberweisung bezahlen',
             'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/gdpr-notification-for-buyers/]hier[/url].',
             'afterOrderEnabled' => true,
@@ -42,6 +44,7 @@ class PaymentMethods extends AbstractBootstrap
         ],
         MonduSepaHandler::class => [
             'handlerIdentifier' => MonduSepaHandler::class,
+            'technicalName' => 'mondu_sepa_payment',
             'name' => 'SEPA - Später zahlen per Bankeinzug',
             'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
             'afterOrderEnabled' => true,
@@ -66,6 +69,7 @@ class PaymentMethods extends AbstractBootstrap
         ],
         MonduInstallmentHandler::class => [
             'handlerIdentifier' => MonduInstallmentHandler::class,
+            'technicalName' => 'mondu_installment_payment',
             'name' => 'Ratenkauf - Bequem in Raten per Bankeinzug zahlen',
             'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
             'afterOrderEnabled' => true,
@@ -90,6 +94,7 @@ class PaymentMethods extends AbstractBootstrap
         ],
         MonduInstallmentByInvoiceHandler::class => [
             'handlerIdentifier' => MonduInstallmentByInvoiceHandler::class,
+            'technicalName' => 'mondu_installment_by_invoice_payment',
             'name' => 'Gesplittete Zahlungen - Ratenkauf per Banküberweisung',
             'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
             'afterOrderEnabled' => true,
@@ -109,6 +114,31 @@ class PaymentMethods extends AbstractBootstrap
                 'fr-FR' => [
                     'name' => 'Paiements fractionnés - Payer plus tard en plusieurs fois par virement bancaire',
                     'description' => "Plus d'informations sur la façon dont Mondu GmbH traite vos données personnelles peuvent être trouvées [url=https://mondu.ai/fr/gdpr-notification-for-buyers]ici[/url]."
+                ]
+            ],
+        ],
+        MonduPayNowHandler::class => [
+            'handlerIdentifier' => MonduPayNowHandler::class,
+            'technicalName' => 'mondu_pay_now_payment',
+            'name' => 'Echtzeitüberweisung – Direkt von Ihrem Bankkonto bezahlen',
+            'description' => 'Informationen über die Verarbeitung Ihrer persönlichen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
+            'afterOrderEnabled' => true,
+            'translations' => [
+                'de-DE' => [
+                    'name' => 'Echtzeitüberweisung – Direkt von Ihrem Bankkonto bezahlen',
+                    'description' => 'Informationen über die Verarbeitung Ihrer persönlichen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
+                ],
+                'en-GB' => [
+                    'name' => 'Instant Pay – Pay directly from your bank account',
+                    'description' => 'Information about how Mondu GmbH processes your personal data can be found [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]here[/url].',
+                ],
+                'nl-NL' => [
+                    'name' => 'Instant Pay – Betaal direct vanaf uw bankrekening',
+                    'description' => 'Instant Pay – Betaal direct vanaf uw bankrekening [url=https://www.mondu.ai/nl/gdpr-notification-for-merchants/]hier[/url].'
+                ],
+                'fr-FR' => [
+                    'name' => 'Virement Instantané – Payez directement depuis votre compte bancaire',
+                    'description' => "Des informations sur la façon dont Mondu GmbH traite vos données personnelles peuvent être trouvées [url=https://mondu.ai/fr/gdpr-notification-for-buyers]ici[/url]."
                 ]
             ],
         ],

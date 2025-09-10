@@ -8,7 +8,6 @@ use Mondu\MonduPayment\Components\Order\Util\DocumentUrlHelper;
 use Shopware\Core\Framework\Context;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Shopware\Core\Framework\Routing\Annotation\RouteScope;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Shopware\Core\Checkout\Document\Service\DocumentGenerator;

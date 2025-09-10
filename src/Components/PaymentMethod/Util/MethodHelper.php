@@ -9,12 +9,13 @@ use Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduHandler;
 use Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduSepaHandler;
 use Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduInstallmentHandler;
 use Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduInstallmentByInvoiceHandler;
+use Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduPayNowHandler;
 use Shopware\Core\Checkout\Payment\PaymentMethodEntity;
 
 class MethodHelper
 {
     const DEFAULT_MONDU_PAYMENT_METHOD = 'invoice';
-    const MONDU_PAYMENT_METHODS = ['invoice', 'direct_debit', 'installment', 'installment_by_invoice'];
+    const MONDU_PAYMENT_METHODS = ['invoice', 'direct_debit', 'installment', 'installment_by_invoice', 'pay_now'];
 
     public static function isMonduPayment(PaymentMethodEntity $paymentMethodEntity): bool
     {
@@ -27,7 +28,8 @@ class MethodHelper
             'mondu_handler' => 'invoice',
             'mondu_sepa_handler' => 'direct_debit',
             'mondu_installment_handler' => 'installment',
-            'mondu_installment_by_invoice_handler' => 'installment_by_invoice'
+            'mondu_installment_by_invoice_handler' => 'installment_by_invoice',
+            'mondu_pay_now_handler' => 'pay_now'
         ];
 
         return $mapping[$paymentMethodName] ?? self::DEFAULT_MONDU_PAYMENT_METHOD;
@@ -39,7 +41,8 @@ class MethodHelper
             'invoice' => MonduHandler::class,
             'direct_debit' => MonduSepaHandler::class,
             'installment' => MonduInstallmentHandler::class,
-            'installment_by_invoice' => MonduInstallmentByInvoiceHandler::class
+            'installment_by_invoice' => MonduInstallmentByInvoiceHandler::class,
+            'pay_now' => MonduPayNowHandler::class,
         ];
 
         return $mapping[$paymentMethodName] ?? '';
