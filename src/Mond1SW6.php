@@ -23,7 +23,6 @@ use Symfony\Component\DependencyInjection\Loader\DirectoryLoader;
 use Symfony\Component\DependencyInjection\Loader\GlobFileLoader;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 
-
 class Mond1SW6 extends Plugin
 {
     public function install(InstallContext $installContext): void
