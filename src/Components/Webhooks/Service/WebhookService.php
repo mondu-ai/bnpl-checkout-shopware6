@@ -50,7 +50,6 @@ class WebhookService
     public function getSecret($key)
     {
         try {
-
             $keys = $this->monduClient->setSalesChannelId($this->salesChannelId)->getWebhooksSecret($key);
 
             if (isset($keys['webhook_secret']))
@@ -128,15 +127,53 @@ class WebhookService
                 throw new MonduException('Required params missing');
             }
 
-            $this->transitionOrderState($externalReferenceId, 'process', $context, $monduId);
-            $transitionResult = $this->transitionTransactionState(
-                $externalReferenceId,
-                StateMachineTransitionActions::ACTION_PROCESS_UNCONFIRMED,
-                $context,
-                $monduId
-            );
+            $criteria = new Criteria([$this->getOrderUuid($externalReferenceId, $context, $monduId)]);
+            $criteria->addAssociation('transactions.stateMachineState');
 
-            return [[ 'message' => $transitionResult->last()->getTechnicalName(), 'code' => Response::HTTP_OK ], Response::HTTP_OK];
+            /** @var OrderEntity $orderEntity */
+            $orderEntity = $this->orderRepository->search($criteria, $context)->first();
+            $transaction = $orderEntity->getTransactions()->first();
+            $currentState = $transaction->getStateMachineState()->getTechnicalName();
+
+            // Only attempt transition if not already in paid or completed state
+            $finalStates = ['paid', 'cancelled', 'refunded', 'refunded_partially', 'chargeback'];
+            
+            if (!in_array($currentState, $finalStates)) {
+                try {
+                    $this->transitionOrderState($externalReferenceId, 'process', $context, $monduId);
+
+                    if ($currentState !== 'open') {
+                        try {
+                            $this->log('Two-step transition: first reopening to open state', [$currentState]);
+                            $this->transitionTransactionState(
+                                $externalReferenceId,
+                                'reopen',
+                                $context,
+                                $monduId
+                            );
+                        } catch (\Exception $e) {
+                            $this->log('Reopen transition failed', [$currentState, $e->getMessage()]);
+                        }
+                    }
+
+                    $transitionResult = $this->transitionTransactionState(
+                        $externalReferenceId,
+                        StateMachineTransitionActions::ACTION_PROCESS_UNCONFIRMED,
+                        $context,
+                        $monduId
+                    );
+                    
+                    return [[ 'message' => $transitionResult->last()->getTechnicalName(), 'code' => Response::HTTP_OK ], Response::HTTP_OK];
+                    
+                } catch (\Exception $e) {
+                    $this->log('Two-step transition failed, treating pending webhook as success', [$currentState, $e->getMessage(), $params]);
+                    return [[ 'message' => 'Pending webhook processed (transition failed): ' . $currentState, 'code' => Response::HTTP_OK ], Response::HTTP_OK];
+                }
+            } else {
+                $this->log('Pending webhook received for transaction already in final state', [$currentState, $params]);
+                return [[ 'message' => 'Transaction already in final state: ' . $currentState, 'code' => Response::HTTP_OK ], Response::HTTP_OK];
+            }
+
         } catch (MonduException $e) {
             $this->log('handlePending Webhook Failed', [$params], $e);
             return [[ 'message' => $e->getMessage(), 'code' => $e->getStatusCode() ], $e->getStatusCode()];
