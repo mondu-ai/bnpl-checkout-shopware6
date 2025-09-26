@@ -194,7 +194,7 @@ class WebhookService
 
             $this->transitionOrderState($externalReferenceId, 'cancel', $context, $monduId);
             $this->transitionDeliveryState($externalReferenceId, 'cancel', $context, $monduId);
-            $transitionResult = $this->transitionTransactionState($externalReferenceId, 'cancel', $context, $monduId);
+            $transitionResult = $this->transitionTransactionState($externalReferenceId, 'fail', $context, $monduId);
 
             return [[ 'message' => $transitionResult->last()->getTechnicalName(), 'code' => Response::HTTP_OK ], Response::HTTP_OK];
         } catch (MonduException $e) {
