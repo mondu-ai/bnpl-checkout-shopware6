@@ -103,7 +103,10 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
 
         if (!$invoiceNumber) {
             foreach ($order->getDocuments() as $document) {
-                if ($document->getDocumentType()->getTechnicalName() === 'invoice') {
+                if (
+                    $document->getDocumentType()->getTechnicalName() === 'invoice' ||
+                    $document->getDocumentType()->getTechnicalName() === 'zugferd_embedded_invoice'
+                ) {
                     $config = $document->getConfig();
 
                     return isset($config['custom']['invoiceNumber']);

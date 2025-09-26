@@ -40,7 +40,10 @@ class InvoiceDataService extends AbstractInvoiceDataService
 
         foreach ($order->getDocuments() as $document) {
             if ($document->getId() == $attachedDocument) {
-                if ($document->getDocumentType()->getTechnicalName() === 'invoice') {
+                if (
+                    $document->getDocumentType()->getTechnicalName() === 'invoice' ||
+                    $document->getDocumentType()->getTechnicalName() === 'zugferd_embedded_invoice'
+                ) {
                     $config = $document->getConfig();
                     $invoiceNumber = $config['custom']['invoiceNumber'] ?? null;
                     $invoiceUrl = $this->documentUrlHelper->generateRouteForDocument($document);
