@@ -92,7 +92,7 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                 }
 
                 if ($monduOrderEntity->getOrderState() === 'canceled') {
-                    $this->transitionDeliveryState($orderId, 'cancel', $context);
+                    $this->safeTransitionDeliveryState($orderId, $context);
                 }
 
                 if ($this->hasInvoices($orderId, $context)) {
@@ -217,6 +217,26 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
             ), $context);
         } catch (\Exception $e) {
             $this->log('Adjust Order: transitionDeliveryState Failed', [$orderId, $state], $e);
+        }
+    }
+
+    /**
+     * Safely transition delivery state to cancelled, handling different current states
+     */
+    private function safeTransitionDeliveryState(string $orderId, Context $context): void
+    {
+        try {
+            $this->transitionDeliveryState($orderId, 'cancel', $context);
+        } catch (\Exception $e) {
+            try {
+                $this->transitionDeliveryState($orderId, 'reopen', $context);
+                $this->transitionDeliveryState($orderId, 'cancel', $context);
+            } catch (\Exception $e2) {
+                $this->log(
+                    'Adjust Order: Could not transition delivery state to cancelled',
+                    [$orderId, $e->getMessage(), $e2->getMessage()]
+                );
+            }
         }
     }
 }

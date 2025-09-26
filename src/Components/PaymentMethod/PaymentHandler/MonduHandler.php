@@ -117,7 +117,7 @@ class MonduHandler extends AbstractPaymentHandler
                 $this->transactionStateHandler->paid($transactionId, $context);
             }
         } else {
-            $this->transactionStateHandler->fail($transactionId, $context);
+            $this->safeTransitionToFailed($transactionId, $context);
 
             throw PaymentException::customerCanceled(
                 $transactionId,
@@ -195,7 +195,9 @@ class MonduHandler extends AbstractPaymentHandler
         $monduOrder = $this->monduClient->setSalesChannelId($salesChannelId)->getMonduOrder($orderUuid);
         
         if (!$monduOrder) {
-            throw PaymentException::asyncProcessInterrupted($transaction->getOrderTransactionId(), 'Could not fetch Mondu Order.');
+            throw PaymentException::asyncProcessInterrupted(
+                $transaction->getOrderTransactionId(), 'Could not fetch Mondu Order.'
+            );
         }
 
         $this->orderDataRepository->upsert([
@@ -241,5 +243,29 @@ class MonduHandler extends AbstractPaymentHandler
         $criteria->addAssociation('price.calculatedTaxes');
 
         return $this->orderRepository->search($criteria, $context)->first();
+    }
+
+    /**
+     * Safely transition transaction to failed state, handling different current states
+     */
+    private function safeTransitionToFailed(string $transactionId, Context $context): void
+    {
+        try {
+            $this->transactionStateHandler->fail($transactionId, $context);
+        } catch (\Exception $e) {
+            try {
+                $this->transactionStateHandler->reopen($transactionId, $context);
+                $this->transactionStateHandler->fail($transactionId, $context);
+            } catch (\Exception $e2) {
+                error_log(
+                    'MONDU DEBUG: All transition attempts failed. Original error: ' .
+                    $e->getMessage() .
+                    ', Reopen error: ' .
+                    $e2->getMessage()
+                );
+            }
+        }
+        
+        error_log('MONDU DEBUG: safeTransitionToFailed() completed');
     }
 }

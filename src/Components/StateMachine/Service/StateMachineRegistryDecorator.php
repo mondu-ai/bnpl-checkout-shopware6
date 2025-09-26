@@ -38,6 +38,15 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
 
     public function transition(Transition $transition, Context $context): StateMachineStateCollection
     {
+        if ($transition->getEntityName() === "order_transaction" && $transition->getTransitionName() === "cancel") {
+            $transition = new \Shopware\Core\System\StateMachine\Transition(
+                $transition->getEntityName(),
+                $transition->getEntityId(),
+                "fail",
+                $transition->getStateFieldName()
+            );
+        }
+
         if ($transition->getEntityName() === OrderDeliveryDefinition::ENTITY_NAME) {
             $orderDelivery = $this->orderDeliveryRepository->search(new Criteria([$transition->getEntityId()]), $context)->first();
             $order = $this->getOrder($orderDelivery->getOrderId(), $context);
@@ -103,7 +112,10 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
 
         if (!$invoiceNumber) {
             foreach ($order->getDocuments() as $document) {
-                if ($document->getDocumentType()->getTechnicalName() === 'invoice') {
+                if (
+                    $document->getDocumentType()->getTechnicalName() === 'invoice' ||
+                    $document->getDocumentType()->getTechnicalName() === 'zugferd_embedded_invoice'
+                ) {
                     $config = $document->getConfig();
 
                     return isset($config['custom']['invoiceNumber']);
