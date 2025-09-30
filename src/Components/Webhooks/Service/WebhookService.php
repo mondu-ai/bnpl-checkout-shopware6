@@ -108,7 +108,6 @@ class WebhookService
                 ]
             ], $context);
 
-            $this->transitionOrderState($externalReferenceId, 'process', $context, $monduId);
             $transitionResult = $this->transitionTransactionState($externalReferenceId, 'paid', $context, $monduId);
 
             return [[ 'message' => $transitionResult->last()->getTechnicalName(), 'code' => Response::HTTP_OK ], Response::HTTP_OK];
@@ -128,7 +127,6 @@ class WebhookService
                 throw new MonduException('Required params missing');
             }
 
-            $this->transitionOrderState($externalReferenceId, 'process', $context, $monduId);
             $transitionResult = $this->transitionTransactionState(
                 $externalReferenceId,
                 StateMachineTransitionActions::ACTION_PROCESS_UNCONFIRMED,
@@ -155,8 +153,6 @@ class WebhookService
                 throw new MonduException('Required params missing');
             }
 
-            $this->transitionOrderState($externalReferenceId, 'cancel', $context, $monduId);
-            $this->transitionDeliveryState($externalReferenceId, 'cancel', $context, $monduId);
             $transitionResult = $this->transitionTransactionState($externalReferenceId, 'cancel', $context, $monduId);
 
             return [[ 'message' => $transitionResult->last()->getTechnicalName(), 'code' => Response::HTTP_OK ], Response::HTTP_OK];
