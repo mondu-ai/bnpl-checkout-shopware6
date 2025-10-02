@@ -107,8 +107,13 @@ class WebhookService
                 ]
             ], $context);
 
-            $this->transitionOrderState($externalReferenceId, 'process', $context, $monduId);
-            $transitionResult = $this->transitionTransactionState($externalReferenceId, 'paid', $context, $monduId);
+            if ($this->configService->isAutoTransitionOrderStateEnabled()) {
+                $this->transitionOrderState($externalReferenceId, 'process', $context, $monduId);
+                $transitionResult = $this->transitionOrderState($externalReferenceId, 'process', $context, $monduId);
+            } else {
+                $this->transitionOrderState($externalReferenceId, 'in_progress', $context, $monduId);
+                $transitionResult = $this->transitionTransactionState($externalReferenceId, 'paid', $context, $monduId);
+            }
 
             return [[ 'message' => $transitionResult->last()->getTechnicalName(), 'code' => Response::HTTP_OK ], Response::HTTP_OK];
         } catch (MonduException $e) {
@@ -140,7 +145,11 @@ class WebhookService
             
             if (!in_array($currentState, $finalStates)) {
                 try {
-                    $this->transitionOrderState($externalReferenceId, 'process', $context, $monduId);
+                    if ($this->configService->isAutoTransitionOrderStateEnabled()) {
+                        $this->transitionOrderState($externalReferenceId, 'process', $context, $monduId);
+                    } else {
+                        $this->transitionOrderState($externalReferenceId, 'in_progress', $context, $monduId);
+                    }
 
                     if ($currentState !== 'open') {
                         try {
