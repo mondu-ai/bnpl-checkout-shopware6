@@ -213,6 +213,16 @@ class ConfigService
     }
 
     /**
+     * @return bool
+     */
+    public function isAutoTransitionOrderStateEnabled(): bool
+    {
+        $config = $this->getPluginConfiguration();
+
+        return isset($config['autoTransitionOrderState']) && $config['autoTransitionOrderState'];
+    }
+
+    /**
      * @return \Shopware\Core\Framework\DataAbstractionLayer\Entity|null
      */
     public function getPlugin()
