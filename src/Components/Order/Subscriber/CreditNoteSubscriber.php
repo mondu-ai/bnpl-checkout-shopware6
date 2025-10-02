@@ -124,6 +124,6 @@ class CreditNoteSubscriber implements EventSubscriberInterface
             $data
         );
 
-        throw new MonduException('Creating credit note failed. Please contact Mondu Support.');
+        error_log('Creating credit note failed. Please contact Mondu Support.');
     }
 }

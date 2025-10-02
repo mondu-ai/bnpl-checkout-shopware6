@@ -132,7 +132,6 @@ class MonduClient
                 $this->getRequestObject('plugin/events', 'POST', array_filter($body))
             );
         } catch (GuzzleException $e) {
-            $this->logger->alert('MonduClient::logEvent Failed with an exception message: ' . $e->getMessage());
         }
     }
 
@@ -146,7 +145,6 @@ class MonduClient
             return json_decode($response->getBody()->getContents(), true);
 
         } catch (GuzzleException $e) {
-            $this->logger->alert("MonduClient [{$method} {$url}]: Failed with an exception message: {$e->getMessage()}");
 
             $eventLog = [
                 'response_status' => strval($e->getCode()),

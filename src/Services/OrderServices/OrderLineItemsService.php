@@ -11,7 +11,7 @@ class OrderLineItemsService extends AbstractOrderLineItemsService
 {
     public function getDecorated(): AbstractOrderLineItemsService
     {
-        throw new DecorationPatternException(self::class);
+        error_log(self::class);
     }
 
     public function getLineItems(

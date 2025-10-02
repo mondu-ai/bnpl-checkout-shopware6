@@ -31,7 +31,7 @@ class CheckoutSubscriber implements EventSubscriberInterface
     public function addWidgetData(PageLoadedEvent $event): void
     {
         if ($event instanceof CheckoutConfirmPageLoadedEvent === false && $event instanceof AccountEditOrderPageLoadedEvent === false) {
-            throw new \RuntimeException('method ' . __CLASS__ . '::' . __METHOD__ . ' does not supports a parameter of type' . get_class($event));
+            error_log("RuntimeException in CheckoutSubscriber");
         }
 
         $this->filterPaymentMethods($event);

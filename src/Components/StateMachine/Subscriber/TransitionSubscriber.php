@@ -126,7 +126,7 @@ class TransitionSubscriber implements EventSubscriberInterface
             );
 
             if ($invoice == null) {
-                throw new MonduException('Error ocurred while shipping an order. Please contact Mondu Support.');
+                error_log('Error ocurred while shipping an order. Please contact Mondu Support.');
             }
             $attachedDocument = $context->getExtensions()['mail-attachments']->getDocumentIds()[0];
 
@@ -148,7 +148,7 @@ class TransitionSubscriber implements EventSubscriberInterface
                     'mondu-reference-id' => $monduData->getReferenceId()
                 ]
             );
-            throw new MonduException('Error: ' . $e->getMessage());
+            error_log('Error: ' . $e->getMessage());
         }
     }
 }

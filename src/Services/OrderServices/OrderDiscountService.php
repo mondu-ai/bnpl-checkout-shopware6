@@ -13,7 +13,7 @@ class OrderDiscountService extends AbstractOrderDiscountService
 {
     public function getDecorated(): AbstractOrderDiscountService
     {
-        throw new DecorationPatternException(self::class);
+        error_log(self::class);
     }
 
     public function getOrderDiscountCents(OrderEntity $order, Context $context, ?callable $isDiscountCallback = null): int

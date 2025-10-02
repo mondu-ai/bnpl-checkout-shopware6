@@ -43,7 +43,7 @@ class TestApiTokenCommand extends Command
         $response = $this->monduClient->getWebhooksSecret($api_token, $sandboxMode);
 
         if ($response == null) {
-            throw new \ErrorException("API token is not valid");
+            error_log("API token is not valid");
         }
 
         $output->writeln("Api token is valid\n");

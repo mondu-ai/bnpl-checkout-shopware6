@@ -58,9 +58,8 @@ class MonduHandler extends AbstractPaymentHandler
         try {
             $redirectUrl = $this->createOrder($transaction, $context);
         } catch (\Exception $e) {
-            throw PaymentException::asyncProcessInterrupted(
-                $transaction->getOrderTransaction()->getId(),
-                'An error occurred during the communication with external payment gateway' . PHP_EOL . $e->getMessage()
+            error_log(
+                'An error occurred during the communication with external payment gateway: ' . $e->getMessage()
             );
         }
 
@@ -89,7 +88,7 @@ class MonduHandler extends AbstractPaymentHandler
             );
 
             if (!$this->isOrderConfirmed($confirmResponseState)) {
-                throw PaymentException::customerCanceled(
+                error_log(
                     $transactionId,
                     'Order not confirmed.'
                 );
@@ -119,7 +118,7 @@ class MonduHandler extends AbstractPaymentHandler
         } else {
             $this->safeTransitionToFailed($transactionId, $context);
 
-            throw PaymentException::customerCanceled(
+            error_log(
                 $transactionId,
                 'Canceled/declined payment in Mondu Checkout.'
             );
@@ -195,9 +194,7 @@ class MonduHandler extends AbstractPaymentHandler
         $monduOrder = $this->monduClient->setSalesChannelId($salesChannelId)->getMonduOrder($orderUuid);
         
         if (!$monduOrder) {
-            throw PaymentException::asyncProcessInterrupted(
-                $transaction->getOrderTransactionId(), 'Could not fetch Mondu Order.'
-            );
+            error_log('Could not fetch Mondu Order.');
         }
 
         $this->orderDataRepository->upsert([

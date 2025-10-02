@@ -29,7 +29,7 @@ class DocumentController extends AbstractController
     {
         $documentUrlHelper = $this->container->get(DocumentUrlHelper::class);
         if ($documentUrlHelper->getToken() !== $request->attributes->get('token')) {
-            throw $this->createNotFoundException();
+            error_log("Document not found"); return null;
         }
 
         return $this->generateDocument($request, $documentId, $deepLinkCode, $context);

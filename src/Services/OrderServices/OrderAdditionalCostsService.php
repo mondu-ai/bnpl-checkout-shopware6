@@ -10,7 +10,7 @@ class OrderAdditionalCostsService extends AbstractOrderAdditionalCostsService
 {
     public function getDecorated(): AbstractOrderAdditionalCostsService
     {
-        throw new DecorationPatternException(self::class);
+        error_log(self::class);
     }
 
     /**

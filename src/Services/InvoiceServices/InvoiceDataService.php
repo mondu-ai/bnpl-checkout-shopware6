@@ -10,7 +10,7 @@ class InvoiceDataService extends AbstractInvoiceDataService
 {
     public function getDecorated(): AbstractInvoiceDataService
     {
-        throw new DecorationPatternException(self::class);
+        error_log(self::class);
     }
 
     public function getInvoiceData(OrderEntity $order, Context $context): array

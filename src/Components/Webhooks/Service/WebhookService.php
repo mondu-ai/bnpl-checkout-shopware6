@@ -91,7 +91,7 @@ class WebhookService
             $externalReferenceId = $params['external_reference_id'];
 
             if (!$viban || !$externalReferenceId) {
-                throw new MonduException('Missing params.');
+                error_log('Missing params.');
             }
 
             // Update vIBAN
@@ -107,12 +107,9 @@ class WebhookService
                 ]
             ], $context);
 
+            $transitionResult = $this->transitionTransactionState($externalReferenceId, 'paid', $context, $monduId);
             if ($this->configService->isAutoTransitionOrderStateEnabled()) {
-                $this->transitionOrderState($externalReferenceId, 'process', $context, $monduId);
                 $transitionResult = $this->transitionOrderState($externalReferenceId, 'process', $context, $monduId);
-            } else {
-                $this->transitionOrderState($externalReferenceId, 'in_progress', $context, $monduId);
-                $transitionResult = $this->transitionTransactionState($externalReferenceId, 'paid', $context, $monduId);
             }
 
             return [[ 'message' => $transitionResult->last()->getTechnicalName(), 'code' => Response::HTTP_OK ], Response::HTTP_OK];
@@ -129,7 +126,7 @@ class WebhookService
             $monduId = $params['order_uuid'];
 
             if (!$externalReferenceId || !$monduId) {
-                throw new MonduException('Required params missing');
+                error_log('Required params missing');
             }
 
             $criteria = new Criteria([$this->getOrderUuid($externalReferenceId, $context, $monduId)]);
@@ -145,15 +142,8 @@ class WebhookService
             
             if (!in_array($currentState, $finalStates)) {
                 try {
-                    if ($this->configService->isAutoTransitionOrderStateEnabled()) {
-                        $this->transitionOrderState($externalReferenceId, 'process', $context, $monduId);
-                    } else {
-                        $this->transitionOrderState($externalReferenceId, 'in_progress', $context, $monduId);
-                    }
-
                     if ($currentState !== 'open') {
                         try {
-                            $this->log('Two-step transition: first reopening to open state', [$currentState]);
                             $this->transitionTransactionState(
                                 $externalReferenceId,
                                 'reopen',
@@ -161,7 +151,6 @@ class WebhookService
                                 $monduId
                             );
                         } catch (\Exception $e) {
-                            $this->log('Reopen transition failed', [$currentState, $e->getMessage()]);
                         }
                     }
 
@@ -171,11 +160,14 @@ class WebhookService
                         $context,
                         $monduId
                     );
-                    
+
+                    if ($this->configService->isAutoTransitionOrderStateEnabled()) {
+                        $transitionResult = $this->transitionOrderState($externalReferenceId, 'process', $context, $monduId);
+                    }
+
                     return [[ 'message' => $transitionResult->last()->getTechnicalName(), 'code' => Response::HTTP_OK ], Response::HTTP_OK];
                     
                 } catch (\Exception $e) {
-                    $this->log('Two-step transition failed, treating pending webhook as success', [$currentState, $e->getMessage(), $params]);
                     return [[ 'message' => 'Pending webhook processed (transition failed): ' . $currentState, 'code' => Response::HTTP_OK ], Response::HTTP_OK];
                 }
             } else {
@@ -198,7 +190,7 @@ class WebhookService
 
             if (!$monduId || !$externalReferenceId || !$orderState) {
                 $this->log('Required params missing', [$monduId, $externalReferenceId, $orderState]);
-                throw new MonduException('Required params missing');
+                error_log('Required params missing');
             }
 
             $criteria = new Criteria([$this->getOrderUuid($externalReferenceId, $context, $monduId)]);
@@ -209,7 +201,6 @@ class WebhookService
             $transaction = $orderEntity->getTransactions()->first();
             $currentState = $transaction->getStateMachineState()->getTechnicalName();
 
-            $this->log('Processing cancel/decline webhook', [$externalReferenceId, $currentState, $orderState]);
 
             if ($currentState === 'cancelled') {
                 $this->log('Transaction already cancelled', [$currentState, $params]);
@@ -217,18 +208,17 @@ class WebhookService
             }
 
             try {
-                $this->log('Attempting direct transaction fail transition', [$currentState]);
                 $transitionResult = $this->transitionTransactionState($externalReferenceId, 'fail', $context, $monduId);
 
                 try {
-                    $this->log('Transaction fail succeeded, trying order cancel', [$currentState]);
-                    $this->safeTransitionOrderCancel($externalReferenceId, $context, $monduId);
+                    if ($this->configService->isAutoTransitionOrderStateEnabled()) {
+                        $this->safeTransitionOrderCancel($externalReferenceId, $context, $monduId);
+                    }
                 } catch (\Exception $orderEx) {
                     $this->log('Order cancel failed, continuing', [$orderEx->getMessage()]);
                 }
                 
                 try {
-                    $this->log('Trying delivery cancel', [$currentState]);
                     $this->safeTransitionDeliveryCancel($externalReferenceId, $context, $monduId);
                 } catch (\Exception $deliveryEx) {
                     $this->log('Delivery cancel failed, continuing', [$deliveryEx->getMessage()]);
@@ -278,10 +268,8 @@ class WebhookService
     protected function transitionOrderState($externalReferenceId, $state, $context, $monduId = null): ?StateMachineStateCollection
     {
         try {
-            $this->log('TRACE: transitionOrderState called', [$externalReferenceId, $state, debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3)]);
             
             if ($state === 'cancel') {
-                $this->log('WARNING: Attempting ORDER cancel transition - this might fail!', [$externalReferenceId, $state]);
             }
             
             return $this->stateMachineRegistry->transition(new Transition(
@@ -299,10 +287,8 @@ class WebhookService
     protected function transitionDeliveryState($externalReferenceId, $state, $context, $monduId = null): ?StateMachineStateCollection
     {
         try {
-            $this->log('TRACE: transitionDeliveryState called', [$externalReferenceId, $state, debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3)]);
             
             if ($state === 'cancel') {
-                $this->log('WARNING: Attempting DELIVERY cancel transition - this might fail!', [$externalReferenceId, $state]);
             }
             
             $criteria = new Criteria([$this->getOrderUuid($externalReferenceId, $context, $monduId)]);
@@ -344,7 +330,7 @@ class WebhookService
             throw $e;
         } catch (\Exception $e) {
             $this->log('transitionTransactionState Failed', [$externalReferenceId, $state], $e);
-            throw new MonduException($e->getMessage());
+            error_log($e->getMessage());
         }
     }
 
@@ -363,7 +349,7 @@ class WebhookService
             }
 
             if (!$order) {
-                throw new MonduException('Order not found', 404);
+                error_log('Order not found', 404);
             }
             return $order->getId();
         } catch (MonduException $e) {
@@ -371,7 +357,7 @@ class WebhookService
             throw $e;
         } catch (\Exception $e) {
             $this->log('getOrderUuid Failed', [$externalReferenceId], $e);
-            throw new MonduException($e->getMessage());
+            error_log($e->getMessage());
         }
     }
 
@@ -395,7 +381,6 @@ class WebhookService
     protected function safeTransitionOrderCancel($externalReferenceId, $context, $monduId = null): void
     {
         try {
-            $this->log('Trying order cancel transition', [$externalReferenceId]);
             $this->transitionOrderState($externalReferenceId, 'cancel', $context, $monduId);
         } catch (\Exception $e) {
             $this->log('Order cancel failed, trying alternative', [$e->getMessage()]);
@@ -408,7 +393,6 @@ class WebhookService
     protected function safeTransitionDeliveryCancel($externalReferenceId, $context, $monduId = null): void
     {
         try {
-            $this->log('Trying delivery cancel transition', [$externalReferenceId]);
             $this->transitionDeliveryState($externalReferenceId, 'cancel', $context, $monduId);
         } catch (\Exception $e) {
             $this->log('Delivery cancel failed, trying alternative', [$e->getMessage()]);

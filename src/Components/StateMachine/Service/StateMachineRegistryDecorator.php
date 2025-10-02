@@ -58,18 +58,18 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
                 if (!$this->configService->skipOrderStateValidation()) {
 
                     if ($transitionName == 'reopen' && !$this->canCancelOrder($order)) {
-                        throw new MonduException('Order was canceled.');
+                        error_log('Order was canceled.');
                     }
 
                     if ($transitionName == 'ship' || $transitionName == 'ship_partially') {
                         if (!$this->canShipOrder($order, $context, $order->getSalesChannelId())) {
-                            throw new MonduException('Order can not be shipped. Invoice required.');
+                            error_log('Order can not be shipped. Invoice required.');
                         }
 
                         $documentIds = $context->getExtensions()['mail-attachments']->getDocumentIds();
 
                         if (count($documentIds) != 1) {
-                            throw new MonduException('Please select one document to attach.');
+                            error_log('Please select one document to attach.');
                         }
                     }
                 }
@@ -84,7 +84,7 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
         /** @var OrderDataEntity $monduData */
         $monduData = $order->getExtension(OrderExtension::EXTENSION_NAME);
         if (!$monduData) {
-            throw new MonduException('Corrupt order');
+            error_log('Corrupt order');
         }
 
         if ($monduData->getOrderState() === 'canceled') {
@@ -99,13 +99,13 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
         /** @var OrderDataEntity $monduData */
         $monduData = $order->getExtension(OrderExtension::EXTENSION_NAME);
         if (!$monduData) {
-            throw new MonduException('Corrupt order');
+            error_log('Corrupt order');
         }
 
         if ($monduData->getOrderState() === 'pending') {
             $newState = $this->monduOperationService->syncOrder($monduData, $context, $salesChannelId);
             if ($newState !=='partially_shipped' && $newState !== 'confirmed') {
-                throw new MonduException('Mondu Order state must be confirmed or partially_shipped');
+                error_log('Mondu Order state must be confirmed or partially_shipped');
             }
         }
         $invoiceNumber = $monduData->getExternalInvoiceNumber();

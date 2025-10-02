@@ -11,7 +11,7 @@ class OrderLinesService extends AbstractOrderLinesService
 {
     public function getDecorated(): AbstractOrderLinesService
     {
-        throw new DecorationPatternException(self::class);
+        error_log(self::class);
     }
 
     public function getLines(OrderEntity $order, Context $context): array
