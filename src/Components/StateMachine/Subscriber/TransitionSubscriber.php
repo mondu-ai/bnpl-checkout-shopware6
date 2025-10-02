@@ -64,6 +64,12 @@ class TransitionSubscriber implements EventSubscriberInterface
 
         switch ($event->getToPlace()->getTechnicalName()) {
             case 'cancelled':
+                $state = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->cancelOrder($monduOrder->getReferenceId());
+                if ($state) {
+                    $this->updateOrder($event->getContext(), $monduOrder, [
+                        OrderDataEntity::FIELD_ORDER_STATE => $state
+                    ]);
+                }
                 break;
             case 'shipped':
             case 'shipped_partially':

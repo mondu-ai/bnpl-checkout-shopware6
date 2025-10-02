@@ -50,7 +50,6 @@ class WebhookService
     public function getSecret($key)
     {
         try {
-
             $keys = $this->monduClient->setSalesChannelId($this->salesChannelId)->getWebhooksSecret($key);
 
             if (isset($keys['webhook_secret']))
@@ -108,7 +107,7 @@ class WebhookService
                 ]
             ], $context);
 
-            $this->transitionOrderState($externalReferenceId, 'in_progress', $context, $monduId);
+            $this->transitionOrderState($externalReferenceId, 'process', $context, $monduId);
             $transitionResult = $this->transitionTransactionState($externalReferenceId, 'paid', $context, $monduId);
 
             return [[ 'message' => $transitionResult->last()->getTechnicalName(), 'code' => Response::HTTP_OK ], Response::HTTP_OK];
@@ -128,7 +127,6 @@ class WebhookService
                 throw new MonduException('Required params missing');
             }
 
-            // Get current transaction state
             $criteria = new Criteria([$this->getOrderUuid($externalReferenceId, $context, $monduId)]);
             $criteria->addAssociation('transactions.stateMachineState');
 
@@ -141,16 +139,12 @@ class WebhookService
             $finalStates = ['paid', 'cancelled', 'refunded', 'refunded_partially', 'chargeback'];
             
             if (!in_array($currentState, $finalStates)) {
-                // For pending webhooks, use two-step transition if needed
-                // Step 1: If not in 'open' state, first transition to 'open' via 'reopen'
-                // Step 2: Then transition to 'process_unconfirmed'
-                
                 try {
-                    $this->transitionOrderState($externalReferenceId, 'in_progress', $context, $monduId);
-                    
-                    // If current state is not 'open', first do reopen to get to open state
+                    $this->transitionOrderState($externalReferenceId, 'process', $context, $monduId);
+
                     if ($currentState !== 'open') {
                         try {
+                            $this->log('Two-step transition: first reopening to open state', [$currentState]);
                             $this->transitionTransactionState(
                                 $externalReferenceId,
                                 'reopen',
@@ -159,11 +153,9 @@ class WebhookService
                             );
                         } catch (\Exception $e) {
                             $this->log('Reopen transition failed', [$currentState, $e->getMessage()]);
-                            // Continue anyway, maybe process_unconfirmed still works
                         }
                     }
-                    
-                    // Now try process_unconfirmed (should work from open state)
+
                     $transitionResult = $this->transitionTransactionState(
                         $externalReferenceId,
                         StateMachineTransitionActions::ACTION_PROCESS_UNCONFIRMED,
@@ -178,7 +170,6 @@ class WebhookService
                     return [[ 'message' => 'Pending webhook processed (transition failed): ' . $currentState, 'code' => Response::HTTP_OK ], Response::HTTP_OK];
                 }
             } else {
-                // Transaction is already in a final state, log and return success
                 $this->log('Pending webhook received for transaction already in final state', [$currentState, $params]);
                 return [[ 'message' => 'Transaction already in final state: ' . $currentState, 'code' => Response::HTTP_OK ], Response::HTTP_OK];
             }
@@ -201,7 +192,6 @@ class WebhookService
                 throw new MonduException('Required params missing');
             }
 
-            // Get current transaction state to check valid transitions
             $criteria = new Criteria([$this->getOrderUuid($externalReferenceId, $context, $monduId)]);
             $criteria->addAssociation('transactions.stateMachineState');
 
@@ -210,25 +200,26 @@ class WebhookService
             $transaction = $orderEntity->getTransactions()->first();
             $currentState = $transaction->getStateMachineState()->getTechnicalName();
 
+            $this->log('Processing cancel/decline webhook', [$externalReferenceId, $currentState, $orderState]);
 
-            // Check if already in cancelled state
             if ($currentState === 'cancelled') {
                 $this->log('Transaction already cancelled', [$currentState, $params]);
                 return [[ 'message' => 'Transaction already cancelled: ' . $currentState, 'code' => Response::HTTP_OK ], Response::HTTP_OK];
             }
 
             try {
-                // Try transaction fail first (most important)
+                $this->log('Attempting direct transaction fail transition', [$currentState]);
                 $transitionResult = $this->transitionTransactionState($externalReferenceId, 'fail', $context, $monduId);
-                
-                // If transaction worked, try order and delivery (less critical)
+
                 try {
+                    $this->log('Transaction fail succeeded, trying order cancel', [$currentState]);
                     $this->safeTransitionOrderCancel($externalReferenceId, $context, $monduId);
                 } catch (\Exception $orderEx) {
                     $this->log('Order cancel failed, continuing', [$orderEx->getMessage()]);
                 }
                 
                 try {
+                    $this->log('Trying delivery cancel', [$currentState]);
                     $this->safeTransitionDeliveryCancel($externalReferenceId, $context, $monduId);
                 } catch (\Exception $deliveryEx) {
                     $this->log('Delivery cancel failed, continuing', [$deliveryEx->getMessage()]);
@@ -238,19 +229,16 @@ class WebhookService
                 
             } catch (\Exception $e) {
                 $this->log('Direct transaction fail failed, trying reopen approach', [$currentState, $e->getMessage()]);
-                
-                // If direct fail fails, try reopen first, then fail
+
                 try {
                     if ($currentState !== 'open') {
                         $this->log('Two-step cancel: first reopening to open state', [$currentState]);
                         $this->transitionTransactionState($externalReferenceId, 'reopen', $context, $monduId);
                     }
-                    
-                    // Now try fail from open state
+
                     $this->log('Attempting transaction fail after reopen', [$currentState]);
                     $transitionResult = $this->transitionTransactionState($externalReferenceId, 'fail', $context, $monduId);
-                    
-                    // Try order and delivery again
+
                     try {
                         $this->safeTransitionOrderCancel($externalReferenceId, $context, $monduId);
                     } catch (\Exception $orderEx) {
@@ -274,7 +262,6 @@ class WebhookService
         } catch (MonduException $e) {
             $this->log('handleDeclinedOrCanceled Webhook Failed', [$params], $e);
 
-            // 200 status because if order is declined from the hosted checkout it's not saved
             return [[ 'message' => $e->getMessage(), 'code' => $e->getStatusCode() ], 200];
         }
     }
@@ -282,8 +269,10 @@ class WebhookService
     protected function transitionOrderState($externalReferenceId, $state, $context, $monduId = null): ?StateMachineStateCollection
     {
         try {
+            $this->log('TRACE: transitionOrderState called', [$externalReferenceId, $state, debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3)]);
             
             if ($state === 'cancel') {
+                $this->log('WARNING: Attempting ORDER cancel transition - this might fail!', [$externalReferenceId, $state]);
             }
             
             return $this->stateMachineRegistry->transition(new Transition(
@@ -301,8 +290,10 @@ class WebhookService
     protected function transitionDeliveryState($externalReferenceId, $state, $context, $monduId = null): ?StateMachineStateCollection
     {
         try {
+            $this->log('TRACE: transitionDeliveryState called', [$externalReferenceId, $state, debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3)]);
             
             if ($state === 'cancel') {
+                $this->log('WARNING: Attempting DELIVERY cancel transition - this might fail!', [$externalReferenceId, $state]);
             }
             
             $criteria = new Criteria([$this->getOrderUuid($externalReferenceId, $context, $monduId)]);
@@ -395,11 +386,10 @@ class WebhookService
     protected function safeTransitionOrderCancel($externalReferenceId, $context, $monduId = null): void
     {
         try {
+            $this->log('Trying order cancel transition', [$externalReferenceId]);
             $this->transitionOrderState($externalReferenceId, 'cancel', $context, $monduId);
         } catch (\Exception $e) {
             $this->log('Order cancel failed, trying alternative', [$e->getMessage()]);
-            // Order cancel is less critical, so we can skip it if it fails
-            // The transaction state is more important
         }
     }
 
@@ -409,11 +399,10 @@ class WebhookService
     protected function safeTransitionDeliveryCancel($externalReferenceId, $context, $monduId = null): void
     {
         try {
+            $this->log('Trying delivery cancel transition', [$externalReferenceId]);
             $this->transitionDeliveryState($externalReferenceId, 'cancel', $context, $monduId);
         } catch (\Exception $e) {
             $this->log('Delivery cancel failed, trying alternative', [$e->getMessage()]);
-            // Delivery cancel is less critical, so we can skip it if it fails
-            // The transaction state is more important
         }
     }
 }
