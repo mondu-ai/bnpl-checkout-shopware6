@@ -18,6 +18,7 @@ use Mondu\MonduPayment\Components\StateMachine\Exception\MonduException;
 use Shopware\Core\Checkout\Order\Aggregate\OrderDelivery\OrderDeliveryDefinition;
 use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionDefinition;
 use Mondu\MonduPayment\Components\Webhooks\Model\Webhook;
+use Mondu\MonduPayment\Components\Webhooks\Service\ShopUrlService;
 use Psr\Log\LoggerInterface;
 use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
 use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
@@ -35,7 +36,8 @@ class WebhookService
         private readonly LoggerInterface $logger,
         private readonly MonduClient $monduClient,
         private readonly EntityRepository $orderDataRepository,
-        private readonly ConfigService $configService
+        private readonly ConfigService $configService,
+        private readonly ShopUrlService $shopUrlService
     ) {
         $this->salesChannelId = null;
     }
@@ -68,8 +70,8 @@ class WebhookService
     {
         try {
             $webhooks = [
-                (new Webhook('order'))->getData(),
-                (new Webhook('invoice'))->getData()
+                (new Webhook('order', $this->shopUrlService, $this->salesChannelId))->getData(),
+                (new Webhook('invoice', $this->shopUrlService, $this->salesChannelId))->getData()
             ];
 
             foreach ($webhooks as $webhook) {
@@ -268,10 +270,6 @@ class WebhookService
     protected function transitionOrderState($externalReferenceId, $state, $context, $monduId = null): ?StateMachineStateCollection
     {
         try {
-            
-            if ($state === 'cancel') {
-            }
-            
             return $this->stateMachineRegistry->transition(new Transition(
                 OrderDefinition::ENTITY_NAME,
                 $this->getOrderUuid($externalReferenceId, $context, $monduId),
@@ -287,10 +285,6 @@ class WebhookService
     protected function transitionDeliveryState($externalReferenceId, $state, $context, $monduId = null): ?StateMachineStateCollection
     {
         try {
-            
-            if ($state === 'cancel') {
-            }
-            
             $criteria = new Criteria([$this->getOrderUuid($externalReferenceId, $context, $monduId)]);
             $criteria->addAssociation('deliveries');
 
