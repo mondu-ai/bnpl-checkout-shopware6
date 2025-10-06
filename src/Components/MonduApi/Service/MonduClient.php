@@ -70,9 +70,15 @@ class MonduClient
 
     public function cancelOrder($orderUid): ?string
     {
-        $response = $this->sendRequest('orders/'. $orderUid .'/cancel', 'POST');
+        $request = $this->getRequestObject("orders/". $orderUid ."/cancel", "POST");
 
-        return $response['order']['state'] ?? null;
+        try {
+            $response = $this->restClient->send($request);
+            $result = json_decode($response->getBody()->getContents(), true);
+            return $result["order"]["state"] ?? null;
+        } catch (GuzzleException $e) {
+            return null;
+        }
     }
 
     public function confirmOrder($orderUuid, $data): ?string

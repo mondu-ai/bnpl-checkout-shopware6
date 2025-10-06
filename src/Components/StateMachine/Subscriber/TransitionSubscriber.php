@@ -39,7 +39,7 @@ class TransitionSubscriber implements EventSubscriberInterface
     public static function getSubscribedEvents(): array
     {
         return [
-            StateMachineTransitionEvent::class => 'onTransition',
+            StateMachineTransitionEvent::class => "onTransition",
         ];
     }
 
@@ -63,12 +63,23 @@ class TransitionSubscriber implements EventSubscriberInterface
         }
 
         switch ($event->getToPlace()->getTechnicalName()) {
-            case 'cancelled':
-                $state = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->cancelOrder($monduOrder->getReferenceId());
-                if ($state) {
-                    $this->updateOrder($event->getContext(), $monduOrder, [
-                        OrderDataEntity::FIELD_ORDER_STATE => $state
-                    ]);
+            case "cancelled":
+                try {
+                    $state = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->cancelOrder($monduOrder->getReferenceId());
+                    if ($state) {
+                        $this->updateOrder($event->getContext(), $monduOrder, [
+                            OrderDataEntity::FIELD_ORDER_STATE => $state
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    $this->logger->warning(
+                        "Order cannot be cancelled in Mondu API: " . $e->getMessage(),
+                        [
+                            "order_id" => $order->getId(),
+                            "mondu_reference_id" => $monduOrder->getReferenceId()
+                        ]
+                    );
+                    // Continue with local cancellation even if Mondu API fails
                 }
                 break;
             case 'shipped':

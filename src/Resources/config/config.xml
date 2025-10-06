@@ -85,7 +85,7 @@
         <input-field type="bool">
             <name>autoTransitionOrderState</name>
             <label>Allow Mondu transition order state</label>
-            <label lang="de-DE">Mondu Bestellstatus-Übergang erlauben</label>
+            <label lang="de-DE">Bestellstatus-Übergang durch Mondu erlauben</label>
             <label lang="nl-NL">Mondu orderstatus overgang toestaan</label>
             <label lang="fr-FR">Autoriser la transition d'état de commande Mondu</label>
 

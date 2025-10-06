@@ -163,6 +163,7 @@ class WebhookService
             if ($this->configService->isAutoTransitionOrderStateEnabled()) {
                 $transitionResult = $this->transitionOrderState($externalReferenceId, 'cancel', $context, $monduId);
             }
+            $this->transitionDeliveryState($externalReferenceId, 'cancel', $context, $monduId);
 
             return [[ 'message' => $transitionResult->last()->getTechnicalName(), 'code' => Response::HTTP_OK ], Response::HTTP_OK];
         } catch (MonduException $e) {
