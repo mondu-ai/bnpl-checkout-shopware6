@@ -118,15 +118,21 @@
             <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
             <tag name="console.command"/>
         </service>
+
         <service id="Mondu\MonduPayment\Command\TestApiTokenCommand">
             <argument type="service" id="mondu.mondu_api"/>
             <tag name="console.command"/>
         </service>
+
         <service id="Mondu\MonduPayment\Command\ActivatePaymentCommand">
             <argument type="service" key="$salesChannelPaymentMethodRepository" id="sales_channel_payment_method.repository"/>
             <argument type="service" key="$salesChannelRepository" id="sales_channel.repository"/>
             <argument type="service" key="$paymentMethodRepository" id="payment_method.repository"/>
             <tag name="console.command"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\Webhooks\Service\ShopUrlService">
+            <argument type="service" id="sales_channel.repository"/>
         </service>
     </services>
 </container>

@@ -92,10 +92,6 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                     return;
                 }
 
-                if ($monduOrderEntity->getOrderState() === 'canceled') {
-                    $this->transitionDeliveryState($orderId, 'cancel', $context);
-                }
-
                 if ($this->hasInvoices($orderId, $context)) {
                     return;
                 }
@@ -200,24 +196,4 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
         return $this->invoiceDataRepository->search($invoiceCriteria, $context)->getTotal() > 0;
     }
 
-    protected function transitionDeliveryState($orderId, $state, $context)
-    {
-        try {
-            $criteria = new Criteria([$orderId]);
-            $criteria->addAssociation('deliveries');
-
-            /** @var OrderEntity $orderEntity */
-            $orderEntity = $this->orderRepository->search($criteria, $context)->first();
-            $orderDeliveryId = $orderEntity->getDeliveries()->first()->getId();
-
-            return $this->stateMachineRegistry->transition(new Transition(
-                OrderDeliveryDefinition::ENTITY_NAME,
-                $orderDeliveryId,
-                $state,
-                'stateId'
-            ), $context);
-        } catch (\Exception $e) {
-            $this->log('Adjust Order: transitionDeliveryState Failed', [$orderId, $state], $e);
-        }
-    }
 }

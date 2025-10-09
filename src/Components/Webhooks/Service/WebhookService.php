@@ -18,6 +18,7 @@ use Mondu\MonduPayment\Components\StateMachine\Exception\MonduException;
 use Shopware\Core\Checkout\Order\Aggregate\OrderDelivery\OrderDeliveryDefinition;
 use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionDefinition;
 use Mondu\MonduPayment\Components\Webhooks\Model\Webhook;
+use Mondu\MonduPayment\Components\Webhooks\Service\ShopUrlService;
 use Psr\Log\LoggerInterface;
 use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
 use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
@@ -35,7 +36,8 @@ class WebhookService
         private readonly LoggerInterface $logger,
         private readonly MonduClient $monduClient,
         private readonly EntityRepository $orderDataRepository,
-        private readonly ConfigService $configService
+        private readonly ConfigService $configService,
+        private readonly ShopUrlService $shopUrlService
     ) {
         $this->salesChannelId = null;
     }
@@ -69,8 +71,8 @@ class WebhookService
     {
         try {
             $webhooks = [
-                (new Webhook('order'))->getData(),
-                (new Webhook('invoice'))->getData()
+                (new Webhook('order', $this->shopUrlService, $this->salesChannelId))->getData(),
+                (new Webhook('invoice', $this->shopUrlService, $this->salesChannelId))->getData()
             ];
 
             foreach ($webhooks as $webhook) {
@@ -163,7 +165,6 @@ class WebhookService
             if ($this->configService->isAutoTransitionOrderStateEnabled()) {
                 $transitionResult = $this->transitionOrderState($externalReferenceId, 'cancel', $context, $monduId);
             }
-            $this->transitionDeliveryState($externalReferenceId, 'cancel', $context, $monduId);
 
             return [[ 'message' => $transitionResult->last()->getTechnicalName(), 'code' => Response::HTTP_OK ], Response::HTTP_OK];
         } catch (MonduException $e) {
@@ -189,27 +190,6 @@ class WebhookService
         }
     }
 
-    protected function transitionDeliveryState($externalReferenceId, $state, $context, $monduId = null): ?StateMachineStateCollection
-    {
-        try {
-            $criteria = new Criteria([$this->getOrderUuid($externalReferenceId, $context, $monduId)]);
-            $criteria->addAssociation('deliveries');
-
-            /** @var OrderEntity $orderEntity */
-            $orderEntity = $this->orderRepository->search($criteria, $context)->first();
-            $orderDeliveryId = $orderEntity->getDeliveries()->first()->getId();
-
-            return $this->stateMachineRegistry->transition(new Transition(
-                OrderDeliveryDefinition::ENTITY_NAME,
-                $orderDeliveryId,
-                $state,
-                'stateId'
-            ), $context);
-        } catch (\Exception $e) {
-            $this->log('transitionDeliveryState Failed', [$externalReferenceId, $state], $e);
-            return null;
-        }
-    }
 
     protected function transitionTransactionState($externalReferenceId, $state, $context, $monduId = null): StateMachineStateCollection
     {
