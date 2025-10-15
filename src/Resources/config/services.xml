@@ -21,7 +21,9 @@
             <argument key="$productRepository" type="service" id="product.repository"/>
             <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
             <argument key="$configService" type="service" id="mondu.mondu_config"/>
-            <tag name="shopware.payment.method.async" />
+            <argument key="$orderLinesService" type="service" id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <tag name="shopware.payment.method" />
         </service>
 
         <service id="Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduSepaHandler">
@@ -30,7 +32,9 @@
             <argument key="$productRepository" type="service" id="product.repository"/>
             <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
             <argument key="$configService" type="service" id="mondu.mondu_config"/>
-            <tag name="shopware.payment.method.async" />
+            <argument key="$orderLinesService" type="service" id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <tag name="shopware.payment.method" />
         </service>
 
         <service id="Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduInstallmentHandler">
@@ -39,7 +43,9 @@
             <argument key="$productRepository" type="service" id="product.repository"/>
             <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
             <argument key="$configService" type="service" id="mondu.mondu_config"/>
-            <tag name="shopware.payment.method.async" />
+            <argument key="$orderLinesService" type="service" id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <tag name="shopware.payment.method" />
         </service>
 
         <service id="Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduInstallmentByInvoiceHandler">
@@ -48,7 +54,9 @@
             <argument key="$productRepository" type="service" id="product.repository"/>
             <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
             <argument key="$configService" type="service" id="mondu.mondu_config"/>
-            <tag name="shopware.payment.method.async" />
+            <argument key="$orderLinesService" type="service" id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <tag name="shopware.payment.method" />
         </service>
 
         <service id="Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduPayNowHandler">
@@ -57,7 +65,9 @@
             <argument key="$productRepository" type="service" id="product.repository"/>
             <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
             <argument key="$configService" type="service" id="mondu.mondu_config"/>
-            <tag name="shopware.payment.method.async" />
+            <argument key="$orderLinesService" type="service" id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <tag name="shopware.payment.method" />
         </service>
 
         <service id="mondu.mondu_api" class="Mondu\MonduPayment\Components\MonduApi\Service\MonduClient" public="true">
@@ -68,6 +78,10 @@
         <service id="Mondu\MonduPayment\Components\MonduApi\Service\MonduOperationService">
             <argument type="service" id="mondu.mondu_api"/>
             <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\Webhooks\Service\ShopUrlService">
+            <argument type="service" id="sales_channel.repository"/>
         </service>
 
         <service id="Mondu\MonduPayment\Components\Order\Model\Extension\OrderExtension">
@@ -91,7 +105,6 @@
 
         <service id="Mondu\MonduPayment\Components\Order\Subscriber\AdjustOrderSubscriber" >
             <tag name="kernel.event_subscriber" />
-            <argument key="$orderRepository" id="order.repository" type="service" />
             <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
             <argument key="$invoiceDataRepository" type="service" id="mondu_invoice_data.repository"/>
             <argument key="$monduClient" type="service" id="mondu.mondu_api"/>
@@ -102,7 +115,6 @@
 
         <service id="Mondu\MonduPayment\Components\Order\Subscriber\CreditNoteSubscriber" >
             <tag name="kernel.event_subscriber" />
-            <argument key="$orderRepository" id="order.repository" type="service" />
             <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
             <argument key="$invoiceDataRepository" type="service" id="mondu_invoice_data.repository"/>
             <argument key="$monduClient" type="service" id="mondu.mondu_api"/>
@@ -118,21 +130,35 @@
             <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
             <tag name="console.command"/>
         </service>
-
         <service id="Mondu\MonduPayment\Command\TestApiTokenCommand">
             <argument type="service" id="mondu.mondu_api"/>
             <tag name="console.command"/>
         </service>
-
         <service id="Mondu\MonduPayment\Command\ActivatePaymentCommand">
             <argument type="service" key="$salesChannelPaymentMethodRepository" id="sales_channel_payment_method.repository"/>
             <argument type="service" key="$salesChannelRepository" id="sales_channel.repository"/>
             <argument type="service" key="$paymentMethodRepository" id="payment_method.repository"/>
             <tag name="console.command"/>
         </service>
+        <!-- Mondu Custom Events Services -->
+        <service id="Mondu\MonduPayment\Components\Events\Service\MonduEventDispatcher">
+            <argument type="service" id="event_dispatcher"/>
+        </service>
 
-        <service id="Mondu\MonduPayment\Components\Webhooks\Service\ShopUrlService">
-            <argument type="service" id="sales_channel.repository"/>
+        <service id="Mondu\MonduPayment\Components\Events\Subscriber\MonduOrderStatusSubscriber">
+            <argument type="service" id="monolog.logger.mondu"/>
+            <argument type="service" id="mondu.mondu_config"/>
+            <tag name="kernel.event_subscriber"/>
+        </service>
+
+        <!-- Test subscriber to verify Mondu events are triggered -->
+        <service id="Mondu\MonduPayment\Components\Events\Subscriber\TestMonduEventsSubscriber">
+            <argument type="service" id="monolog.logger.mondu"/>
+            <argument type="service" id="mondu.mondu_config"/>
+            <tag name="kernel.event_subscriber"/>
+        </service>
+        <service id="Mondu\MonduPayment\Command\TestMonduEventsCommand">
+            <tag name="console.command"/>
         </service>
     </services>
 </container>

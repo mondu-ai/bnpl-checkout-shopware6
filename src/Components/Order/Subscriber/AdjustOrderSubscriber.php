@@ -101,8 +101,8 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                     ->getMonduOrder($monduOrderEntity->getReferenceId());
 
                 if (!isset($liveOrder['real_price_cents'])) {
-                    $this->logger->critical(
-                        'Mondu API: Can not adjust order, API request is failing.',
+                    $this->logger->error(
+                        'mondu.CRITICAL: Mondu API: Can not adjust order, API request is failing.',
                         ['monduOrder' => $monduOrderEntity]
                     );
 
@@ -182,8 +182,8 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
             $exceptionMessage = $exception->getMessage();
         }
 
-        $this->logger->critical(
-            $message . '. (Exception: '. $exceptionMessage .')',
+        $this->logger->error(
+            'mondu.CRITICAL: ' . $message . '. (Exception: '. $exceptionMessage .')',
             $data
         );
     }

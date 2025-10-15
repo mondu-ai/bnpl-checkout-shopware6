@@ -5,5 +5,5 @@ monolog:
     monduLogHandler:
       type: rotating_file
       path: "%kernel.logs_dir%/mondu_%kernel.environment%.log"
-      level: error
+      level: info
       channels: [ "mondu" ]

@@ -17,6 +17,7 @@ use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Mondu\MonduPayment\Components\PaymentMethod\Util\MethodHelper;
 use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
+use Psr\Log\LoggerInterface;
 
 class MonduHandler implements AsynchronousPaymentHandlerInterface
 {
@@ -32,7 +33,8 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         private readonly EntityRepository $productRepository,
         private readonly EntityRepository $orderDataRepository,
         private readonly ConfigService $configService,
-        private readonly AbstractOrderLinesService $orderLinesService
+        private readonly AbstractOrderLinesService $orderLinesService,
+        private readonly LoggerInterface $logger
     ) {}
 
     /**
@@ -129,6 +131,19 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         $shippingAddress = $order->getDeliveries()->getShippingAddress()->first();
         $paymentMethod = MethodHelper::shortNameToMonduName($orderTransaction->getPaymentMethod()->getShortName());
 
+        $externalReferenceId = uniqid('M_SW6_');
+
+        // Log external_reference_id if Extended logs enabled
+        if ($this->configService->setSalesChannelId($salesChannelContext->getSalesChannelId())->isExtendedLogsEnabled()) {
+            $this->logger->info('mondu.INFO: Generated external_reference_id for Mondu order', [
+                'external_reference_id' => $externalReferenceId,
+                'order_id' => $order->getId(),
+                'order_number' => $order->getOrderNumber(),
+                'payment_method' => $paymentMethod,
+                'total_amount' => $order->getPrice()->getTotalPrice(),
+            ]);
+        }
+
         return [
             'currency' => $order->getCurrency()->getIsoCode(),
             'state_flow' => 'authorization_flow',
@@ -136,7 +151,7 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
             'success_url' => $returnUrl . '&payment=success',
             'cancel_url' => $returnUrl . '&payment=cancelled',
             'declined_url' => $returnUrl . '&payment=declined',
-            'external_reference_id' => uniqid('M_SW6_'),
+            'external_reference_id' => $externalReferenceId,
             'gross_amount_cents' => round($order->getPrice()->getTotalPrice() * 100),
             'buyer' => [
                 'email' => $order->getOrderCustomer()->getEmail(),

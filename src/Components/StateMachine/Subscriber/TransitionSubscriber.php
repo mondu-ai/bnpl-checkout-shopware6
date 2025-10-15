@@ -73,7 +73,7 @@ class TransitionSubscriber implements EventSubscriberInterface
                     }
                 } catch (\Exception $e) {
                     $this->logger->warning(
-                        "Order cannot be cancelled in Mondu API: " . $e->getMessage(),
+                        "mondu.INFO: Order cannot be cancelled in Mondu API: " . $e->getMessage(),
                         [
                             "order_id" => $order->getId(),
                             "mondu_reference_id" => $monduOrder->getReferenceId()
@@ -119,7 +119,43 @@ class TransitionSubscriber implements EventSubscriberInterface
             return;
         }
 
-        if ($this->configService->skipOrderStateValidation()) {
+        if ($this->configService->isSkippingAllMode()) {
+            return;
+        }
+
+        if ($this->configService->isSkipAllValidationMode()) {
+            try {
+                $invoiceData = [
+                    'external_reference_id' => $order->getOrderNumber(),
+                    'gross_amount_cents' => (int)round($order->getAmountTotal() * 100),
+                    'invoice_url' => null
+                ];
+
+                $invoice = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->invoiceOrder(
+                    $monduData->getReferenceId(),
+                    $invoiceData
+                );
+
+                if ($invoice != null) {
+                    $this->invoiceDataRepository->upsert([
+                        [
+                            InvoiceDataEntity::FIELD_ORDER_ID => $order->getId(),
+                            InvoiceDataEntity::FIELD_ORDER_VERSION_ID => $order->getVersionId(),
+                            InvoiceDataEntity::FIELD_DOCUMENT_ID => null,
+                            InvoiceDataEntity::FIELD_INVOICE_NUMBER => $order->getOrderNumber(),
+                            InvoiceDataEntity::FIELD_EXTERNAL_INVOICE_UUID => $invoice['uuid'],
+                        ]
+                    ], $context);
+                }
+            } catch (\Exception $e) {
+                $this->logger->warning(
+                    'mondu.INFO: Skip all validation mode: Invoice call failed (Exception: '. $e->getMessage().')',
+                    [
+                        'order' => $order->getId(),
+                        'mondu-reference-id' => $monduData->getReferenceId()
+                    ]
+                );
+            }
             return;
         }
 
@@ -148,7 +184,7 @@ class TransitionSubscriber implements EventSubscriberInterface
 
         } catch (\Exception $e) {
             $this->logger->critical(
-                'Exception during shipment. (Exception: '. $e->getMessage().')',
+                'mondu.CRITICAL: Exception during shipment. (Exception: '. $e->getMessage().')',
                 [
                     'order' => $order->getId(),
                     'mondu-reference-id' => $monduData->getReferenceId()

@@ -66,8 +66,9 @@ class ConfigService
      */
     public function isSandbox(): mixed
     {
-        if (!is_null($this->overrideSandbox))
+        if (!is_null($this->overrideSandbox)) {
             return $this->overrideSandbox;
+        }
 
         $config = $this->getPluginConfiguration();
 
@@ -147,13 +148,37 @@ class ConfigService
     }
 
     /**
-     * @return false|mixed|string
+     * @return string
      */
-    public function skipOrderStateValidation(): mixed
+    public function getSkipOrderStateValidationMode(): string
     {
         $config = $this->getPluginConfiguration();
 
-        return $config['skipOrderStateValidation'] ?? false;
+        return $config['skipOrderStateValidation'] ?? 'no_skipping';
+    }
+
+    /**
+     * @return bool
+     */
+    public function skipOrderStateValidation(): bool
+    {
+        return $this->getSkipOrderStateValidationMode() !== 'no_skipping';
+    }
+
+    /**
+     * @return bool
+     */
+    public function isSkipAllValidationMode(): bool
+    {
+        return $this->getSkipOrderStateValidationMode() === 'skip_all_validation';
+    }
+
+    /**
+     * @return bool
+     */
+    public function isSkippingAllMode(): bool
+    {
+        return $this->getSkipOrderStateValidationMode() === 'skipping_all';
     }
 
     /**
@@ -174,6 +199,16 @@ class ConfigService
     public function setIsApiTokenValid(bool $val = false): void
     {
         $this->systemConfigService->set('Mond1SW6.customConfig.apiTokenValid', $val, $this->salesChannelId);
+    }
+
+    /**
+     * @param  string  $hash
+     *
+     * @return void
+     */
+    public function setWebhookRegistrationHash(string $hash): void
+    {
+        $this->systemConfigService->set('Mond1SW6.customConfig.webhookRegistrationHash', $hash, $this->salesChannelId);
     }
 
     /**
@@ -220,6 +255,16 @@ class ConfigService
         $config = $this->getPluginConfiguration();
 
         return isset($config['autoTransitionOrderState']) && $config['autoTransitionOrderState'];
+    }
+
+    /**
+     * @return bool
+     */
+    public function isExtendedLogsEnabled(): bool
+    {
+        $config = $this->getPluginConfiguration();
+
+        return (bool) ($config['extendedLogs'] ?? true);
     }
 
     /**

@@ -120,7 +120,7 @@ class CreditNoteSubscriber implements EventSubscriberInterface
         }
 
         $this->logger->critical(
-            $message . '. (Exception: ' . $exceptionMessage . ')',
+            'mondu.CRITICAL: ' . $message . '. (Exception: ' . $exceptionMessage . ')',
             $data
         );
 
