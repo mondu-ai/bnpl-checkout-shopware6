@@ -15,6 +15,7 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Mondu\MonduPayment\Components\PaymentMethod\Util\MethodHelper;
 use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 use Psr\Log\LoggerInterface;
@@ -62,9 +63,10 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
      */
     public function finalize(AsyncPaymentTransactionStruct $transaction, Request $request, SalesChannelContext $salesChannelContext): void
     {
-        $transactionId = $transaction->getOrderTransaction()->getId();
-        $paymentState = $request->query->getAlpha('payment');
-        $context = $salesChannelContext->getContext();
+        try {
+            $transactionId = $transaction->getOrderTransaction()->getId();
+            $paymentState = $request->query->getAlpha('payment');
+            $context = $salesChannelContext->getContext();
 
         if ($paymentState === self::PAYMENT_STATE_SUCCESS) {
             $paymentOrderUuid = $request->query->get('order_uuid');
@@ -94,23 +96,75 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
 
             $orderTransactionState = $this->configService->setSalesChannelId($salesChannelContext->getSalesChannelId())->orderTransactionState();
 
-            if (
-                $orderTransactionState == self::ORDER_TRANSACTION_STATE_PAID &&
-                $confirmResponseState == self::RESPONSE_STATE_PENDING
-            ) {
-                $this->transactionStateHandler->processUnconfirmed($transaction->getOrderTransaction()->getId(), $salesChannelContext->getContext());
-            } else if ($orderTransactionState == self::ORDER_TRANSACTION_STATE_AUTHORIZED) {
-                $this->transactionStateHandler->authorize($transaction->getOrderTransaction()->getId(), $salesChannelContext->getContext());
-            } else {
-                $this->transactionStateHandler->paid($transaction->getOrderTransaction()->getId(), $salesChannelContext->getContext());
+            try {
+                if (
+                    $orderTransactionState == self::ORDER_TRANSACTION_STATE_PAID &&
+                    $confirmResponseState == self::RESPONSE_STATE_PENDING
+                ) {
+                    $this->transactionStateHandler->processUnconfirmed($transaction->getOrderTransaction()->getId(), $salesChannelContext->getContext());
+                } else if ($orderTransactionState == self::ORDER_TRANSACTION_STATE_AUTHORIZED) {
+                    $this->transactionStateHandler->authorize($transaction->getOrderTransaction()->getId(), $salesChannelContext->getContext());
+                } else {
+                    $this->transactionStateHandler->paid($transaction->getOrderTransaction()->getId(), $salesChannelContext->getContext());
+                }
+            } catch (\Throwable $e) {
+                // Catch "cannot be edited" errors if order was cancelled by webhook during finalize
+                if (strpos($e->getMessage(), 'cannot be edited') !== false || 
+                    strpos($e->getMessage(), 'was cancelled') !== false) {
+                    $this->logger->warning('mondu.INFO: Order was cancelled during transaction state change, this should not affect the customer', [
+                        'order_id' => $transaction->getOrder()->getId(),
+                        'order_number' => $transaction->getOrder()->getOrderNumber(),
+                        'intended_state' => $orderTransactionState,
+                        'error' => $e->getMessage()
+                    ]);
+                    // Don't re-throw - order was confirmed in Mondu, webhook will handle the rest
+                } else {
+                    // Re-throw unexpected errors
+                    throw $e;
+                }
             }
         } else {
-            $this->transactionStateHandler->fail($transaction->getOrderTransaction()->getId(), $context);
+            try {
+                $this->transactionStateHandler->fail($transaction->getOrderTransaction()->getId(), $context);
+            } catch (\Throwable $e) {
+                // Catch "cannot be edited" errors if order was already cancelled by webhook
+                if (strpos($e->getMessage(), 'cannot be edited') !== false || 
+                    strpos($e->getMessage(), 'was cancelled') !== false) {
+                    $this->logger->info('mondu.INFO: Order was already cancelled by webhook, finalize completed without further action', [
+                        'order_id' => $transaction->getOrder()->getId(),
+                        'order_number' => $transaction->getOrder()->getOrderNumber(),
+                        'error' => $e->getMessage()
+                    ]);
+                    // Return silently - order already cancelled by webhook, no need to show error to user
+                    return;
+                } else {
+                    // Re-throw unexpected errors
+                    throw $e;
+                }
+            }
 
             throw PaymentException::customerCanceled(
                 $transactionId,
                 'Canceled/declined payment in Mondu Checkout.'
             );
+        }
+        } catch (\Throwable $globalEx) {
+            // If this is a declined payment after order was already cancelled by webhook, return silently
+            if ($request->query->getAlpha('payment') === 'declined' &&
+                ($globalEx instanceof PaymentException || 
+                 strpos($globalEx->getMessage(), 'cannot be edited') !== false || 
+                 strpos($globalEx->getMessage(), 'was cancelled') !== false ||
+                 strpos($globalEx->getMessage(), 'customer canceled') !== false)) {
+                $this->logger->info('mondu.INFO: Declined payment after order was already cancelled by webhook, finalize completed gracefully', [
+                    'order_id' => $transaction->getOrder()->getId() ?? 'unknown',
+                    'order_number' => $transaction->getOrder()->getOrderNumber() ?? 'unknown'
+                ]);
+                // Return silently - order already handled by webhook
+                return;
+            }
+            
+            // Re-throw unexpected errors
+            throw $globalEx;
         }
     }
 
@@ -119,7 +173,47 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         $orderData = $this->getOrderData($transaction, $salesChannelContext);
         $monduOrder = $this->monduClient->setSalesChannelId($salesChannelContext->getSalesChannelId())->createOrder($orderData);
 
+        // Save external_reference_id immediately to handle webhooks before finalize
+        $this->saveEarlyOrderData($transaction, $monduOrder, $salesChannelContext);
+
         return $monduOrder['hosted_checkout_url'];
+    }
+
+    /**
+     * Save minimal order data immediately after Mondu order creation
+     * This ensures webhooks (especially declined/cancelled) can find the order
+     * even if customer never returns to finalize the payment
+     */
+    private function saveEarlyOrderData($transaction, $monduOrder, $salesChannelContext): void
+    {
+        try {
+            $order = $transaction->getOrder();
+            
+            $this->orderDataRepository->upsert([
+                [
+                    OrderDataEntity::FIELD_ORDER_ID => $order->getId(),
+                    OrderDataEntity::FIELD_ORDER_VERSION_ID => $order->getVersionId(),
+                    OrderDataEntity::FIELD_REFERENCE_ID => $monduOrder['uuid'],
+                    OrderDataEntity::FIELD_EXTERNAL_REFERENCE_ID => $monduOrder['external_reference_id'] ?? null,
+                    OrderDataEntity::FIELD_ORDER_STATE => $monduOrder['state'] ?? 'pending',
+                    OrderDataEntity::FIELD_VIBAN => null, // Will be updated in finalize
+                    OrderDataEntity::FIELD_DURATION => 0, // Will be updated in finalize
+                    OrderDataEntity::FIELD_IS_SUCCESSFUL => false, // Will be updated in finalize
+                ]
+            ], $salesChannelContext->getContext());
+            
+            $this->logger->info('mondu.INFO: Early order data saved', [
+                'order_id' => $order->getId(),
+                'mondu_uuid' => $monduOrder['uuid'],
+                'external_reference_id' => $monduOrder['external_reference_id'] ?? null,
+            ]);
+        } catch (\Exception $e) {
+            // Log but don't fail the payment process
+            $this->logger->error('mondu.ERROR: Failed to save early order data', [
+                'error' => $e->getMessage(),
+                'mondu_uuid' => $monduOrder['uuid'] ?? null,
+            ]);
+        }
     }
 
     protected function getOrderData(AsyncPaymentTransactionStruct $transaction, SalesChannelContext $salesChannelContext)
@@ -199,6 +293,7 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
                 OrderDataEntity::FIELD_ORDER_STATE => $monduOrder['state'],
                 OrderDataEntity::FIELD_VIBAN => $monduOrder['bank_account']['iban'],
                 OrderDataEntity::FIELD_DURATION => $monduOrder['authorized_net_term'],
+                OrderDataEntity::FIELD_EXTERNAL_REFERENCE_ID => $monduOrder['external_reference_id'] ?? null,
                 OrderDataEntity::FIELD_IS_SUCCESSFUL => true,
             ]
         ], $salesChannelContext->getContext());
@@ -209,3 +304,4 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         return in_array($confirmResponseState, [self::RESPONSE_STATE_CONFIRMED, self::RESPONSE_STATE_PENDING]);
     }
 }
+

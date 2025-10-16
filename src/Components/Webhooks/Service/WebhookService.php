@@ -271,43 +271,64 @@ class WebhookService
 
             /** @var OrderEntity $orderEntity */
             $orderEntity = $this->orderRepository->search($criteria, $context)->first();
+            
             $transaction = $orderEntity->getTransactions()->first();
             $currentState = $transaction->getStateMachineState()->getTechnicalName();
             $orderCurrentState = $orderEntity->getStateMachineState()->getTechnicalName();
 
-            $this->log('Processing cancel/decline webhook', [$externalReferenceId, $currentState, $orderState, 'orderState' => $orderCurrentState]);
+            $this->log('Processing cancel/decline webhook', [
+                'externalReferenceId' => $externalReferenceId,
+                'orderNumber' => $orderEntity->getOrderNumber(),
+                'transactionState' => $currentState,
+                'orderState' => $orderCurrentState,
+                'webhookState' => $orderState
+            ]);
 
+            // Check if transaction is already cancelled
             if ($currentState === 'cancelled') {
                 $this->log('Transaction already cancelled', [$currentState, $params]);
                 return [[ 'message' => 'Transaction already cancelled: ' . $currentState, 'code' => Response::HTTP_OK ], Response::HTTP_OK];
             }
 
+            // Check if order is already cancelled to prevent "cannot be edited afterwards" error
+            if ($orderCurrentState === 'cancelled') {
+                $this->log('Order already cancelled, skipping transitions', ['orderState' => $orderCurrentState, 'transactionState' => $currentState, $params]);
+                return [[ 'message' => 'Order already cancelled: ' . $orderCurrentState, 'code' => Response::HTTP_OK ], Response::HTTP_OK];
+            }
+            
             $order = $this->getOrderByExternalReferenceId($externalReferenceId, $context);
             if ($order) {
                 $previousStatus = $this->getCurrentMonduOrderState($order);
-                if ($orderState === 'declined') {
-                    $this->log('Dispatching Mondu Order Declined Event', [$externalReferenceId, $monduId, $previousStatus]);
-                    $this->monduEventDispatcher->dispatchOrderDeclined(
-                        $order,
-                        $monduId,
-                        $previousStatus ?? 'unknown',
-                        $context
-                    );
-                    $this->log('Mondu Order Declined Event dispatched successfully', [$externalReferenceId]);
-                } elseif ($orderState === 'cancelled') {
-                    $this->log('Dispatching Mondu Order Cancelled Event', [$externalReferenceId, $monduId, $previousStatus]);
-                    $this->monduEventDispatcher->dispatchOrderCancelled(
-                        $order,
-                        $monduId,
-                        $previousStatus ?? 'unknown',
-                        $context
-                    );
-                    $this->log('Mondu Order Cancelled Event dispatched successfully', [$externalReferenceId]);
+                try {
+                    if ($orderState === 'declined') {
+                        $this->log('Dispatching Mondu Order Declined Event', [$externalReferenceId, $monduId, $previousStatus]);
+                        $this->monduEventDispatcher->dispatchOrderDeclined(
+                            $order,
+                            $monduId,
+                            $previousStatus ?? 'unknown',
+                            $context
+                        );
+                        $this->log('Mondu Order Declined Event dispatched successfully', [$externalReferenceId]);
+                    } elseif ($orderState === 'cancelled') {
+                        $this->log('Dispatching Mondu Order Cancelled Event', [$externalReferenceId, $monduId, $previousStatus]);
+                        $this->monduEventDispatcher->dispatchOrderCancelled(
+                            $order,
+                            $monduId,
+                            $previousStatus ?? 'unknown',
+                            $context
+                        );
+                        $this->log('Mondu Order Cancelled Event dispatched successfully', [$externalReferenceId]);
+                    }
+                } catch (\Exception $eventEx) {
+                    // Catch "cannot be edited" errors from event dispatchers
+                    if (strpos($eventEx->getMessage(), 'cannot be edited') !== false) {
+                        $this->log('Order was already cancelled during event dispatch, continuing', [$externalReferenceId, $eventEx->getMessage()]);
+                    } else {
+                        $this->log('Event dispatch failed', [$externalReferenceId, $eventEx->getMessage()]);
+                    }
                 }
             }
-
-            try {
-                $this->log('Attempting direct transaction fail transition', [$currentState]);
+            try {                $this->log('Attempting direct transaction fail transition', [$currentState]);
                 $transitionResult = $this->transitionTransactionState($externalReferenceId, 'fail', $context, $monduId);
 
                 if ($this->configService->isAutoTransitionOrderStateEnabled()) {
@@ -373,28 +394,62 @@ class WebhookService
                 }
             }
 
-        } catch (MonduException $e) {
-            $this->log('handleDeclinedOrCanceled Webhook Failed', [$params], $e);
-
-            return [[ 'message' => $e->getMessage(), 'code' => $e->getStatusCode() ], 200];
+        } catch (\Throwable $e) {
+            // Catch all errors including Shopware's "cannot be edited" OrderException
+            if (strpos($e->getMessage(), 'cannot be edited') !== false || strpos($e->getMessage(), 'was cancelled') !== false) {
+                $this->log('Order was already cancelled, webhook processed gracefully', [$externalReferenceId ?? 'unknown', $e->getMessage()]);
+                return [[ 'message' => 'Order already cancelled', 'code' => Response::HTTP_OK ], Response::HTTP_OK];
+            }
+            
+            // Handle MonduException separately for proper status code
+            if ($e instanceof MonduException) {
+                $this->log('handleDeclinedOrCanceled Webhook Failed', [$params], $e);
+                return [[ 'message' => $e->getMessage(), 'code' => $e->getStatusCode() ], 200];
+            }
+            
+            // Log other unexpected errors
+            $this->log('handleDeclinedOrCanceled Webhook Failed (unexpected error)', [$params, $e->getMessage()], $e);
+            return [[ 'message' => 'Webhook processing failed', 'code' => Response::HTTP_INTERNAL_SERVER_ERROR ], 200];
         }
     }
 
     protected function transitionOrderState($externalReferenceId, $state, $context, $monduId = null): ?StateMachineStateCollection
     {
-        try {
-            $this->log('TRACE: transitionOrderState called', [$externalReferenceId, $state, debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3)]);
+        try {            
+            // Check if order is already cancelled before attempting any transition
+            $orderId = $this->getOrderUuid($externalReferenceId, $context, $monduId);
+            $criteria = new Criteria([$orderId]);
+            $criteria->addAssociation('stateMachineState');
             
-            if ($state === 'cancel') {
-                $this->log('WARNING: Attempting ORDER cancel transition - this might fail!', [$externalReferenceId, $state]);
+            /** @var OrderEntity $orderEntity */
+            $orderEntity = $this->orderRepository->search($criteria, $context)->first();
+            if ($orderEntity) {
+                $orderCurrentState = $orderEntity->getStateMachineState()->getTechnicalName();
+                
+                if ($orderCurrentState === 'cancelled') {
+                    $this->log('Order already cancelled, skipping ORDER transition', [$externalReferenceId, $state, $orderCurrentState]);
+                    return null;
+                }
             }
             
-            return $this->stateMachineRegistry->transition(new Transition(
-                OrderDefinition::ENTITY_NAME,
-                $this->getOrderUuid($externalReferenceId, $context, $monduId),
-                $state,
-                'stateId'
-            ), $context);
+            if ($state === 'cancel') {            }
+            
+            try {
+                return $this->stateMachineRegistry->transition(new Transition(
+                    OrderDefinition::ENTITY_NAME,
+                    $orderId,
+                    $state,
+                    'stateId'
+                ), $context);
+            } catch (\Throwable $transitionEx) {
+                // Catch Shopware's "cannot be edited" exception
+                if (strpos($transitionEx->getMessage(), 'cannot be edited') !== false || 
+                    strpos($transitionEx->getMessage(), 'was cancelled') !== false) {
+                    $this->log('Order was already cancelled during transition, skipping gracefully', [$externalReferenceId, $state, $transitionEx->getMessage()]);
+                    return null;
+                }
+                throw $transitionEx;
+            }
         } catch (\Exception $e) {
             $this->log('transitionOrderState Failed', [$externalReferenceId, $state], $e);
             return null;
@@ -403,26 +458,44 @@ class WebhookService
 
     protected function transitionDeliveryState($externalReferenceId, $state, $context, $monduId = null): ?StateMachineStateCollection
     {
-        try {
-            $this->log('TRACE: transitionDeliveryState called', [$externalReferenceId, $state, debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3)]);
-            
-            if ($state === 'cancel') {
-                $this->log('WARNING: Attempting DELIVERY cancel transition - this might fail!', [$externalReferenceId, $state]);
-            }
+        try {            
+            if ($state === 'cancel') {            }
             
             $criteria = new Criteria([$this->getOrderUuid($externalReferenceId, $context, $monduId)]);
             $criteria->addAssociation('deliveries');
+            $criteria->addAssociation('stateMachineState');
 
             /** @var OrderEntity $orderEntity */
             $orderEntity = $this->orderRepository->search($criteria, $context)->first();
+            
+            // Check if order is already cancelled before attempting delivery transition
+            if ($orderEntity) {
+                $orderCurrentState = $orderEntity->getStateMachineState()->getTechnicalName();
+                
+                if ($orderCurrentState === 'cancelled') {
+                    $this->log('Order already cancelled, skipping DELIVERY transition', [$externalReferenceId, $state, $orderCurrentState]);
+                    return null;
+                }
+            }
+            
             $orderDeliveryId = $orderEntity->getDeliveries()->first()->getId();
 
-            return $this->stateMachineRegistry->transition(new Transition(
-                OrderDeliveryDefinition::ENTITY_NAME,
-                $orderDeliveryId,
-                $state,
-                'stateId'
-            ), $context);
+            try {
+                return $this->stateMachineRegistry->transition(new Transition(
+                    OrderDeliveryDefinition::ENTITY_NAME,
+                    $orderDeliveryId,
+                    $state,
+                    'stateId'
+                ), $context);
+            } catch (\Throwable $transitionEx) {
+                // Catch Shopware's "cannot be edited" exception
+                if (strpos($transitionEx->getMessage(), 'cannot be edited') !== false || 
+                    strpos($transitionEx->getMessage(), 'was cancelled') !== false) {
+                    $this->log('Order was already cancelled during delivery transition, skipping gracefully', [$externalReferenceId, $state, $transitionEx->getMessage()]);
+                    return null;
+                }
+                throw $transitionEx;
+            }
         } catch (\Exception $e) {
             $this->log('transitionDeliveryState Failed', [$externalReferenceId, $state], $e);
             return null;
@@ -456,21 +529,40 @@ class WebhookService
     protected function getOrderUuid($externalReferenceId, $context, $monduId = null)
     {
         try {
+            // 1. Try to find by order number
             $criteria = new Criteria();
             $criteria->addFilter(new EqualsFilter('orderNumber', $externalReferenceId));
             $order = $this->orderRepository->search($criteria, $context)->first();
 
-            if (!$order) {
+            if ($order) {
+                return $order->getId();
+            }
+
+            // 2. Try to find by external_reference_id in mondu_order_data
+            $criteria = new Criteria();
+            $criteria->addFilter(new EqualsFilter('externalReferenceId', $externalReferenceId));
+            $orderData = $this->orderDataRepository->search($criteria, $context)->first();
+            if ($orderData) {
+                $this->log('Order found by external_reference_id', [
+                    'external_reference_id' => $externalReferenceId,
+                    'order_id' => $orderData->getOrderId()
+                ]);
+                return $orderData->getOrderId();
+            }
+
+            // 3. Try to find by mondu reference_id (UUID from Mondu)
+            if ($monduId) {
                 $criteria = new Criteria();
                 $criteria->addFilter(new EqualsFilter('referenceId', $monduId));
                 $orderData = $this->orderDataRepository->search($criteria, $context)->first();
-                if ($orderData) return $orderData->getOrderId();
+                if ($orderData) {
+                    return $orderData->getOrderId();
+                }
             }
 
-            if (!$order) {
-                throw new MonduException('Order not found', 404);
-            }
-            return $order->getId();
+            // Not found by any method
+            throw new MonduException('Order not found', 404);
+            
         } catch (MonduException $e) {
             $this->log('getOrderUuid Failed', [$externalReferenceId], $e);
             throw $e;
@@ -537,6 +629,19 @@ class WebhookService
     protected function safeTransitionOrderCancel($externalReferenceId, $context, $monduId = null): void
     {
         try {
+            // Check if order is already cancelled before attempting transition
+            $criteria = new Criteria([$this->getOrderUuid($externalReferenceId, $context, $monduId)]);
+            $criteria->addAssociation('stateMachineState');
+            
+            /** @var OrderEntity $orderEntity */
+            $orderEntity = $this->orderRepository->search($criteria, $context)->first();
+            $orderCurrentState = $orderEntity->getStateMachineState()->getTechnicalName();
+            
+            if ($orderCurrentState === 'cancelled') {
+                $this->log('Order already cancelled, skipping order cancel transition', [$externalReferenceId, $orderCurrentState]);
+                return;
+            }
+            
             $this->log('Trying order cancel transition', [$externalReferenceId]);
             $this->transitionOrderState($externalReferenceId, 'cancel', $context, $monduId);
         } catch (\Exception $e) {
@@ -550,6 +655,19 @@ class WebhookService
     protected function safeTransitionDeliveryCancel($externalReferenceId, $context, $monduId = null): void
     {
         try {
+            // Check if order is already cancelled before attempting delivery transition
+            $criteria = new Criteria([$this->getOrderUuid($externalReferenceId, $context, $monduId)]);
+            $criteria->addAssociation('stateMachineState');
+            
+            /** @var OrderEntity $orderEntity */
+            $orderEntity = $this->orderRepository->search($criteria, $context)->first();
+            $orderCurrentState = $orderEntity->getStateMachineState()->getTechnicalName();
+            
+            if ($orderCurrentState === 'cancelled') {
+                $this->log('Order already cancelled, skipping delivery cancel transition', [$externalReferenceId, $orderCurrentState]);
+                return;
+            }
+            
             $this->log('Trying delivery cancel transition', [$externalReferenceId]);
             $this->transitionDeliveryState($externalReferenceId, 'cancel', $context, $monduId);
         } catch (\Exception $e) {

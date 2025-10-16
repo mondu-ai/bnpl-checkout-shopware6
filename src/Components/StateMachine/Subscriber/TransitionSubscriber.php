@@ -45,54 +45,81 @@ class TransitionSubscriber implements EventSubscriberInterface
 
     public function onTransition(StateMachineTransitionEvent $event): void
     {
-        $eventName = $event->getEntityName();
+        try {
+            $eventName = $event->getEntityName();
 
-        if ($eventName === OrderDeliveryDefinition::ENTITY_NAME) {
-            $orderDelivery = $this->orderDeliveryRepository->search(new Criteria([$event->getEntityId()]), $event->getContext())->first();
-            $order = $this->getOrder($orderDelivery->getOrderId(), $event->getContext());
-        } elseif ($eventName === OrderDefinition::ENTITY_NAME) {
-            $order = $this->getOrder($event->getEntityId(), $event->getContext());
-        } else {
-            return;
-        }
+            if ($eventName === OrderDeliveryDefinition::ENTITY_NAME) {
+                $orderDelivery = $this->orderDeliveryRepository->search(new Criteria([$event->getEntityId()]), $event->getContext())->first();
+                $order = $this->getOrder($orderDelivery->getOrderId(), $event->getContext());
+            } elseif ($eventName === OrderDefinition::ENTITY_NAME) {
+                $order = $this->getOrder($event->getEntityId(), $event->getContext());
+            } else {
+                return;
+            }
 
-        $monduOrder = $this->getMonduDataFromOrder($order);
+            // Check if order is already cancelled to prevent "cannot be edited" errors
+            if ($order->getStateMachineState()->getTechnicalName() === 'cancelled' && 
+                $event->getToPlace()->getTechnicalName() === 'cancelled') {
+                $this->logger->info('mondu.INFO: Order already cancelled, skipping transition subscriber', [
+                    'order_id' => $order->getId(),
+                    'order_number' => $order->getOrderNumber()
+                ]);
+                return;
+            }
 
-        if (!isset($monduOrder)) {
-            return;
-        }
+            $monduOrder = $this->getMonduDataFromOrder($order);
 
-        switch ($event->getToPlace()->getTechnicalName()) {
-            case "cancelled":
-                try {
-                    $state = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->cancelOrder($monduOrder->getReferenceId());
-                    if ($state) {
-                        $this->updateOrder($event->getContext(), $monduOrder, [
-                            OrderDataEntity::FIELD_ORDER_STATE => $state
-                        ]);
+            if (!isset($monduOrder)) {
+                return;
+            }
+
+            switch ($event->getToPlace()->getTechnicalName()) {
+                case "cancelled":
+                    try {
+                        $state = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->cancelOrder($monduOrder->getReferenceId());
+                        if ($state) {
+                            $this->updateOrder($event->getContext(), $monduOrder, [
+                                OrderDataEntity::FIELD_ORDER_STATE => $state
+                            ]);
+                        }
+                    } catch (\Exception $e) {
+                        $this->logger->warning(
+                            "mondu.INFO: Order cannot be cancelled in Mondu API: " . $e->getMessage(),
+                            [
+                                "order_id" => $order->getId(),
+                                "mondu_reference_id" => $monduOrder->getReferenceId()
+                            ]
+                        );
+                        // Continue with local cancellation even if Mondu API fails
                     }
-                } catch (\Exception $e) {
-                    $this->logger->warning(
-                        "mondu.INFO: Order cannot be cancelled in Mondu API: " . $e->getMessage(),
-                        [
-                            "order_id" => $order->getId(),
-                            "mondu_reference_id" => $monduOrder->getReferenceId()
-                        ]
-                    );
-                    // Continue with local cancellation even if Mondu API fails
-                }
-                break;
-            case 'shipped':
-            case 'shipped_partially':
-                $this->shipOrder($order, $event->getContext(), $monduOrder);
-                break;
+                    break;
+                case 'shipped':
+                case 'shipped_partially':
+                    $this->shipOrder($order, $event->getContext(), $monduOrder);
+                    break;
+            }
+        } catch (\Throwable $e) {
+            // Catch all errors including "cannot be edited" OrderException
+            if (strpos($e->getMessage(), 'cannot be edited') !== false || 
+                strpos($e->getMessage(), 'was cancelled') !== false) {
+                $this->logger->info('mondu.INFO: Order was already cancelled, transition subscriber skipped gracefully', [
+                    'event' => $event->getToPlace()->getTechnicalName(),
+                    'error' => $e->getMessage()
+                ]);
+                return;
+            }
+            
+            // Re-throw other exceptions
+            throw $e;
         }
     }
 
     protected function getOrder(string $orderId, Context $context): OrderEntity
     {
         $criteria = CriteriaHelper::getCriteriaForOrder($orderId);
-        $criteria->addAssociation('documents.documentType')->addAssociation('currency');
+        $criteria->addAssociation('documents.documentType')
+            ->addAssociation('currency')
+            ->addAssociation('stateMachineState');
         return $this->orderRepository->search($criteria, $context)->first();
     }
 
@@ -128,7 +155,7 @@ class TransitionSubscriber implements EventSubscriberInterface
                 $invoiceData = [
                     'external_reference_id' => $order->getOrderNumber(),
                     'gross_amount_cents' => (int)round($order->getAmountTotal() * 100),
-                    'invoice_url' => null
+                    'invoice_url' => '' // Empty string instead of null - Mondu API requires string
                 ];
 
                 $invoice = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->invoiceOrder(

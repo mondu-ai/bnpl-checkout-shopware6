@@ -79,6 +79,11 @@ class OrderDataDefinition extends EntityDefinition
             ))->addFlags(new Required()),
 
             (new StringField(
+                'external_reference_id',
+                OrderDataEntity::FIELD_EXTERNAL_REFERENCE_ID
+            )),
+
+            (new StringField(
                 'external_invoice_number',
                 OrderDataEntity::FIELD_EXTERNAL_INVOICE_NUMBER
             )),

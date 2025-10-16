@@ -20,7 +20,7 @@ class InvoiceDataService extends AbstractInvoiceDataService
         return [
             'currency' => $this->orderUtilsService->getOrderCurrency($order),
             'external_reference_id' => $invoiceNumber,
-            'invoice_url' => $invoiceUrl,
+            'invoice_url' => $invoiceUrl ?? '', // Ensure invoice_url is always a string
             'gross_amount_cents' => $this->orderUtilsService->priceToCents($order->getPrice()->getTotalPrice()),
             'discount_cents' => $this->orderDiscountService->getOrderDiscountCents($order, $context),
             'shipping_price_cents' => $this->orderUtilsService->getShippingPriceCents($order),

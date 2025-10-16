@@ -13,95 +13,32 @@ class OrderDataEntity extends Entity
     use EntityIdTrait;
 
     public const FIELD_ID = 'id';
-
     public const FIELD_ORDER_ID = 'orderId';
-
     public const FIELD_ORDER_VERSION_ID = 'orderVersionId';
-
     public const FIELD_ORDER_STATE = 'orderState';
-
     public const FIELD_REFERENCE_ID = 'referenceId';
-
+    public const FIELD_EXTERNAL_REFERENCE_ID = 'externalReferenceId';
     public const FIELD_IS_SUCCESSFUL = 'successful';
-
     public const FIELD_EXTERNAL_INVOICE_NUMBER = 'externalInvoiceNumber';
-
     public const FIELD_EXTERNAL_INVOICE_URL = 'externalInvoiceUrl';
-
     public const FIELD_EXTERNAL_DELIVERY_NOTE_URL = 'externalDeliveryNoteUrl';
-
     public const FIELD_VIBAN = 'viban';
-
     public const FIELD_DURATION = 'duration';
 
-    /**
-     * @var string
-     */
     protected string $orderId;
-
-    /**
-     * @var string
-     */
     protected string $orderVersionId;
-
-    /**
-     * @var OrderEntity
-     */
     protected $order;
-
-    /**
-     * @var string
-     */
     protected string $orderState;
-
-    /**
-     * @var string
-     */
     protected string $referenceId;
-
-    /**
-     * @var string|null
-     */
+    protected ?string $externalReferenceId = null;
     protected ?string $externalInvoiceNumber;
-
-    /**
-     * @var string|null
-     */
     protected ?string $externalInvoiceUrl;
-
-    /**
-     * @var string|null
-     */
     protected ?string $externalDeliveryNoteUrl;
-
-    /**
-     * @var string|null
-     */
     protected ?string $bankIban;
-
-    /**
-     * @var string|null
-     */
     protected ?string $bankBic;
-
-    /**
-     * @var string|null
-     */
     protected ?string $bankName;
-
-    /**
-     * @var int|null
-     */
     protected ?int $duration;
-
-    /**
-     * @var bool
-     */
     protected bool $successful;
-
-    /**
-     * @var string|null
-     */
     protected ?string $viban;
 
     public function getOrderId(): string
@@ -127,6 +64,11 @@ class OrderDataEntity extends Entity
     public function getReferenceId(): string
     {
         return $this->referenceId;
+    }
+
+    public function getExternalReferenceId(): ?string
+    {
+        return $this->externalReferenceId;
     }
 
     public function getExternalInvoiceNumber(): ?string
