@@ -145,6 +145,36 @@
             <argument type="service" id="event_dispatcher"/>
         </service>
 
+        <service id="Mondu\MonduPayment\Components\Events\Service\MonduBusinessEventCollector">
+            <argument type="service" id="Shopware\Core\Framework\Event\BusinessEventCollector"/>
+        </service>
+
+        <!-- Register Mondu Events in Flow Builder via Subscriber -->
+        <service id="Mondu\MonduPayment\Components\Events\Subscriber\MonduBusinessEventSubscriber">
+            <tag name="kernel.event_subscriber"/>
+        </service>
+
+        <!-- Register Mondu Events for Flow Builder -->
+        <service id="Mondu\MonduPayment\Components\Events\MonduOrderConfirmedEvent">
+            <tag name="flow.stoppable"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\Events\MonduOrderCancelledEvent">
+            <tag name="flow.stoppable"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\Events\MonduOrderPendingEvent">
+            <tag name="flow.stoppable"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\Events\MonduOrderApprovedEvent">
+            <tag name="flow.stoppable"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\Events\MonduOrderDeclinedEvent">
+            <tag name="flow.stoppable"/>
+        </service>
+
         <service id="Mondu\MonduPayment\Components\Events\Subscriber\MonduOrderStatusSubscriber">
             <argument type="service" id="monolog.logger.mondu"/>
             <argument type="service" id="mondu.mondu_config"/>
@@ -158,6 +188,10 @@
             <tag name="kernel.event_subscriber"/>
         </service>
         <service id="Mondu\MonduPayment\Command\TestMonduEventsCommand">
+            <tag name="console.command"/>
+        </service>
+        <service id="Mondu\MonduPayment\Command\CheckMonduEventsCommand">
+            <argument type="service" id="Shopware\Core\Framework\Event\BusinessEventCollector"/>
             <tag name="console.command"/>
         </service>
     </services>

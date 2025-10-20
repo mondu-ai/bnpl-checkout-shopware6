@@ -151,12 +151,47 @@ class TransitionSubscriber implements EventSubscriberInterface
         }
 
         if ($this->configService->isSkipAllValidationMode()) {
+            // Try to get invoice URL from existing documents if available
+            $invoiceUrl = 'https://example.com/invoice.pdf';  // Default placeholder URL
+            $invoiceNumber = $order->getOrderNumber();
+            $hasRealInvoice = false;
+            
+            if ($order->getDocuments() && $order->getDocuments()->count() > 0) {
+                foreach ($order->getDocuments() as $document) {
+                    if (
+                        $document->getDocumentType()->getTechnicalName() === 'invoice' ||
+                        $document->getDocumentType()->getTechnicalName() === 'zugferd_embedded_invoice'
+                    ) {
+                        $foundUrl = $this->invoiceDataService->getDocumentUrl($document);
+                        if ($foundUrl !== null) {
+                            $invoiceUrl = $foundUrl;
+                            $hasRealInvoice = true;
+                        }
+                        $config = $document->getConfig();
+                        $invoiceNumber = $config['custom']['invoiceNumber'] ?? $order->getOrderNumber();
+                        break;
+                    }
+                }
+            }
+            
+            // In skip all validation mode, always send invoice call (with real URL or placeholder)
             try {
                 $invoiceData = [
-                    'external_reference_id' => $order->getOrderNumber(),
+                    'external_reference_id' => $invoiceNumber,
                     'gross_amount_cents' => (int)round($order->getAmountTotal() * 100),
-                    'invoice_url' => '' // Empty string instead of null - Mondu API requires string
+                    'invoice_url' => $invoiceUrl  // Real URL or placeholder
                 ];
+
+                $this->logger->info(
+                    'mondu.INFO: Skip all validation mode: Sending invoice to Mondu' . ($hasRealInvoice ? ' with real invoice URL' : ' with placeholder URL'),
+                    [
+                        'order' => $order->getId(),
+                        'order_number' => $order->getOrderNumber(),
+                        'mondu-reference-id' => $monduData->getReferenceId(),
+                        'invoice_url' => $invoiceUrl,
+                        'has_real_invoice' => $hasRealInvoice
+                    ]
+                );
 
                 $invoice = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->invoiceOrder(
                     $monduData->getReferenceId(),
@@ -169,20 +204,44 @@ class TransitionSubscriber implements EventSubscriberInterface
                             InvoiceDataEntity::FIELD_ORDER_ID => $order->getId(),
                             InvoiceDataEntity::FIELD_ORDER_VERSION_ID => $order->getVersionId(),
                             InvoiceDataEntity::FIELD_DOCUMENT_ID => null,
-                            InvoiceDataEntity::FIELD_INVOICE_NUMBER => $order->getOrderNumber(),
+                            InvoiceDataEntity::FIELD_INVOICE_NUMBER => $invoiceNumber,
                             InvoiceDataEntity::FIELD_EXTERNAL_INVOICE_UUID => $invoice['uuid'],
                         ]
                     ], $context);
+                    
+                    $this->logger->info(
+                        'mondu.INFO: Skip all validation mode: Invoice successfully sent to Mondu',
+                        [
+                            'order' => $order->getId(),
+                            'mondu-reference-id' => $monduData->getReferenceId(),
+                            'invoice_uuid' => $invoice['uuid']
+                        ]
+                    );
                 }
             } catch (\Exception $e) {
                 $this->logger->warning(
-                    'mondu.INFO: Skip all validation mode: Invoice call failed (Exception: '. $e->getMessage().')',
+                    'mondu.WARNING: Skip all validation mode: Invoice call failed (Exception: '. $e->getMessage().')',
                     [
                         'order' => $order->getId(),
+                        'order_number' => $order->getOrderNumber(),
                         'mondu-reference-id' => $monduData->getReferenceId()
                     ]
                 );
+                // Don't throw - continue silently in skip all validation mode
             }
+            
+            // Update Mondu order state to shipped
+            try {
+                $this->updateOrder($context, $monduData, [
+                    OrderDataEntity::FIELD_ORDER_STATE => 'shipped'
+                ]);
+            } catch (\Exception $e) {
+                $this->logger->warning('mondu.WARNING: Failed to update Mondu order state to shipped', [
+                    'order' => $order->getId(),
+                    'error' => $e->getMessage()
+                ]);
+            }
+            
             return;
         }
 
@@ -197,7 +256,16 @@ class TransitionSubscriber implements EventSubscriberInterface
             if ($invoice == null) {
                 throw new MonduException('Error ocurred while shipping an order. Please contact Mondu Support.');
             }
-            $attachedDocument = $context->getExtensions()['mail-attachments']->getDocumentIds()[0];
+            
+            // Get attached document if available (may not exist when manually changing delivery state)
+            $attachedDocument = null;
+            if ($context->hasExtension('mail-attachments')) {
+                $mailAttachments = $context->getExtension('mail-attachments');
+                $documentIds = $mailAttachments->getDocumentIds();
+                if (!empty($documentIds)) {
+                    $attachedDocument = $documentIds[0];
+                }
+            }
 
             $this->invoiceDataRepository->upsert([
                 [
@@ -208,6 +276,11 @@ class TransitionSubscriber implements EventSubscriberInterface
                     InvoiceDataEntity::FIELD_EXTERNAL_INVOICE_UUID => $invoice['uuid'],
                 ]
             ], $context);
+            
+            // Update Mondu order state to shipped
+            $this->updateOrder($context, $monduData, [
+                OrderDataEntity::FIELD_ORDER_STATE => 'shipped'
+            ]);
 
         } catch (\Exception $e) {
             $this->logger->critical(

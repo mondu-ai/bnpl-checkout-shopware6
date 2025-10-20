@@ -7,9 +7,19 @@ namespace Mondu\MonduPayment\Components\Events;
 use Shopware\Core\Framework\Event\ShopwareEvent;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Checkout\Order\OrderEntity;
+use Shopware\Core\Framework\Event\EventData\EventDataCollection;
+use Shopware\Core\Framework\Event\EventData\EntityType;
+use Shopware\Core\Framework\Event\EventData\ScalarValueType;
+use Shopware\Core\Framework\Event\OrderAware;
+use Shopware\Core\Framework\Event\MailAware;
+use Shopware\Core\Framework\Event\SalesChannelAware;
+use Shopware\Core\Checkout\Order\OrderDefinition;
+use Shopware\Core\Framework\Event\EventData\MailRecipientStruct;
 
-class MonduOrderApprovedEvent implements ShopwareEvent
+class MonduOrderApprovedEvent implements ShopwareEvent, OrderAware, MailAware, SalesChannelAware
 {
+    public const EVENT_NAME = 'mondu.order.approved';
+
     private OrderEntity $order;
     private Context $context;
     private string $monduOrderId;
@@ -32,6 +42,11 @@ class MonduOrderApprovedEvent implements ShopwareEvent
         return $this->order;
     }
 
+    public function getOrderId(): string
+    {
+        return $this->order->getId();
+    }
+
     public function getMonduOrderId(): string
     {
         return $this->monduOrderId;
@@ -49,6 +64,32 @@ class MonduOrderApprovedEvent implements ShopwareEvent
 
     public function getName(): string
     {
-        return 'mondu.order.approved';
+        return self::EVENT_NAME;
+    }
+
+    public function getSalesChannelId(): string
+    {
+        return $this->order->getSalesChannelId();
+    }
+
+    public function getMailStruct(): MailRecipientStruct
+    {
+        if (!$this->order->getOrderCustomer()) {
+            throw new \RuntimeException('Order customer is required for mail sending');
+        }
+
+        return new MailRecipientStruct([
+            $this->order->getOrderCustomer()->getEmail() => 
+                $this->order->getOrderCustomer()->getFirstName() . ' ' . 
+                $this->order->getOrderCustomer()->getLastName()
+        ]);
+    }
+
+    public static function getAvailableData(): EventDataCollection
+    {
+        return (new EventDataCollection())
+            ->add('order', new EntityType(OrderDefinition::class))
+            ->add('monduOrderId', new ScalarValueType(ScalarValueType::TYPE_STRING))
+            ->add('previousStatus', new ScalarValueType(ScalarValueType::TYPE_STRING));
     }
 }
