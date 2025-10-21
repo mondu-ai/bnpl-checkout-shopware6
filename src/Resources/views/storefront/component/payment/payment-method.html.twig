@@ -1,20 +1,22 @@
 {% sw_extends '@Storefront/storefront/component/payment/payment-method.html.twig' %}
 
 {% block component_payment_method_description %}
-    {% if payment.shortname == 'mondu_handler' or payment.shortname == 'mondu_sepa_handler' or payment.shortname == 'mondu_installment_handler' or payment.shortname == 'mondu_installment_by_invoice_handler' or payment.shortname == 'mondu_pay_now_handler' %}
-      <div class="payment-method-description">
-        <strong>{{ payment.translated.name }}</strong>
-        {% if payment.translated.description %}
-            {% set paymentDescription = payment.translated.description|replace({ "[url=": "<a target=\"_blank\" href=\"", "]": "\" >", "[/url]": "</a>" }) %}
+    {% if (payment.shortname == 'mondu_handler'
+        or payment.shortname == 'mondu_sepa_handler'
+        or payment.shortname == 'mondu_installment_handler'
+        or payment.shortname == 'mondu_installment_by_invoice_handler'
+        or payment.shortname == 'mondu_pay_now_handler')
+        and payment.id is same as(selectedPaymentMethodId) %}
 
-            {% if not payment.id is same as(selectedPaymentMethodId) %}
-                {% set paymentDescription = (paymentDescription|length > 75 ? payment.translated.description[:75] ~ ' ...' : paymentDescription) %}
+        <div class="payment-method-description">
+            <strong>{{ payment.translated.name }}</strong>
+            {% if payment.translated.description %}
+                {% set paymentDescription = payment.translated.description|replace({ "[url=": "<a target=\"_blank\" href=\"", "]": "\" >", "[/url]": "</a>" }) %}
+                <p>{{ paymentDescription | raw }}</p>
             {% endif %}
+        </div>
 
-            <p>{{ paymentDescription | raw }}</p>
-        {% endif %}
-      </div>
     {% else %}
-      {{ parent() }}
+        {{ parent() }}
     {% endif %}
 {% endblock %}

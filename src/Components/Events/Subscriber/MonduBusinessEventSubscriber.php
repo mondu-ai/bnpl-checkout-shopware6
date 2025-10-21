@@ -11,6 +11,11 @@ use Mondu\MonduPayment\Components\Events\MonduOrderApprovedEvent;
 use Mondu\MonduPayment\Components\Events\MonduOrderDeclinedEvent;
 use Shopware\Core\Framework\Event\BusinessEventCollectorEvent;
 use Shopware\Core\Framework\Event\BusinessEventDefinition;
+use Shopware\Core\Framework\Event\OrderAware;
+use Shopware\Core\Framework\Event\SalesChannelAware;
+use Shopware\Core\Framework\Event\MailAware;
+use Shopware\Core\Framework\Event\CustomerAware;
+use Shopware\Core\Framework\Event\CustomerGroupAware;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
@@ -30,7 +35,20 @@ class MonduBusinessEventSubscriber implements EventSubscriberInterface
         $collection = $event->getCollection();
 
         // Define aware interfaces for all Mondu events
-        $aware = ['order', 'salesChannel', 'mail'];
+        // Format: [shortName, FullClassName, shortName, FullClassName, ...]
+        // This matches Shopware's expected format for Flow Builder action filtering
+        $aware = [
+            'orderAware',
+            OrderAware::class,
+            'salesChannelAware',
+            SalesChannelAware::class,
+            'mailAware',
+            MailAware::class,
+            'customerAware',
+            CustomerAware::class,
+            'customerGroupAware',
+            CustomerGroupAware::class,
+        ];
 
         // Register all Mondu events
         $collection->set(
@@ -84,4 +102,3 @@ class MonduBusinessEventSubscriber implements EventSubscriberInterface
         );
     }
 }
-

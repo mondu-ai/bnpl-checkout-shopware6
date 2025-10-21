@@ -13,10 +13,13 @@ use Shopware\Core\Framework\Event\EventData\ScalarValueType;
 use Shopware\Core\Framework\Event\OrderAware;
 use Shopware\Core\Framework\Event\MailAware;
 use Shopware\Core\Framework\Event\SalesChannelAware;
+use Shopware\Core\Framework\Event\FlowEventAware;
+use Shopware\Core\Framework\Event\CustomerAware;
+use Shopware\Core\Framework\Event\CustomerGroupAware;
 use Shopware\Core\Checkout\Order\OrderDefinition;
 use Shopware\Core\Framework\Event\EventData\MailRecipientStruct;
 
-class MonduOrderApprovedEvent implements ShopwareEvent, OrderAware, MailAware, SalesChannelAware
+class MonduOrderApprovedEvent implements ShopwareEvent, OrderAware, MailAware, SalesChannelAware, FlowEventAware, CustomerAware, CustomerGroupAware
 {
     public const EVENT_NAME = 'mondu.order.approved';
 
@@ -70,6 +73,28 @@ class MonduOrderApprovedEvent implements ShopwareEvent, OrderAware, MailAware, S
     public function getSalesChannelId(): string
     {
         return $this->order->getSalesChannelId();
+    }
+
+    public function getCustomerId(): string
+    {
+        $customerId = $this->order->getOrderCustomer()?->getCustomerId();
+
+        if (!$customerId) {
+            throw new \RuntimeException('Order customer not found');
+        }
+
+        return $customerId;
+    }
+
+    public function getCustomerGroupId(): string
+    {
+        $customerGroupId = $this->order->getOrderCustomer()?->getCustomer()?->getGroupId();
+
+        if (!$customerGroupId) {
+            throw new \RuntimeException('Customer group not found');
+        }
+
+        return $customerGroupId;
     }
 
     public function getMailStruct(): MailRecipientStruct

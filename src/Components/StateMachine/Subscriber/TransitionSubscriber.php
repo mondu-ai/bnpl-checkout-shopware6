@@ -155,6 +155,7 @@ class TransitionSubscriber implements EventSubscriberInterface
             $invoiceUrl = 'https://example.com/invoice.pdf';  // Default placeholder URL
             $invoiceNumber = $order->getOrderNumber();
             $hasRealInvoice = false;
+            $documentId = null;
             
             if ($order->getDocuments() && $order->getDocuments()->count() > 0) {
                 foreach ($order->getDocuments() as $document) {
@@ -169,6 +170,7 @@ class TransitionSubscriber implements EventSubscriberInterface
                         }
                         $config = $document->getConfig();
                         $invoiceNumber = $config['custom']['invoiceNumber'] ?? $order->getOrderNumber();
+                        $documentId = $document->getId();  // Get real document ID if exists
                         break;
                     }
                 }
@@ -176,11 +178,23 @@ class TransitionSubscriber implements EventSubscriberInterface
             
             // In skip all validation mode, always send invoice call (with real URL or placeholder)
             try {
-                $invoiceData = [
-                    'external_reference_id' => $invoiceNumber,
-                    'gross_amount_cents' => (int)round($order->getAmountTotal() * 100),
-                    'invoice_url' => $invoiceUrl  // Real URL or placeholder
-                ];
+                // Use full invoice data structure with proper line_items
+                $invoiceData = $this->invoiceDataService->getInvoiceData($order, $context);
+                
+                // Add documentId to each line item (required by Mondu API)
+                // Use document ID if available, otherwise use order number as fallback
+                $lineItemDocId = $documentId ?? $order->getOrderNumber();
+                
+                if (isset($invoiceData['line_items']) && is_array($invoiceData['line_items'])) {
+                    foreach ($invoiceData['line_items'] as &$lineItem) {
+                        $lineItem['documentId'] = $lineItemDocId;
+                    }
+                    unset($lineItem);  // Break reference
+                }
+                
+                // Override invoice URL if we have a placeholder or real one
+                $invoiceData['invoice_url'] = $invoiceUrl;
+                $invoiceData['external_reference_id'] = $invoiceNumber;
 
                 $this->logger->info(
                     'mondu.INFO: Skip all validation mode: Sending invoice to Mondu' . ($hasRealInvoice ? ' with real invoice URL' : ' with placeholder URL'),
@@ -189,7 +203,9 @@ class TransitionSubscriber implements EventSubscriberInterface
                         'order_number' => $order->getOrderNumber(),
                         'mondu-reference-id' => $monduData->getReferenceId(),
                         'invoice_url' => $invoiceUrl,
-                        'has_real_invoice' => $hasRealInvoice
+                        'has_real_invoice' => $hasRealInvoice,
+                        'documentId' => $documentId,
+                        'line_items_count' => count($invoiceData['line_items'] ?? [])
                     ]
                 );
 
@@ -199,22 +215,26 @@ class TransitionSubscriber implements EventSubscriberInterface
                 );
 
                 if ($invoice != null) {
-                    $this->invoiceDataRepository->upsert([
-                        [
-                            InvoiceDataEntity::FIELD_ORDER_ID => $order->getId(),
-                            InvoiceDataEntity::FIELD_ORDER_VERSION_ID => $order->getVersionId(),
-                            InvoiceDataEntity::FIELD_DOCUMENT_ID => null,
-                            InvoiceDataEntity::FIELD_INVOICE_NUMBER => $invoiceNumber,
-                            InvoiceDataEntity::FIELD_EXTERNAL_INVOICE_UUID => $invoice['uuid'],
-                        ]
-                    ], $context);
+                    // Only save invoice data if we have a real document ID (required field)
+                    if ($documentId !== null) {
+                        $this->invoiceDataRepository->upsert([
+                            [
+                                InvoiceDataEntity::FIELD_ORDER_ID => $order->getId(),
+                                InvoiceDataEntity::FIELD_ORDER_VERSION_ID => $order->getVersionId(),
+                                InvoiceDataEntity::FIELD_DOCUMENT_ID => $documentId,
+                                InvoiceDataEntity::FIELD_INVOICE_NUMBER => $invoiceNumber,
+                                InvoiceDataEntity::FIELD_EXTERNAL_INVOICE_UUID => $invoice['uuid'],
+                            ]
+                        ], $context);
+                    }
                     
                     $this->logger->info(
                         'mondu.INFO: Skip all validation mode: Invoice successfully sent to Mondu',
                         [
                             'order' => $order->getId(),
                             'mondu-reference-id' => $monduData->getReferenceId(),
-                            'invoice_uuid' => $invoice['uuid']
+                            'invoice_uuid' => $invoice['uuid'],
+                            'invoice_data_saved' => $documentId !== null
                         ]
                     );
                 }

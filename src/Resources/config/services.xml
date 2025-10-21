@@ -80,10 +80,6 @@
             <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
         </service>
 
-        <service id="Mondu\MonduPayment\Components\Webhooks\Service\ShopUrlService">
-            <argument type="service" id="sales_channel.repository"/>
-        </service>
-
         <service id="Mondu\MonduPayment\Components\Order\Model\Extension\OrderExtension">
             <tag name="shopware.entity.extension"/>
         </service>
@@ -105,6 +101,7 @@
 
         <service id="Mondu\MonduPayment\Components\Order\Subscriber\AdjustOrderSubscriber" >
             <tag name="kernel.event_subscriber" />
+            <argument key="$orderRepository" id="order.repository" type="service" />
             <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
             <argument key="$invoiceDataRepository" type="service" id="mondu_invoice_data.repository"/>
             <argument key="$monduClient" type="service" id="mondu.mondu_api"/>
@@ -115,6 +112,7 @@
 
         <service id="Mondu\MonduPayment\Components\Order\Subscriber\CreditNoteSubscriber" >
             <tag name="kernel.event_subscriber" />
+            <argument key="$orderRepository" id="order.repository" type="service" />
             <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
             <argument key="$invoiceDataRepository" type="service" id="mondu_invoice_data.repository"/>
             <argument key="$monduClient" type="service" id="mondu.mondu_api"/>
@@ -140,57 +138,7 @@
             <argument type="service" key="$paymentMethodRepository" id="payment_method.repository"/>
             <tag name="console.command"/>
         </service>
-        <!-- Mondu Custom Events Services -->
-        <service id="Mondu\MonduPayment\Components\Events\Service\MonduEventDispatcher">
-            <argument type="service" id="event_dispatcher"/>
-        </service>
-
-        <service id="Mondu\MonduPayment\Components\Events\Service\MonduBusinessEventCollector">
-            <argument type="service" id="Shopware\Core\Framework\Event\BusinessEventCollector"/>
-        </service>
-
-        <!-- Register Mondu Events in Flow Builder via Subscriber -->
-        <service id="Mondu\MonduPayment\Components\Events\Subscriber\MonduBusinessEventSubscriber">
-            <tag name="kernel.event_subscriber"/>
-        </service>
-
-        <!-- Register Mondu Events for Flow Builder -->
-        <service id="Mondu\MonduPayment\Components\Events\MonduOrderConfirmedEvent">
-            <tag name="flow.stoppable"/>
-        </service>
-
-        <service id="Mondu\MonduPayment\Components\Events\MonduOrderCancelledEvent">
-            <tag name="flow.stoppable"/>
-        </service>
-
-        <service id="Mondu\MonduPayment\Components\Events\MonduOrderPendingEvent">
-            <tag name="flow.stoppable"/>
-        </service>
-
-        <service id="Mondu\MonduPayment\Components\Events\MonduOrderApprovedEvent">
-            <tag name="flow.stoppable"/>
-        </service>
-
-        <service id="Mondu\MonduPayment\Components\Events\MonduOrderDeclinedEvent">
-            <tag name="flow.stoppable"/>
-        </service>
-
-        <service id="Mondu\MonduPayment\Components\Events\Subscriber\MonduOrderStatusSubscriber">
-            <argument type="service" id="monolog.logger.mondu"/>
-            <argument type="service" id="mondu.mondu_config"/>
-            <tag name="kernel.event_subscriber"/>
-        </service>
-
-        <!-- Test subscriber to verify Mondu events are triggered -->
-        <service id="Mondu\MonduPayment\Components\Events\Subscriber\TestMonduEventsSubscriber">
-            <argument type="service" id="monolog.logger.mondu"/>
-            <argument type="service" id="mondu.mondu_config"/>
-            <tag name="kernel.event_subscriber"/>
-        </service>
-        <service id="Mondu\MonduPayment\Command\TestMonduEventsCommand">
-            <tag name="console.command"/>
-        </service>
-        <service id="Mondu\MonduPayment\Command\CheckMonduEventsCommand">
+        <service id="Mondu\MonduPayment\Command\CheckFlowAwareCommand">
             <argument type="service" id="Shopware\Core\Framework\Event\BusinessEventCollector"/>
             <tag name="console.command"/>
         </service>

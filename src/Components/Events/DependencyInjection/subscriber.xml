@@ -3,11 +3,15 @@
            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
            xsi:schemaLocation="https://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
     <services>
-        <defaults autowire="true"/>
 
-        <service id="mondu.mondu_config" class="Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService">
-            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService" />
-            <argument type="service" id="plugin.repository"/>
+        <defaults autowire="true">
+            <tag name="kernel.event_subscriber" />
+        </defaults>
+
+        <service id="Mondu\MonduPayment\Components\Events\Subscriber\MonduBusinessEventSubscriber">
+            <!-- No constructor arguments needed -->
         </service>
+
     </services>
 </container>
+

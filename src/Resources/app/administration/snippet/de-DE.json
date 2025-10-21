@@ -1,11 +1,11 @@
 {
     "sw-flow": {
         "triggers": {
-            "mondu.order.confirmed": "Mondu Bestellung bestätigt",
-            "mondu.order.cancelled": "Mondu Bestellung storniert",
-            "mondu.order.pending": "Mondu Bestellung ausstehend",
-            "mondu.order.approved": "Mondu Bestellung genehmigt",
-            "mondu.order.declined": "Mondu Bestellung abgelehnt"
+            "mondu.order.confirmed": "Mondu / Bestellung / Bestätigt",
+            "mondu.order.cancelled": "Mondu / Bestellung / Storniert",
+            "mondu.order.pending": "Mondu / Bestellung / Ausstehend",
+            "mondu.order.approved": "Mondu / Bestellung / Genehmigt",
+            "mondu.order.declined": "Mondu / Bestellung / Abgelehnt"
         },
         "triggerDescriptions": {
             "mondu.order.confirmed": "Wird ausgelöst, wenn die Mondu-Zahlung bestätigt wird",

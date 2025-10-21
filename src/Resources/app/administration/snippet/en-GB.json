@@ -1,11 +1,11 @@
 {
     "sw-flow": {
         "triggers": {
-            "mondu.order.confirmed": "Mondu Order Confirmed",
-            "mondu.order.cancelled": "Mondu Order Cancelled",
-            "mondu.order.pending": "Mondu Order Pending",
-            "mondu.order.approved": "Mondu Order Approved",
-            "mondu.order.declined": "Mondu Order Declined"
+            "mondu.order.confirmed": "Mondu / Order / Confirmed",
+            "mondu.order.cancelled": "Mondu / Order / Cancelled",
+            "mondu.order.pending": "Mondu / Order / Pending",
+            "mondu.order.approved": "Mondu / Order / Approved",
+            "mondu.order.declined": "Mondu / Order / Declined"
         },
         "triggerDescriptions": {
             "mondu.order.confirmed": "Triggered when Mondu payment is confirmed",
