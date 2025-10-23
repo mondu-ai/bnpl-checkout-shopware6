@@ -21,7 +21,7 @@ use Shopware\Core\Framework\Event\EventData\MailRecipientStruct;
 
 class MonduOrderConfirmedEvent implements ShopwareEvent, OrderAware, MailAware, SalesChannelAware, FlowEventAware, CustomerAware, CustomerGroupAware
 {
-    public const EVENT_NAME = 'mondu.order.confirmed';
+    public const EVENT_NAME = 'mondu.order.Confirmed';
 
     private OrderEntity $order;
     private Context $context;

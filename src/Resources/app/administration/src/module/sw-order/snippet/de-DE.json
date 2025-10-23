@@ -1,4 +1,20 @@
 {
+  "sw-flow": {
+    "triggers": {
+      "mondu.order.Confirmed": "Mondu / Bestellung / Bestätigt",
+      "mondu.order.Cancelled": "Mondu / Bestellung / Storniert",
+      "mondu.order.Pending": "Mondu / Bestellung / Ausstehend",
+      "mondu.order.Approved": "Mondu / Bestellung / Genehmigt",
+      "mondu.order.Declined": "Mondu / Bestellung / Abgelehnt"
+    },
+    "triggerDescriptions": {
+      "mondu.order.Confirmed": "Wird ausgelöst, wenn die Mondu-Zahlung bestätigt wird",
+      "mondu.order.Cancelled": "Wird ausgelöst, wenn die Mondu-Zahlung storniert wird",
+      "mondu.order.Pending": "Wird ausgelöst, wenn die Mondu-Zahlung aussteht",
+      "mondu.order.Approved": "Wird ausgelöst, wenn die Mondu-Zahlung genehmigt wird",
+      "mondu.order.Declined": "Wird ausgelöst, wenn die Mondu-Zahlung abgelehnt wird"
+    }
+  },
   "sw-order-mondu": {
     "documentCard": {
       "labelCancelInvoice": "Rechnung stornieren",

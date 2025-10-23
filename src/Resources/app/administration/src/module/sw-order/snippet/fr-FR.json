@@ -1,4 +1,20 @@
 {
+  "sw-flow": {
+    "triggers": {
+      "mondu.order.Confirmed": "Mondu / Commande / Confirmée",
+      "mondu.order.Cancelled": "Mondu / Commande / Annulée",
+      "mondu.order.Pending": "Mondu / Commande / En attente",
+      "mondu.order.Approved": "Mondu / Commande / Approuvée",
+      "mondu.order.Declined": "Mondu / Commande / Refusée"
+    },
+    "triggerDescriptions": {
+      "mondu.order.Confirmed": "Déclenché lorsque le paiement Mondu est confirmé",
+      "mondu.order.Cancelled": "Déclenché lorsque le paiement Mondu est annulé",
+      "mondu.order.Pending": "Déclenché lorsque le paiement Mondu est en attente",
+      "mondu.order.Approved": "Déclenché lorsque le paiement Mondu est approuvé",
+      "mondu.order.Declined": "Déclenché lorsque le paiement Mondu est refusé"
+    }
+  },
   "sw-order-mondu": {
     "documentCard": {
       "labelCancelInvoice": "Annuler la facture",

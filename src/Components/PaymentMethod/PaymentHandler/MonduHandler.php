@@ -68,6 +68,15 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
             $paymentState = $request->query->getAlpha('payment');
             $context = $salesChannelContext->getContext();
 
+            // Log payment state for debugging
+            $this->logger->info('mondu.INFO: finalize() called with paymentState', [
+                'paymentState' => $paymentState,
+                'order_id' => $transaction->getOrder()->getId(),
+                'order_number' => $transaction->getOrder()->getOrderNumber(),
+                'transaction_id' => $transactionId,
+                'all_query_params' => $request->query->all()
+            ]);
+
         if ($paymentState === self::PAYMENT_STATE_SUCCESS) {
             $paymentOrderUuid = $request->query->get('order_uuid');
 
@@ -124,6 +133,8 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
                 }
             }
         } else {
+            // DECLINED or CANCELLED: Same behavior - fail transaction and throw exception
+            // Order state is cancelled by webhook (if autoTransitionOrderState is enabled)
             try {
                 $this->transactionStateHandler->fail($transaction->getOrderTransaction()->getId(), $context);
             } catch (\Throwable $e) {
@@ -149,21 +160,15 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
             );
         }
         } catch (\Throwable $globalEx) {
-            // If this is a declined payment after order was already cancelled by webhook, return silently
-            if ($request->query->getAlpha('payment') === 'declined' &&
-                ($globalEx instanceof PaymentException || 
-                 strpos($globalEx->getMessage(), 'cannot be edited') !== false || 
-                 strpos($globalEx->getMessage(), 'was cancelled') !== false ||
-                 strpos($globalEx->getMessage(), 'customer canceled') !== false)) {
-                $this->logger->info('mondu.INFO: Declined payment after order was already cancelled by webhook, finalize completed gracefully', [
-                    'order_id' => $transaction->getOrder()->getId() ?? 'unknown',
-                    'order_number' => $transaction->getOrder()->getOrderNumber() ?? 'unknown'
-                ]);
-                // Return silently - order already handled by webhook
-                return;
-            }
+            $this->logger->error('mondu.ERROR: Exception in finalize()', [
+                'exception' => get_class($globalEx),
+                'message' => $globalEx->getMessage(),
+                'order_id' => $transaction->getOrder()->getId() ?? 'unknown',
+                'order_number' => $transaction->getOrder()->getOrderNumber() ?? 'unknown',
+                'paymentState' => $paymentState ?? 'unknown'
+            ]);
             
-            // Re-throw unexpected errors
+            // Re-throw all exceptions
             throw $globalEx;
         }
     }

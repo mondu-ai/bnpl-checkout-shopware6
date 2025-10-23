@@ -20,6 +20,8 @@ use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\System\StateMachine\Event\StateMachineTransitionEvent;
+use Shopware\Core\System\StateMachine\StateMachineRegistry;
+use Shopware\Core\System\StateMachine\Transition;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Mondu\MonduPayment\Components\Invoice\InvoiceDataEntity;
 
@@ -33,7 +35,8 @@ class TransitionSubscriber implements EventSubscriberInterface
         private readonly EntityRepository $orderDataRepository,
         private readonly EntityRepository $invoiceDataRepository,
         private readonly LoggerInterface $logger,
-        private readonly AbstractInvoiceDataService $invoiceDataService
+        private readonly AbstractInvoiceDataService $invoiceDataService,
+        private readonly StateMachineRegistry $stateMachineRegistry
     ) {}
 
     public static function getSubscribedEvents(): array
@@ -47,9 +50,11 @@ class TransitionSubscriber implements EventSubscriberInterface
     {
         try {
             $eventName = $event->getEntityName();
+            $deliveryId = null;
 
             if ($eventName === OrderDeliveryDefinition::ENTITY_NAME) {
-                $orderDelivery = $this->orderDeliveryRepository->search(new Criteria([$event->getEntityId()]), $event->getContext())->first();
+                $deliveryId = $event->getEntityId();
+                $orderDelivery = $this->orderDeliveryRepository->search(new Criteria([$deliveryId]), $event->getContext())->first();
                 $order = $this->getOrder($orderDelivery->getOrderId(), $event->getContext());
             } elseif ($eventName === OrderDefinition::ENTITY_NAME) {
                 $order = $this->getOrder($event->getEntityId(), $event->getContext());
@@ -95,7 +100,7 @@ class TransitionSubscriber implements EventSubscriberInterface
                     break;
                 case 'shipped':
                 case 'shipped_partially':
-                    $this->shipOrder($order, $event->getContext(), $monduOrder);
+                    $this->shipOrder($order, $event->getContext(), $monduOrder, $deliveryId);
                     break;
             }
         } catch (\Throwable $e) {
@@ -138,7 +143,7 @@ class TransitionSubscriber implements EventSubscriberInterface
         ], $context);
     }
 
-    private function shipOrder(OrderEntity $order, Context $context, OrderDataEntity $monduData): void
+    private function shipOrder(OrderEntity $order, Context $context, OrderDataEntity $monduData, ?string $deliveryId = null): void
     {
         $monduData = $this->getMonduDataFromOrder($order);
 
@@ -307,9 +312,35 @@ class TransitionSubscriber implements EventSubscriberInterface
                 'mondu.CRITICAL: Exception during shipment. (Exception: '. $e->getMessage().')',
                 [
                     'order' => $order->getId(),
-                    'mondu-reference-id' => $monduData->getReferenceId()
+                    'mondu-reference-id' => $monduData->getReferenceId(),
+                    'delivery_id' => $deliveryId
                 ]
             );
+            
+            // Revert delivery state back to previous state if possible
+            if ($deliveryId !== null) {
+                try {
+                    $this->stateMachineRegistry->transition(new Transition(
+                        OrderDeliveryDefinition::ENTITY_NAME,
+                        $deliveryId,
+                        'reopen', // Transition back to "open" state
+                        'stateId'
+                    ), $context);
+                    
+                    $this->logger->info('mondu.INFO: Delivery state reverted to open due to shipment failure', [
+                        'order' => $order->getId(),
+                        'delivery_id' => $deliveryId
+                    ]);
+                } catch (\Exception $revertEx) {
+                    $this->logger->warning('mondu.WARNING: Failed to revert delivery state after shipment failure', [
+                        'order' => $order->getId(),
+                        'delivery_id' => $deliveryId,
+                        'error' => $revertEx->getMessage()
+                    ]);
+                    // Continue - main exception will be thrown anyway
+                }
+            }
+            
             throw new MonduException('Error: ' . $e->getMessage());
         }
     }

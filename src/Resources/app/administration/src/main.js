@@ -8,10 +8,6 @@ import './module/sw-mondu-test-api-button';
 import deDE from '../snippet/de-DE.json';
 import enGB from '../snippet/en-GB.json';
 
-const { Application } = Shopware;
-
-Application.addInitializerDecorator('locale', (localeFactory) => {
-    localeFactory.extend('de-DE', deDE);
-    localeFactory.extend('en-GB', enGB);
-    return localeFactory;
-});
+// Register snippets for Shopware 6.6
+Shopware.Locale.extend('de-DE', deDE);
+Shopware.Locale.extend('en-GB', enGB);

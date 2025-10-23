@@ -21,7 +21,7 @@ use Shopware\Core\Framework\Event\EventData\MailRecipientStruct;
 
 class MonduOrderDeclinedEvent implements ShopwareEvent, OrderAware, MailAware, SalesChannelAware, FlowEventAware, CustomerAware, CustomerGroupAware
 {
-    public const EVENT_NAME = 'mondu.order.declined';
+    public const EVENT_NAME = 'mondu.order.Declined';
 
     private OrderEntity $order;
     private Context $context;

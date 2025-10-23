@@ -12,7 +12,6 @@
             <strong>{{ payment.translated.name }}</strong>
             {% if payment.translated.description %}
                 {% set paymentDescription = payment.translated.description|replace({ "[url=": "<a target=\"_blank\" href=\"", "]": "\" >", "[/url]": "</a>" }) %}
-                <p>{{ paymentDescription | raw }}</p>
             {% endif %}
         </div>
 

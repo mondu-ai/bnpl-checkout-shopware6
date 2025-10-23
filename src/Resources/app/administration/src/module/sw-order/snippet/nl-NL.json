@@ -1,4 +1,20 @@
 {
+  "sw-flow": {
+    "triggers": {
+      "mondu.order.Confirmed": "Mondu / Bestelling / Bevestigd",
+      "mondu.order.Cancelled": "Mondu / Bestelling / Geannuleerd",
+      "mondu.order.Pending": "Mondu / Bestelling / In behandeling",
+      "mondu.order.Approved": "Mondu / Bestelling / Goedgekeurd",
+      "mondu.order.Declined": "Mondu / Bestelling / Afgewezen"
+    },
+    "triggerDescriptions": {
+      "mondu.order.Confirmed": "Wordt geactiveerd wanneer de Mondu-betaling wordt bevestigd",
+      "mondu.order.Cancelled": "Wordt geactiveerd wanneer de Mondu-betaling wordt geannuleerd",
+      "mondu.order.Pending": "Wordt geactiveerd wanneer de Mondu-betaling in behandeling is",
+      "mondu.order.Approved": "Wordt geactiveerd wanneer de Mondu-betaling wordt goedgekeurd",
+      "mondu.order.Declined": "Wordt geactiveerd wanneer de Mondu-betaling wordt afgewezen"
+    }
+  },
   "sw-order-mondu": {
     "documentCard": {
       "labelCancelInvoice": "Factuur annuleren",

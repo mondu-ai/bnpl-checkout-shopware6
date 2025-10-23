@@ -21,6 +21,12 @@ use Mondu\MonduPayment\Components\Webhooks\Model\Webhook;
 use Psr\Log\LoggerInterface;
 use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
 use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
+use Mondu\MonduPayment\Components\Events\MonduOrderPendingEvent;
+use Mondu\MonduPayment\Components\Events\MonduOrderConfirmedEvent;
+use Mondu\MonduPayment\Components\Events\MonduOrderApprovedEvent;
+use Mondu\MonduPayment\Components\Events\MonduOrderDeclinedEvent;
+use Mondu\MonduPayment\Components\Events\MonduOrderCancelledEvent;
 
 class WebhookService
 {
@@ -35,7 +41,9 @@ class WebhookService
         private readonly LoggerInterface $logger,
         private readonly MonduClient $monduClient,
         private readonly EntityRepository $orderDataRepository,
-        private readonly ConfigService $configService
+        private readonly ConfigService $configService,
+        private readonly ShopUrlService $shopUrlService,
+        private readonly EventDispatcherInterface $eventDispatcher
     ) {
         $this->salesChannelId = null;
     }
@@ -68,8 +76,8 @@ class WebhookService
     {
         try {
             $webhooks = [
-                (new Webhook('order'))->getData(),
-                (new Webhook('invoice'))->getData()
+                (new Webhook('order', $this->shopUrlService, $this->salesChannelId))->getData(),
+                (new Webhook('invoice', $this->shopUrlService, $this->salesChannelId))->getData()
             ];
 
             foreach ($webhooks as $webhook) {
@@ -107,8 +115,27 @@ class WebhookService
                 ]
             ], $context);
 
-            $this->transitionOrderState($externalReferenceId, 'process', $context, $monduId);
+            // Only transition order state if autoTransitionOrderState is enabled
+            if ($this->configService->isAutoTransitionOrderStateEnabled()) {
+                $this->transitionOrderState($externalReferenceId, 'process', $context, $monduId);
+            }
             $transitionResult = $this->transitionTransactionState($externalReferenceId, 'paid', $context, $monduId);
+
+            // Dispatch event for Flow Builder
+            $criteria = new Criteria([$this->getOrderUuid($externalReferenceId, $context, $monduId)]);
+            $criteria->addAssociation('orderCustomer.customer');
+            /** @var OrderEntity $order */
+            $order = $this->orderRepository->search($criteria, $context)->first();
+            
+            if ($order) {
+                $event = new MonduOrderConfirmedEvent(
+                    $order,
+                    $monduId,
+                    'confirmed',
+                    $context
+                );
+                $this->eventDispatcher->dispatch($event);
+            }
 
             return [[ 'message' => $transitionResult->last()->getTechnicalName(), 'code' => Response::HTTP_OK ], Response::HTTP_OK];
         } catch (MonduException $e) {
@@ -127,32 +154,13 @@ class WebhookService
                 throw new MonduException('Required params missing');
             }
 
-            $criteria = new Criteria([$this->getOrderUuid($externalReferenceId, $context, $monduId)]);
-            $criteria->addAssociation('transactions.stateMachineState');
-
-            /** @var OrderEntity $orderEntity */
-            $orderEntity = $this->orderRepository->search($criteria, $context)->first();
-            $transaction = $orderEntity->getTransactions()->first();
-            $currentState = $transaction->getStateMachineState()->getTechnicalName();
-
-            // Final states that should not be transitioned (protection against backward transitions)
-            $finalStates = ['paid', 'paid_partially', 'cancelled', 'failed', 'refunded', 'refunded_partially', 'chargeback'];
-            
-            if (in_array($currentState, $finalStates)) {
-                $this->log('Pending webhook blocked - transaction already in final state', [
-                    'currentState' => $currentState,
-                    'externalReferenceId' => $externalReferenceId,
-                    'reason' => 'Cannot transition from final state back to pending'
-                ]);
-                return [[ 'message' => 'Transaction already in final state: ' . $currentState, 'code' => Response::HTTP_OK ], Response::HTTP_OK];
-            }
-
-            // Attempt transition for non-final states
+            // Transition to process state and process_unconfirmed
+            // Protection against backward transitions is handled by isTransitionAllowed() in transitionTransactionState()
             try {
-                $this->transitionOrderState($externalReferenceId, 'process', $context, $monduId);
-
-                // Only try to transition to process_unconfirmed directly (no reopen needed)
-                // The isTransitionAllowed() method will handle any edge cases
+                // Only transition order state if autoTransitionOrderState is enabled
+                if ($this->configService->isAutoTransitionOrderStateEnabled()) {
+                    $this->transitionOrderState($externalReferenceId, 'process', $context, $monduId);
+                }
                 $transitionResult = $this->transitionTransactionState(
                     $externalReferenceId,
                     StateMachineTransitionActions::ACTION_PROCESS_UNCONFIRMED,
@@ -160,19 +168,85 @@ class WebhookService
                     $monduId
                 );
                 
+                // Dispatch event for Flow Builder
+                $criteria = new Criteria([$this->getOrderUuid($externalReferenceId, $context, $monduId)]);
+                $criteria->addAssociation('orderCustomer.customer');
+                /** @var OrderEntity $order */
+                $order = $this->orderRepository->search($criteria, $context)->first();
+                
+                if ($order) {
+                    $event = new MonduOrderPendingEvent(
+                        $order,
+                        $monduId,
+                        'pending',
+                        $context
+                    );
+                    $this->eventDispatcher->dispatch($event);
+                }
+                
                 return [[ 'message' => $transitionResult->last()->getTechnicalName(), 'code' => Response::HTTP_OK ], Response::HTTP_OK];
                 
             } catch (\Exception $e) {
-                $this->log('Pending transition failed, treating webhook as success', [
-                    'currentState' => $currentState,
+                $this->log('handlePending transition failed', [
                     'error' => $e->getMessage(),
                     'externalReferenceId' => $externalReferenceId
                 ]);
-                return [[ 'message' => 'Pending webhook processed (transition failed): ' . $currentState, 'code' => Response::HTTP_OK ], Response::HTTP_OK];
+                throw new MonduException($e->getMessage());
             }
 
         } catch (MonduException $e) {
             $this->log('handlePending Webhook Failed', [$params], $e);
+            return [[ 'message' => $e->getMessage(), 'code' => $e->getStatusCode() ], $e->getStatusCode()];
+        }
+    }
+
+    public function handleApproved($params, $context): array
+    {
+        try {
+            $externalReferenceId = $params['external_reference_id'];
+            $monduId = $params['order_uuid'];
+
+            if (!$externalReferenceId || !$monduId) {
+                throw new MonduException('Required params missing');
+            }
+
+            // Transition to authorized state
+            try {
+                $transitionResult = $this->transitionTransactionState(
+                    $externalReferenceId,
+                    'authorize',
+                    $context,
+                    $monduId
+                );
+                
+                // Dispatch event for Flow Builder
+                $criteria = new Criteria([$this->getOrderUuid($externalReferenceId, $context, $monduId)]);
+                $criteria->addAssociation('orderCustomer.customer');
+                /** @var OrderEntity $order */
+                $order = $this->orderRepository->search($criteria, $context)->first();
+                
+                if ($order) {
+                    $event = new MonduOrderApprovedEvent(
+                        $order,
+                        $monduId,
+                        'approved',
+                        $context
+                    );
+                    $this->eventDispatcher->dispatch($event);
+                }
+                
+                return [[ 'message' => $transitionResult->last()->getTechnicalName(), 'code' => Response::HTTP_OK ], Response::HTTP_OK];
+                
+            } catch (\Exception $e) {
+                $this->log('handleApproved transition failed', [
+                    'error' => $e->getMessage(),
+                    'externalReferenceId' => $externalReferenceId
+                ]);
+                throw new MonduException($e->getMessage());
+            }
+
+        } catch (MonduException $e) {
+            $this->log('handleApproved Webhook Failed', [$params], $e);
             return [[ 'message' => $e->getMessage(), 'code' => $e->getStatusCode() ], $e->getStatusCode()];
         }
     }
@@ -182,20 +256,78 @@ class WebhookService
         try {
             $monduId = $params['order_uuid'];
             $externalReferenceId = $params['external_reference_id'];
-            $orderState = $params['order_state'];
+            $orderState = $params['order_state'] ?? null;
+            $topic = $params['topic'] ?? null;
 
-            if (!$monduId || !$externalReferenceId || !$orderState) {
-                $this->log('Required params missing', [$monduId, $externalReferenceId, $orderState]);
+            if (!$monduId || !$externalReferenceId) {
+                $this->log('Required params missing', [$monduId, $externalReferenceId]);
                 throw new MonduException('Required params missing');
             }
-
-            // Try to transition order and delivery states, but don't fail if transition is not possible
-            // These methods already handle exceptions gracefully and return null on failure
-            $this->transitionOrderState($externalReferenceId, 'cancelled', $context, $monduId);
-            $this->transitionDeliveryState($externalReferenceId, 'cancelled', $context, $monduId);
             
-            // Main focus: transition transaction to fail state (this is the critical one)
+            // Determine if this is declined or canceled based on order_state or topic
+            $isDeclined = ($orderState === 'declined') || ($topic === 'order/declined');
+            $isCanceled = ($orderState === 'canceled' || $orderState === 'cancelled') || ($topic === 'order/canceled' || $topic === 'order/cancelled');
+
+            // For both declined and canceled: cancel the order
+            // This prevents order from being placed when payment is declined/canceled
+            
+            // Get order for event dispatching
+            $criteria = new Criteria([$this->getOrderUuid($externalReferenceId, $context, $monduId)]);
+            $criteria->addAssociation('deliveries.stateMachineState');
+            
+            /** @var OrderEntity $orderEntity */
+            $orderEntity = $this->orderRepository->search($criteria, $context)->first();
+            
+            // Cancel order state if autoTransitionOrderState is enabled
+            if ($this->configService->isAutoTransitionOrderStateEnabled()) {
+                try {
+                    $this->transitionOrderState($externalReferenceId, 'cancel', $context, $monduId);
+                } catch (\Exception $e) {
+                    $this->log('Failed to cancel order state for declined/canceled payment', [
+                        'externalReferenceId' => $externalReferenceId,
+                        'error' => $e->getMessage()
+                    ], null, 'warning');
+                    // Continue anyway - transaction will still be failed
+                }
+            }
+            
+            // Transition transaction to fail state
             $transitionResult = $this->transitionTransactionState($externalReferenceId, 'fail', $context, $monduId);
+
+            // Dispatch event for Flow Builder
+            // We already have $orderEntity from the delivery check above
+            $criteria = new Criteria([$orderEntity->getId()]);
+            $criteria->addAssociation('orderCustomer.customer');
+            /** @var OrderEntity $order */
+            $order = $this->orderRepository->search($criteria, $context)->first();
+            
+            if ($order) {
+                // Dispatch appropriate event based on order_state or topic
+                if ($isDeclined) {
+                    $event = new MonduOrderDeclinedEvent(
+                        $order,
+                        $monduId,
+                        'declined',
+                        $context
+                    );
+                    $this->eventDispatcher->dispatch($event);
+                } elseif ($isCanceled) {
+                    $event = new MonduOrderCancelledEvent(
+                        $order,
+                        $monduId,
+                        'cancelled',
+                        $context
+                    );
+                    $this->eventDispatcher->dispatch($event);
+                } else {
+                    // Default: if neither declined nor canceled detected, log warning
+                    $this->log('Could not determine event type for declined/canceled webhook', [
+                        'order_state' => $orderState,
+                        'topic' => $topic,
+                        'order_uuid' => $monduId
+                    ], null, 'warning');
+                }
+            }
 
             return [[ 'message' => $transitionResult->last()->getTechnicalName(), 'code' => Response::HTTP_OK ], Response::HTTP_OK];
         } catch (MonduException $e) {
@@ -262,7 +394,7 @@ class WebhookService
                     'currentState' => $currentState,
                     'attemptedState' => $state,
                     'reason' => 'State transition not allowed - would be regression'
-                ]);
+                ], null, 'warning');
                 
                 // Return current state without transition
                 return new StateMachineStateCollection([$transaction->getStateMachineState()]);
@@ -272,7 +404,7 @@ class WebhookService
                 'externalReferenceId' => $externalReferenceId,
                 'currentState' => $currentState,
                 'newState' => $state
-            ]);
+            ], null, 'info');
 
             return $this->stateMachineRegistry->transition(new Transition(
                 OrderTransactionDefinition::ENTITY_NAME,
@@ -347,7 +479,7 @@ class WebhookService
             $this->log('Allowing reopen action (manual recovery)', [
                 'currentState' => $currentState,
                 'targetAction' => $targetAction
-            ]);
+            ], null, 'info');
             return true;
         }
 
@@ -357,7 +489,7 @@ class WebhookService
                 'currentState' => $currentState,
                 'targetAction' => $targetAction,
                 'reason' => 'Current state is final'
-            ]);
+            ], null, 'warning');
             return false;
         }
 
@@ -374,7 +506,7 @@ class WebhookService
                 'targetState' => $targetState,
                 'targetPriority' => $targetPriority,
                 'reason' => 'Target priority is lower than current'
-            ]);
+            ], null, 'warning');
             return false;
         }
 
@@ -408,7 +540,7 @@ class WebhookService
         }
     }
 
-    protected function log($message, $data, $exception = null): void
+    protected function log($message, $data, $exception = null, $level = 'critical'): void
     {
         $exceptionMessage = "";
 
@@ -416,9 +548,14 @@ class WebhookService
             $exceptionMessage = $exception->getMessage();
         }
 
-        $this->logger->critical(
-            $message . '. (Exception: '. $exceptionMessage .')',
-            $data
-        );
+        $logMessage = $message . '. (Exception: '. $exceptionMessage .')';
+        
+        // Call appropriate log level method
+        match($level) {
+            'info' => $this->logger->info($logMessage, $data),
+            'warning' => $this->logger->warning($logMessage, $data),
+            'error' => $this->logger->error($logMessage, $data),
+            default => $this->logger->critical($logMessage, $data),
+        };
     }
 }
