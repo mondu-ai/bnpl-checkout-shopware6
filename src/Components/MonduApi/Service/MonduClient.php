@@ -70,9 +70,15 @@ class MonduClient
 
     public function cancelOrder($orderUid): ?string
     {
-        $response = $this->sendRequest('orders/'. $orderUid .'/cancel', 'POST');
+        $request = $this->getRequestObject("orders/". $orderUid ."/cancel", "POST");
 
-        return $response['order']['state'] ?? null;
+        try {
+            $response = $this->restClient->send($request);
+            $result = json_decode($response->getBody()->getContents(), true);
+            return $result["order"]["state"] ?? null;
+        } catch (GuzzleException $e) {
+            return null;
+        }
     }
 
     public function confirmOrder($orderUuid, $data): ?string
@@ -109,7 +115,7 @@ class MonduClient
 
     public function registerWebhook($body = []): ?array
     {
-        return $this->sendRequest('webhooks', 'POST', $body);
+        return $this->sendRequest('webhooks', 'POST', $body, true);
     }
 
     public function getWebhooksSecret($key, $sandboxMode = null): ?array
@@ -136,7 +142,7 @@ class MonduClient
         }
     }
 
-    public function sendRequest($url, $method = 'GET', $body = []) 
+    public function sendRequest($url, $method = 'GET', $body = [], $allowAlreadySubscribed = false) 
     {
         $request = $this->getRequestObject($url, $method, $body);
 
@@ -146,7 +152,39 @@ class MonduClient
             return json_decode($response->getBody()->getContents(), true);
 
         } catch (GuzzleException $e) {
-            $this->logger->alert("MonduClient [{$method} {$url}]: Failed with an exception message: {$e->getMessage()}");
+            $responseBody = null;
+            
+            // Check if this is a 422 error with special handling
+            if (method_exists($e, 'getResponse') && $e->getResponse()) {
+                $responseBody = json_decode($e->getResponse()->getBody()->getContents(), true);
+                
+                // If webhook already subscribed and allowed - treat as success
+                if ($allowAlreadySubscribed && 
+                    $e->getCode() == 422 && 
+                    isset($responseBody['errors'][0]['details']) && 
+                    strpos($responseBody['errors'][0]['details'], 'already subscribed') !== false) {
+                    
+                    if ($this->configService->isExtendedLogsEnabled()) {
+                        $this->logger->info("mondu.INFO: MonduClient [{$method} {$url}]: Webhook already registered - " . $responseBody['errors'][0]['details']);
+                    }
+                    // Return success array to indicate webhook is registered
+                    return ['status' => 'already_registered', 'message' => $responseBody['errors'][0]['details']];
+                }
+                
+                // If invoice already exists (duplicate external_reference_id) - return special status
+                if ($e->getCode() == 422 && 
+                    isset($responseBody['errors'][0]['details']) && 
+                    strpos($responseBody['errors'][0]['details'], 'must be unique') !== false) {
+                    
+                    // Always log this to understand what's happening
+                    $this->logger->warning("mondu.WARNING: MonduClient [{$method} {$url}]: Invoice already exists, returning special status - " . $responseBody['errors'][0]['details']);
+                    
+                    // Return special status to indicate invoice already exists
+                    return ['status' => 'already_exists', 'message' => $responseBody['errors'][0]['details']];
+                }
+            }
+            
+            $this->logger->critical("mondu.CRITICAL: MonduClient [{$method} {$url}]: Failed with an exception message: {$e->getMessage()}");
 
             $eventLog = [
                 'response_status' => strval($e->getCode()),
@@ -157,8 +195,8 @@ class MonduClient
                 $eventLog['request_body'] = json_decode($e->getRequest()->getBody()->getContents());
             }
 
-            if (method_exists($e, 'getResponse')) {
-                $eventLog['response_body'] = json_decode($e->getResponse()->getBody()->getContents());
+            if ($responseBody) {
+                $eventLog['response_body'] = $responseBody;
             }
 
             $this->logEvent($eventLog);

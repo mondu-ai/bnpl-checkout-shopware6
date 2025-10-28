@@ -21,7 +21,10 @@
             <argument key="$productRepository" type="service" id="product.repository"/>
             <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
             <argument key="$configService" type="service" id="mondu.mondu_config"/>
-            <tag name="shopware.payment.method.async" />
+            <argument key="$orderLinesService" type="service" id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <argument key="$eventDispatcher" type="service" id="event_dispatcher"/>
+            <tag name="shopware.payment.method" />
         </service>
 
         <service id="Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduSepaHandler">
@@ -30,7 +33,9 @@
             <argument key="$productRepository" type="service" id="product.repository"/>
             <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
             <argument key="$configService" type="service" id="mondu.mondu_config"/>
-            <tag name="shopware.payment.method.async" />
+            <argument key="$orderLinesService" type="service" id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <tag name="shopware.payment.method" />
         </service>
 
         <service id="Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduInstallmentHandler">
@@ -39,7 +44,9 @@
             <argument key="$productRepository" type="service" id="product.repository"/>
             <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
             <argument key="$configService" type="service" id="mondu.mondu_config"/>
-            <tag name="shopware.payment.method.async" />
+            <argument key="$orderLinesService" type="service" id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <tag name="shopware.payment.method" />
         </service>
 
         <service id="Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduInstallmentByInvoiceHandler">
@@ -48,7 +55,9 @@
             <argument key="$productRepository" type="service" id="product.repository"/>
             <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
             <argument key="$configService" type="service" id="mondu.mondu_config"/>
-            <tag name="shopware.payment.method.async" />
+            <argument key="$orderLinesService" type="service" id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <tag name="shopware.payment.method" />
         </service>
 
         <service id="Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduPayNowHandler">
@@ -57,7 +66,9 @@
             <argument key="$productRepository" type="service" id="product.repository"/>
             <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
             <argument key="$configService" type="service" id="mondu.mondu_config"/>
-            <tag name="shopware.payment.method.async" />
+            <argument key="$orderLinesService" type="service" id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <tag name="shopware.payment.method" />
         </service>
 
         <service id="mondu.mondu_api" class="Mondu\MonduPayment\Components\MonduApi\Service\MonduClient" public="true">
@@ -98,6 +109,14 @@
             <argument key="$logger" type="service" id="monolog.logger.mondu"/>
             <argument key="$productRepository" type="service" id="product.repository"/>
             <argument key="$currencyRepository" type="service" id="currency.repository"/>
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\Order\Subscriber\OrderExceptionSubscriber" >
+            <tag name="kernel.event_subscriber" />
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <argument key="$router" type="service" id="router"/>
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
         </service>
 
         <service id="Mondu\MonduPayment\Components\Order\Subscriber\CreditNoteSubscriber" >
@@ -126,6 +145,10 @@
             <argument type="service" key="$salesChannelPaymentMethodRepository" id="sales_channel_payment_method.repository"/>
             <argument type="service" key="$salesChannelRepository" id="sales_channel.repository"/>
             <argument type="service" key="$paymentMethodRepository" id="payment_method.repository"/>
+            <tag name="console.command"/>
+        </service>
+        <service id="Mondu\MonduPayment\Command\CheckFlowAwareCommand">
+            <argument type="service" id="Shopware\Core\Framework\Event\BusinessEventCollector"/>
             <tag name="console.command"/>
         </service>
     </services>
