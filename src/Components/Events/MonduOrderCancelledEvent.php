@@ -13,12 +13,13 @@ use Shopware\Core\Framework\Event\EventData\ScalarValueType;
 use Shopware\Core\Framework\Event\OrderAware;
 use Shopware\Core\Framework\Event\MailAware;
 use Shopware\Core\Framework\Event\SalesChannelAware;
+use Shopware\Core\Framework\Event\FlowEventAware;
 use Shopware\Core\Checkout\Order\OrderDefinition;
 use Shopware\Core\Framework\Event\EventData\MailRecipientStruct;
 
-class MonduOrderCancelledEvent implements ShopwareEvent, OrderAware, MailAware, SalesChannelAware
+class MonduOrderCancelledEvent implements ShopwareEvent, OrderAware, MailAware, SalesChannelAware, FlowEventAware
 {
-    public const EVENT_NAME = 'mondu.order.Cancelled';
+    public const EVENT_NAME = 'Mondu Payments.order.Cancelled';
 
     private OrderEntity $order;
     private Context $context;

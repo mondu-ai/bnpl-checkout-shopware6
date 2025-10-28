@@ -21,7 +21,7 @@ use Shopware\Core\Framework\Event\EventData\MailRecipientStruct;
 
 class MonduOrderApprovedEvent implements ShopwareEvent, OrderAware, MailAware, SalesChannelAware, FlowEventAware, CustomerAware, CustomerGroupAware
 {
-    public const EVENT_NAME = 'mondu.order.Approved';
+    public const EVENT_NAME = 'Mondu Payments.order.Approved';
 
     private OrderEntity $order;
     private Context $context;
@@ -118,3 +118,4 @@ class MonduOrderApprovedEvent implements ShopwareEvent, OrderAware, MailAware, S
             ->add('previousStatus', new ScalarValueType(ScalarValueType::TYPE_STRING));
     }
 }
+

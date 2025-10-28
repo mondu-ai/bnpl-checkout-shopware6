@@ -1,18 +1,20 @@
 {
+  "MonduConfirmed": "Confirmée",
+  "MonduCancelled": "Annulée",
+  "MonduPending": "En attente",
+  "MonduDeclined": "Refusée",
   "sw-flow": {
     "triggers": {
-      "mondu.order.Confirmed": "Mondu / Commande / Confirmée",
-      "mondu.order.Cancelled": "Mondu / Commande / Annulée",
-      "mondu.order.Pending": "Mondu / Commande / En attente",
-      "mondu.order.Approved": "Mondu / Commande / Approuvée",
-      "mondu.order.Declined": "Mondu / Commande / Refusée"
+      "Mondu Payments.order.MonduConfirmed": "Mondu Payments / Commande / Confirmée",
+      "Mondu Payments.order.MonduCancelled": "Mondu Payments / Commande / Annulée",
+      "Mondu Payments.order.MonduPending": "Mondu Payments / Commande / En attente",
+      "Mondu Payments.order.MonduDeclined": "Mondu Payments / Commande / Refusée"
     },
     "triggerDescriptions": {
-      "mondu.order.Confirmed": "Déclenché lorsque le paiement Mondu est confirmé",
-      "mondu.order.Cancelled": "Déclenché lorsque le paiement Mondu est annulé",
-      "mondu.order.Pending": "Déclenché lorsque le paiement Mondu est en attente",
-      "mondu.order.Approved": "Déclenché lorsque le paiement Mondu est approuvé",
-      "mondu.order.Declined": "Déclenché lorsque le paiement Mondu est refusé"
+      "Mondu Payments.order.MonduConfirmed": "Déclenché lorsque le paiement Mondu est confirmé",
+      "Mondu Payments.order.MonduCancelled": "Déclenché lorsque le paiement Mondu est annulé",
+      "Mondu Payments.order.MonduPending": "Déclenché lorsque le paiement Mondu est en attente",
+      "Mondu Payments.order.MonduDeclined": "Déclenché lorsque le paiement Mondu est refusé"
     }
   },
   "sw-order-mondu": {

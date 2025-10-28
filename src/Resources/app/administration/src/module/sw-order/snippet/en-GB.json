@@ -1,38 +1,43 @@
 {
+  "Confirmed": "Confirmed",
+  "Cancelled": "Cancelled",
+  "Pending": "Pending",
+  "Declined": "Declined",
+  "Approved": "Approved",
   "sw-flow": {
     "triggers": {
-      "mondu.order.Confirmed": "Mondu / Order / Confirmed",
-      "mondu.order.Cancelled": "Mondu / Order / Cancelled",
-      "mondu.order.Pending": "Mondu / Order / Pending",
-      "mondu.order.Approved": "Mondu / Order / Approved",
-      "mondu.order.Declined": "Mondu / Order / Declined"
+      "Mondu Payments.order.Confirmed": "Mondu Payments / Order / Confirmed",
+      "Mondu Payments.order.Cancelled": "Mondu Payments / Order / Cancelled",
+      "Mondu Payments.order.Pending": "Mondu Payments / Order / Pending",
+      "Mondu Payments.order.Declined": "Mondu Payments / Order / Declined",
+      "Mondu Payments.order.Approved": "Mondu Payments / Order / Approved"
     },
     "triggerDescriptions": {
-      "mondu.order.Confirmed": "Triggered when Mondu payment is confirmed",
-      "mondu.order.Cancelled": "Triggered when Mondu payment is cancelled",
-      "mondu.order.Pending": "Triggered when Mondu payment is pending",
-      "mondu.order.Approved": "Triggered when Mondu payment is approved",
-      "mondu.order.Declined": "Triggered when Mondu payment is declined"
+      "Mondu Payments.order.Confirmed": "Triggered when Mondu payment is confirmed",
+      "Mondu Payments.order.Cancelled": "Triggered when Mondu payment is cancelled",
+      "Mondu Payments.order.Pending": "Triggered when Mondu payment is pending",
+      "Mondu Payments.order.Declined": "Triggered when Mondu payment is declined",
+      "Mondu Payments.order.Approved": "Triggered when Mondu payment is approved"
     }
   },
   "sw-order-mondu": {
     "documentCard": {
-      "labelCancelInvoice": "Cancel Invoice",
-      "labelCancelCreditNote": "Cancel Credit Note",
+      "labelCancelInvoice": "Cancel invoice",
+      "labelCancelCreditNote": "Cancel credit note",
       "cancelSuccessTitle": "Success!",
-      "cancelSuccessMessage": "Successfully cancelled.",
-      "cancelErrorMessage": "Error ocurred. Document could not be cancelled."
+      "cancelSuccessMessage": "Successfully deleted.",
+      "cancelErrorMessage": "An error occurred. Document could not be cancelled."
     }
   },
   "sw-mondu-config": {
     "apiValidation": {
-      "apiConfigurationValidationTitle": "API Validation",
-      "apiConfigurationValidationMessage": "API Credentials validation started...",
+      "apiConfigurationValidationTitle": "API validation",
+      "apiConfigurationValidationMessage": "Validating API credentials...",
       "apiConfigurationSuccessTitle": "Success!",
-      "apiConfigurationSuccessMessage": "API Credentials are valid!",
-      "apiConfigurationFailureTitle": "Failure!",
-      "apiConfigurationFailureMessage": "API Credentials are invalid.",
-      "testApiConfiguration": "Test API Credentials"
+      "apiConfigurationSuccessMessage": "API credentials are valid!",
+      "apiConfigurationFailureTitle": "Error!",
+      "apiConfigurationFailureMessage": "API credentials are invalid.",
+      "testApiConfiguration": "Test API credentials"
     }
   }
 }

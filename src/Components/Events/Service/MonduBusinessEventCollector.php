@@ -7,7 +7,6 @@ namespace Mondu\MonduPayment\Components\Events\Service;
 use Mondu\MonduPayment\Components\Events\MonduOrderConfirmedEvent;
 use Mondu\MonduPayment\Components\Events\MonduOrderCancelledEvent;
 use Mondu\MonduPayment\Components\Events\MonduOrderPendingEvent;
-use Mondu\MonduPayment\Components\Events\MonduOrderApprovedEvent;
 use Mondu\MonduPayment\Components\Events\MonduOrderDeclinedEvent;
 use Shopware\Core\Framework\Event\BusinessEventCollector;
 use Shopware\Core\Framework\Event\BusinessEventDefinition;
@@ -35,7 +34,6 @@ class MonduBusinessEventCollector
             MonduOrderConfirmedEvent::class,
             MonduOrderCancelledEvent::class,
             MonduOrderPendingEvent::class,
-            MonduOrderApprovedEvent::class,
             MonduOrderDeclinedEvent::class,
         ];
 

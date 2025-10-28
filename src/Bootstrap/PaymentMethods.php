@@ -61,16 +61,16 @@ class PaymentMethods extends AbstractBootstrap
             'afterOrderEnabled' => true,
             'translations' => [
                 'de-DE' => [
-                    'name' => 'Ratenkauf - Bequem in Raten per Bankeinzug zahlen'
+                    'name' => 'Ratenkauf (3, 6, 12 Monaten)'
                 ],
                 'en-GB' => [
                     'name' => 'Installments (3, 6, 12 months)'
                 ],
                 'nl-NL' => [
-                    'name' => 'Gespreid betalen, betaal gemakkelijk in termijnen via automatische incasso'
+                    'name' => 'Betaling in termijnen (3, 6, 12 maanden)'
                 ],
                 'fr-FR' => [
-                    'name' => 'Paiement échelonné - Payer confortablement en plusieurs fois par prélèvement automatique'
+                    'name' => 'Paiement échelonnés (3, 6, 12 mois)'
                 ]
             ],
         ],
@@ -80,16 +80,16 @@ class PaymentMethods extends AbstractBootstrap
             'afterOrderEnabled' => true,
             'translations' => [
                 'de-DE' => [
-                    'name' => 'Gesplittete Zahlungen - Ratenkauf per Banküberweisung'
+                    'name' => 'Ratenkauf (3, 6, 12 Monaten) UK'
                 ],
                 'en-GB' => [
                     'name' => 'Business instalments (3, 6, 12)'
                 ],
                 'nl-NL' => [
-                    'name' => 'Gesplitste betalingen - Betaal later in termijnen via bankoverschrijving'
+                    'name' => 'Betaling in termijnen (3, 6, 12 maanden) UK'
                 ],
                 'fr-FR' => [
-                    'name' => 'Paiements fractionnés - Payer plus tard en plusieurs fois par virement bancaire'
+                    'name' => 'Paiement échelonnés (3, 6, 12 mois) UK'
                 ]
             ],
         ],

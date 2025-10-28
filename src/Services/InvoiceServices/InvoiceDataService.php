@@ -17,9 +17,14 @@ class InvoiceDataService extends AbstractInvoiceDataService
     {
         [ $invoiceNumber, $invoiceUrl ] = $this->getInvoiceNumberAndUrl($order, $context);
 
+        // Ensure external_reference_id is a string (Mondu API requirement)
+        if ($invoiceNumber === null || $invoiceNumber === '') {
+            throw new \RuntimeException('Invoice number is required but not found. Please create an invoice document for this order first.');
+        }
+
         return [
             'currency' => $this->orderUtilsService->getOrderCurrency($order),
-            'external_reference_id' => $invoiceNumber,
+            'external_reference_id' => (string) $invoiceNumber,
             'invoice_url' => $invoiceUrl,
             'gross_amount_cents' => $this->orderUtilsService->priceToCents($order->getPrice()->getTotalPrice()),
             'discount_cents' => $this->orderDiscountService->getOrderDiscountCents($order, $context),

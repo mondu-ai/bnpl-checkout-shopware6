@@ -77,9 +77,6 @@ class WebhooksController extends StorefrontController
             case 'order/declined':
                 [$resBody, $resStatus] = $this->webhookService->handleDeclinedOrCanceled($params, $context);
                 break;
-            case 'order/approved':
-                [$resBody, $resStatus] = $this->webhookService->handleApproved($params, $context);
-                break;
             case 'order':
                 // Generic 'order' topic - dispatch based on order_state
                 $orderState = $params['order_state'] ?? null;
@@ -90,9 +87,6 @@ class WebhooksController extends StorefrontController
                         break;
                     case 'pending':
                         [$resBody, $resStatus] = $this->webhookService->handlePending($params, $context);
-                        break;
-                    case 'approved':
-                        [$resBody, $resStatus] = $this->webhookService->handleApproved($params, $context);
                         break;
                     case 'declined':
                     case 'canceled':

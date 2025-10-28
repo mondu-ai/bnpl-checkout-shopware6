@@ -7,7 +7,6 @@ namespace Mondu\MonduPayment\Components\Events\Service;
 use Mondu\MonduPayment\Components\Events\MonduOrderConfirmedEvent;
 use Mondu\MonduPayment\Components\Events\MonduOrderCancelledEvent;
 use Mondu\MonduPayment\Components\Events\MonduOrderPendingEvent;
-use Mondu\MonduPayment\Components\Events\MonduOrderApprovedEvent;
 use Mondu\MonduPayment\Components\Events\MonduOrderDeclinedEvent;
 use Shopware\Core\Checkout\Order\OrderEntity;
 use Shopware\Core\Framework\Context;
@@ -52,15 +51,6 @@ class MonduEventDispatcher
         $this->eventDispatcher->dispatch($event);
     }
 
-    public function dispatchOrderApproved(
-        OrderEntity $order,
-        string $monduOrderId,
-        string $previousStatus,
-        Context $context
-    ): void {
-        $event = new MonduOrderApprovedEvent($order, $monduOrderId, $previousStatus, $context);
-        $this->eventDispatcher->dispatch($event);
-    }
 
     public function dispatchOrderDeclined(
         OrderEntity $order,

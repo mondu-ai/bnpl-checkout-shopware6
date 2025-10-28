@@ -21,7 +21,7 @@ use Shopware\Core\Framework\Event\EventData\MailRecipientStruct;
 
 class MonduOrderPendingEvent implements ShopwareEvent, OrderAware, MailAware, SalesChannelAware, FlowEventAware, CustomerAware, CustomerGroupAware
 {
-    public const EVENT_NAME = 'mondu.order.Pending';
+    public const EVENT_NAME = 'Mondu Payments.order.Pending';
 
     private OrderEntity $order;
     private Context $context;

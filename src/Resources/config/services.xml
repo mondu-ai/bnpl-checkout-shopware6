@@ -23,6 +23,7 @@
             <argument key="$configService" type="service" id="mondu.mondu_config"/>
             <argument key="$orderLinesService" type="service" id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService"/>
             <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <argument key="$eventDispatcher" type="service" id="event_dispatcher"/>
             <tag name="shopware.payment.method" />
         </service>
 
@@ -108,6 +109,14 @@
             <argument key="$logger" type="service" id="monolog.logger.mondu"/>
             <argument key="$productRepository" type="service" id="product.repository"/>
             <argument key="$currencyRepository" type="service" id="currency.repository"/>
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\Order\Subscriber\OrderExceptionSubscriber" >
+            <tag name="kernel.event_subscriber" />
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <argument key="$router" type="service" id="router"/>
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
         </service>
 
         <service id="Mondu\MonduPayment\Components\Order\Subscriber\CreditNoteSubscriber" >

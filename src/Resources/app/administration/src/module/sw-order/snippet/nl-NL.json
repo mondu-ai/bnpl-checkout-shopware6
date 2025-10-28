@@ -1,18 +1,20 @@
 {
+  "MonduConfirmed": "Bevestigd",
+  "MonduCancelled": "Geannuleerd",
+  "MonduPending": "In behandeling",
+  "MonduDeclined": "Afgewezen",
   "sw-flow": {
     "triggers": {
-      "mondu.order.Confirmed": "Mondu / Bestelling / Bevestigd",
-      "mondu.order.Cancelled": "Mondu / Bestelling / Geannuleerd",
-      "mondu.order.Pending": "Mondu / Bestelling / In behandeling",
-      "mondu.order.Approved": "Mondu / Bestelling / Goedgekeurd",
-      "mondu.order.Declined": "Mondu / Bestelling / Afgewezen"
+      "Mondu Payments.order.MonduConfirmed": "Mondu Payments / Bestelling / Bevestigd",
+      "Mondu Payments.order.MonduCancelled": "Mondu Payments / Bestelling / Geannuleerd",
+      "Mondu Payments.order.MonduPending": "Mondu Payments / Bestelling / In behandeling",
+      "Mondu Payments.order.MonduDeclined": "Mondu Payments / Bestelling / Afgewezen"
     },
     "triggerDescriptions": {
-      "mondu.order.Confirmed": "Wordt geactiveerd wanneer de Mondu-betaling wordt bevestigd",
-      "mondu.order.Cancelled": "Wordt geactiveerd wanneer de Mondu-betaling wordt geannuleerd",
-      "mondu.order.Pending": "Wordt geactiveerd wanneer de Mondu-betaling in behandeling is",
-      "mondu.order.Approved": "Wordt geactiveerd wanneer de Mondu-betaling wordt goedgekeurd",
-      "mondu.order.Declined": "Wordt geactiveerd wanneer de Mondu-betaling wordt afgewezen"
+      "Mondu Payments.order.MonduConfirmed": "Wordt geactiveerd wanneer de Mondu-betaling wordt bevestigd",
+      "Mondu Payments.order.MonduCancelled": "Wordt geactiveerd wanneer de Mondu-betaling wordt geannuleerd",
+      "Mondu Payments.order.MonduPending": "Wordt geactiveerd wanneer de Mondu-betaling in behandeling is",
+      "Mondu Payments.order.MonduDeclined": "Wordt geactiveerd wanneer de Mondu-betaling wordt afgewezen"
     }
   },
   "sw-order-mondu": {

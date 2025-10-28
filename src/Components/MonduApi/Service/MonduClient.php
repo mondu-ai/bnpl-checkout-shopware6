@@ -154,7 +154,7 @@ class MonduClient
         } catch (GuzzleException $e) {
             $responseBody = null;
             
-            // Check if this is a webhook already exists error (422)
+            // Check if this is a 422 error with special handling
             if (method_exists($e, 'getResponse') && $e->getResponse()) {
                 $responseBody = json_decode($e->getResponse()->getBody()->getContents(), true);
                 
@@ -164,9 +164,23 @@ class MonduClient
                     isset($responseBody['errors'][0]['details']) && 
                     strpos($responseBody['errors'][0]['details'], 'already subscribed') !== false) {
                     
-                    $this->logger->info("mondu.INFO: MonduClient [{$method} {$url}]: Webhook already registered - " . $responseBody['errors'][0]['details']);
+                    if ($this->configService->isExtendedLogsEnabled()) {
+                        $this->logger->info("mondu.INFO: MonduClient [{$method} {$url}]: Webhook already registered - " . $responseBody['errors'][0]['details']);
+                    }
                     // Return success array to indicate webhook is registered
                     return ['status' => 'already_registered', 'message' => $responseBody['errors'][0]['details']];
+                }
+                
+                // If invoice already exists (duplicate external_reference_id) - return special status
+                if ($e->getCode() == 422 && 
+                    isset($responseBody['errors'][0]['details']) && 
+                    strpos($responseBody['errors'][0]['details'], 'must be unique') !== false) {
+                    
+                    // Always log this to understand what's happening
+                    $this->logger->warning("mondu.WARNING: MonduClient [{$method} {$url}]: Invoice already exists, returning special status - " . $responseBody['errors'][0]['details']);
+                    
+                    // Return special status to indicate invoice already exists
+                    return ['status' => 'already_exists', 'message' => $responseBody['errors'][0]['details']];
                 }
             }
             

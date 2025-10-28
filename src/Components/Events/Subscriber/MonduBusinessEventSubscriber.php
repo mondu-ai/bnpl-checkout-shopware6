@@ -7,7 +7,6 @@ namespace Mondu\MonduPayment\Components\Events\Subscriber;
 use Mondu\MonduPayment\Components\Events\MonduOrderConfirmedEvent;
 use Mondu\MonduPayment\Components\Events\MonduOrderCancelledEvent;
 use Mondu\MonduPayment\Components\Events\MonduOrderPendingEvent;
-use Mondu\MonduPayment\Components\Events\MonduOrderApprovedEvent;
 use Mondu\MonduPayment\Components\Events\MonduOrderDeclinedEvent;
 use Shopware\Core\Framework\Event\BusinessEventCollectorEvent;
 use Shopware\Core\Framework\Event\BusinessEventDefinition;
@@ -49,6 +48,16 @@ class MonduBusinessEventSubscriber implements EventSubscriberInterface
             'customerGroupAware',
             CustomerGroupAware::class,
         ];
+        
+        // Aware interfaces for Cancelled and Declined events (without customer)
+        $awareWithoutCustomer = [
+            'orderAware',
+            OrderAware::class,
+            'salesChannelAware',
+            SalesChannelAware::class,
+            'mailAware',
+            MailAware::class,
+        ];
 
         // Register all Mondu events
         $collection->set(
@@ -67,7 +76,7 @@ class MonduBusinessEventSubscriber implements EventSubscriberInterface
                 MonduOrderCancelledEvent::EVENT_NAME,
                 MonduOrderCancelledEvent::class,
                 MonduOrderCancelledEvent::getAvailableData()->toArray(),
-                $aware
+                $awareWithoutCustomer
             )
         );
 
@@ -82,22 +91,12 @@ class MonduBusinessEventSubscriber implements EventSubscriberInterface
         );
 
         $collection->set(
-            MonduOrderApprovedEvent::EVENT_NAME,
-            new BusinessEventDefinition(
-                MonduOrderApprovedEvent::EVENT_NAME,
-                MonduOrderApprovedEvent::class,
-                MonduOrderApprovedEvent::getAvailableData()->toArray(),
-                $aware
-            )
-        );
-
-        $collection->set(
             MonduOrderDeclinedEvent::EVENT_NAME,
             new BusinessEventDefinition(
                 MonduOrderDeclinedEvent::EVENT_NAME,
                 MonduOrderDeclinedEvent::class,
                 MonduOrderDeclinedEvent::getAvailableData()->toArray(),
-                $aware
+                $awareWithoutCustomer
             )
         );
     }

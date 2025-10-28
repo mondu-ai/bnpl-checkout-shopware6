@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mondu\MonduPayment\Components\Order\Subscriber;
 
+use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 use Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService;
 use Shopware\Core\Checkout\Cart\LineItem\LineItem;
 use Shopware\Core\Checkout\Order\OrderDefinition;
@@ -39,7 +40,8 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
         private readonly LoggerInterface $logger,
         private readonly EntityRepository $productRepository,
         private readonly EntityRepository $currencyRepository,
-        private readonly AbstractOrderLinesService $orderLinesService
+        private readonly AbstractOrderLinesService $orderLinesService,
+        private readonly ConfigService $configService
     ) {}
 
     public static function getSubscribedEvents(): array
@@ -93,6 +95,17 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                 }
 
                 if ($this->hasInvoices($orderId, $context)) {
+                    return;
+                }
+
+                // Skip adjust order call if credit note items are present in the order
+                if ($this->hasCreditNoteItems($order)) {
+                    if ($this->configService->isExtendedLogsEnabled()) {
+                        $this->logger->info('mondu.INFO: Skipping adjust order call - credit note items present', [
+                            'order_id' => $orderId,
+                            'order_number' => $order->getOrderNumber()
+                        ]);
+                    }
                     return;
                 }
 
@@ -194,6 +207,21 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
         $invoiceCriteria->addFilter(new EqualsFilter('orderId', $orderId));
 
         return $this->invoiceDataRepository->search($invoiceCriteria, $context)->getTotal() > 0;
+    }
+
+    /**
+     * Check if order contains credit note line items
+     * Credit notes should not trigger adjust order calls to avoid API errors
+     */
+    protected function hasCreditNoteItems(OrderEntity $order): bool
+    {
+        foreach ($order->getLineItems() as $lineItem) {
+            if ($lineItem->getType() === LineItem::CREDIT_LINE_ITEM_TYPE) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
 }
