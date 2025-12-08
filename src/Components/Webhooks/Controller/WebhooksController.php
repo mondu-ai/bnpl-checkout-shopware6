@@ -50,11 +50,13 @@ class WebhooksController extends StorefrontController
 
         $signature = hash_hmac('sha256', $content, $this->configService->getWebhooksSecret());
         if ($signature !== $headers->get('X-Mondu-Signature')) {
-            $this->logger->warning('mondu.WARNING: Webhook signature mismatch', [
-                'topic' => $params['topic'] ?? 'unknown',
-                'expected_signature' => $signature,
-                'received_signature' => $headers->get('X-Mondu-Signature')
-            ]);
+            if ($this->configService->isExtendedLogsEnabled()) {
+                $this->logger->info('mondu.INFO: Webhook signature mismatch', [
+                    'topic' => $params['topic'] ?? 'unknown',
+                    'expected_signature' => $signature,
+                    'received_signature' => $headers->get('X-Mondu-Signature')
+                ]);
+            }
             
             return new Response(
                 json_encode([
@@ -93,11 +95,13 @@ class WebhooksController extends StorefrontController
                         [$resBody, $resStatus] = $this->webhookService->handleDeclinedOrCanceled($params, $context);
                         break;
                     default:
-                        $this->logger->warning('mondu.WARNING: Unknown order_state for order webhook', [
-                            'topic' => $topic,
-                            'order_state' => $orderState,
-                            'order_uuid' => $params['order_uuid'] ?? null
-                        ]);
+                        if ($this->configService->isExtendedLogsEnabled()) {
+                            $this->logger->info('mondu.INFO: Unknown order_state for order webhook', [
+                                'topic' => $topic,
+                                'order_state' => $orderState,
+                                'order_uuid' => $params['order_uuid'] ?? null
+                            ]);
+                        }
                         $resBody = ['message' => 'Unknown order_state', 'code' => 200];
                         $resStatus = 200;
                 }

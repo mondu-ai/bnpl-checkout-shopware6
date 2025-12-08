@@ -110,13 +110,33 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
             $this->createLocalOrder($transaction, $paymentOrderUuid, $salesChannelContext);
 
             $orderTransactionState = $this->configService->setSalesChannelId($salesChannelContext->getSalesChannelId())->orderTransactionState();
+            
+            // Check if this is Pay Now payment method
+            $paymentMethod = $transaction->getOrderTransaction()->getPaymentMethod();
+            $paymentHandlerIdentifier = $paymentMethod ? $paymentMethod->getHandlerIdentifier() : '';
+            $isPayNow = str_contains($paymentHandlerIdentifier, 'MonduPayNowHandler');
 
             try {
-                if (
-                    $orderTransactionState == self::ORDER_TRANSACTION_STATE_PAID &&
-                    $confirmResponseState == self::RESPONSE_STATE_PENDING
-                ) {
+                // First check Mondu response - if pending, always set to pending regardless of payment method
+                if ($confirmResponseState == self::RESPONSE_STATE_PENDING) {
+                    if ($this->configService->isExtendedLogsEnabled()) {
+                        $this->logger->info('mondu.INFO: Mondu returned pending - setting to processUnconfirmed', [
+                            'order_number' => $transaction->getOrder()->getOrderNumber(),
+                            'confirmResponseState' => $confirmResponseState,
+                            'isPayNow' => $isPayNow
+                        ]);
+                    }
                     $this->transactionStateHandler->processUnconfirmed($transaction->getOrderTransaction()->getId(), $salesChannelContext->getContext());
+                }
+                // For Pay Now with confirmed: always set to paid (money already received)
+                else if ($isPayNow) {
+                    if ($this->configService->isExtendedLogsEnabled()) {
+                        $this->logger->info('mondu.INFO: Pay Now with confirmed - setting to paid', [
+                            'order_number' => $transaction->getOrder()->getOrderNumber(),
+                            'confirmResponseState' => $confirmResponseState
+                        ]);
+                    }
+                    $this->transactionStateHandler->paid($transaction->getOrderTransaction()->getId(), $salesChannelContext->getContext());
                 } else if ($orderTransactionState == self::ORDER_TRANSACTION_STATE_AUTHORIZED) {
                     $this->transactionStateHandler->authorize($transaction->getOrderTransaction()->getId(), $salesChannelContext->getContext());
                 } else {
