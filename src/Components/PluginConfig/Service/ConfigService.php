@@ -268,6 +268,26 @@ class ConfigService
     }
 
     /**
+     * @return string
+     */
+    public function getHandlingAddressAdditionalField1(): string
+    {
+        $config = $this->getPluginConfiguration();
+
+        return $config['handlingAddressAdditionalField1'] ?? 'ignore';
+    }
+
+    /**
+     * @return string
+     */
+    public function getHandlingAddressAdditionalField2(): string
+    {
+        $config = $this->getPluginConfiguration();
+
+        return $config['handlingAddressAdditionalField2'] ?? 'ignore';
+    }
+
+    /**
      * @return \Shopware\Core\Framework\DataAbstractionLayer\Entity|null
      */
     public function getPlugin()
