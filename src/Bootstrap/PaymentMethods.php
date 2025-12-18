@@ -16,6 +16,14 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 
 class PaymentMethods extends AbstractBootstrap
 {
+    public const PAYMENT_METHOD_LOGOS = [
+        MonduHandler::class => 'invoice_white_rectangle.png',
+        MonduSepaHandler::class => 'sepa_white_rectangle.png',
+        MonduInstallmentHandler::class => 'installments_white_rectangle.png',
+        MonduInstallmentByInvoiceHandler::class => 'installments_white_rectangle.png',
+        MonduPayNowHandler::class => 'instant_pay_white_rectangle.png',
+    ];
+
     public const PAYMENT_METHODS = [
         MonduHandler::class => [
             'handlerIdentifier' => MonduHandler::class,
@@ -235,8 +243,16 @@ class PaymentMethods extends AbstractBootstrap
     {
         $mediaProvider = $this->container->get(MediaProvider::class);
 
-        foreach (self::PAYMENT_METHODS as $paymentMethod) {
-            $mediaId = $mediaProvider->getLogoMediaId($this->context);
+        foreach (self::PAYMENT_METHODS as $handlerClass => $paymentMethod) {
+            // Get specific logo for this payment method
+            $logoFileName = self::PAYMENT_METHOD_LOGOS[$handlerClass] ?? null;
+            
+            if ($logoFileName) {
+                $mediaId = $mediaProvider->getPaymentMethodLogoMediaId($logoFileName, $this->context);
+            } else {
+                // Fallback to default logo
+                $mediaId = $mediaProvider->getLogoMediaId($this->context);
+            }
 
             $paymentSearchResult = $this->paymentRepository->search(
                 (
@@ -247,11 +263,13 @@ class PaymentMethods extends AbstractBootstrap
                 $this->context
             );
 
-            $paymentMethodData = [
-                'id' => $paymentSearchResult->first()->getId(),
-                'mediaId' => $mediaId
-            ];
-            $this->paymentRepository->update([$paymentMethodData], $this->context);
+            if ($paymentSearchResult->first()) {
+                $paymentMethodData = [
+                    'id' => $paymentSearchResult->first()->getId(),
+                    'mediaId' => $mediaId
+                ];
+                $this->paymentRepository->update([$paymentMethodData], $this->context);
+            }
         }
     }
 }
