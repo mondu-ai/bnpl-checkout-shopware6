@@ -10,6 +10,10 @@
         <import resource="../../Components/*/DependencyInjection/controllers.xml"/>
     </imports>
 
+    <parameters>
+        <parameter key="mondu.plugin.path">%kernel.project_dir%/custom/plugins/Mond1SW6</parameter>
+    </parameters>
+
     <services>
         <defaults autowire="true">
             <tag name="controller.service_arguments"/>
@@ -131,6 +135,7 @@
         <service id="Mondu\MonduPayment\Bootstrap\MediaProvider" public="true">
             <argument type="service" key="$mediaService" id="Shopware\Core\Content\Media\MediaService"/>
             <argument type="service" key="$mediaRepository" id="media.repository"/>
+            <argument type="string" key="$pluginPath">%mondu.plugin.path%</argument>
         </service>
 
         <service id="Mondu\MonduPayment\Command\ConfigApiTokenCommand">

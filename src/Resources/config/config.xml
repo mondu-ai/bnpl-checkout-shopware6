@@ -119,6 +119,80 @@
             <helpText lang="fr-FR">Lorsqu'elle est activée, l'état de la commande sera automatiquement changé en 'en cours' lors des événements webhook. Lorsqu'elle est désactivée, les commandes resteront dans l'état 'ouvert'.</helpText>
         </input-field>
 
+        <input-field type="single-select">
+            <name>handlingAddressAdditionalField1</name>
+            <label>Handling of field: Address Additional Field 1</label>
+            <label lang="de-DE">Handling des Feldes: Adresszusatz 1</label>
+            <label lang="nl-NL">Verwerking van veld: Adresaanvulling 1</label>
+            <label lang="fr-FR">Traitement du champ: complément d'adresse 1</label>
+
+            <defaultValue>ignore</defaultValue>
+            <options>
+                <option>
+                    <id>ignore</id>
+                    <name>Ignore</name>
+                    <name lang="de-DE">Ignorieren</name>
+                    <name lang="nl-NL">Negeren</name>
+                    <name lang="fr-FR">Ignorer</name>
+                </option>
+                <option>
+                    <id>addtoaddressline1</id>
+                    <name>Add to Address Line 1</name>
+                    <name lang="de-DE">Zu Mondu Adresszeile 1 hinzufügen</name>
+                    <name lang="nl-NL">Toevoegen aan Mondu Adresregel 1</name>
+                    <name lang="fr-FR">Ajouter à la ligne d'adresse Mondu 1</name>
+                </option>
+                <option>
+                    <id>addtoaddressline2</id>
+                    <name>Add to Address Line 2</name>
+                    <name lang="de-DE">Zu Mondu Adresszeile 2 hinzufügen</name>
+                    <name lang="nl-NL">Toevoegen aan Mondu Adresregel 2</name>
+                    <name lang="fr-FR">Ajouter à la ligne d'adresse Mondu 2</name>
+                </option>
+            </options>
+            <helpText>When ignore is selected, the value of the address additional field 1 will be ignored. When addtoaddressline1 is selected, the value of the address additional field 1 will be added to the address line 1. When addtoaddressline2 is selected, the value of the address additional field 1 will be added to the address line 2.</helpText>
+            <helpText lang="de-DE">Wenn 'Ignorieren' ausgewählt ist, wird der Wert des Adresszusatzes 1 ignoriert. Wenn 'Zu Mondu Adresszeile 1 hinzufügen' ausgewählt ist, wird der Wert des Adresszusatzes 1 zu der Mondu Adresszeile 1 hinzugefügt. Wenn 'Zu Mondu Adresszeile 2 hinzufügen' ausgewählt ist, wird der Wert des Adresszusatzes 2 zu der Mondu Adresszeile 2 hinzugefügt.</helpText>
+            <helpText lang="nl-NL">Wanneer 'Negeren' is geselecteerd, wordt de waarde van het adreszusatz 1 genegeerd. Wanneer 'Toevoegen aan Mondu Adresregel 1' is geselecteerd, wordt de waarde van het adreszusatz 1 toegevoegd aan de Mondu Adresregel 1. Wanneer 'Toevoegen aan Mondu Adresregel 2' is geselecteerd, wordt de waarde van het adreszusatz 2 toegevoegd aan de Mondu Adresregel 2.</helpText>
+            <helpText lang="fr-FR">Lorsque 'Ignorer' est sélectionné, la valeur du champ d'adresse supplémentaire 1 est ignorée. Lorsque 'Ajouter à la ligne d'adresse Mondu 1' est sélectionné, la valeur du champ d'adresse supplémentaire 1 est ajoutée à la Mondu Adresregel 1. Lorsque 'Ajouter à la ligne d'adresse Mondu 2' est sélectionné, la valeur du champ d'adresse supplémentaire 2 est ajoutée à la Mondu Adresregel 2.</helpText>
+        </input-field>
+
+        <input-field type="single-select">
+            <name>handlingAddressAdditionalField2</name>
+            <label>Handling of field: Address Additional Field 2</label>
+            <label lang="de-DE">Handling des Feldes: Adresszusatz 2</label>
+            <label lang="nl-NL">Verwerking van veld: Adresaanvulling 2</label>
+            <label lang="fr-FR">Traitement du champ: complément d'adresse 2</label>
+
+            <defaultValue>ignore</defaultValue>
+            <options>
+                <option>
+                    <id>ignore</id>
+                    <name>Ignore</name>
+                    <name lang="de-DE">Ignorieren</name>
+                    <name lang="nl-NL">Negeren</name>
+                    <name lang="fr-FR">Ignorer</name>
+                </option>
+                <option>
+                    <id>addtoaddressline1</id>
+                    <name>Add to Address Line 1</name>
+                    <name lang="de-DE">Zu Mondu Adresszeile 1 hinzufügen</name>
+                    <name lang="nl-NL">Toevoegen aan Mondu Adresregel 1</name>
+                    <name lang="fr-FR">Ajouter à la ligne d'adresse Mondu 1</name>
+                </option>
+                <option>
+                    <id>addtoaddressline2</id>
+                    <name>Add to Address Line 2</name>
+                    <name lang="de-DE">Zu Mondu Adresszeile 2 hinzufügen</name>
+                    <name lang="nl-NL">Toevoegen aan Mondu Adresregel 2</name>
+                    <name lang="fr-FR">Ajouter à la ligne d'adresse Mondu 2</name>
+                </option>
+            </options>
+            <helpText>When ignore is selected, the value of the address additional field 2 will be ignored. When addtoaddressline1 is selected, the value of the address additional field 2 will be added to the address line 1. When addtoaddressline2 is selected, the value of the address additional field 1 will be added to the address line 2.</helpText>
+            <helpText lang="de-DE">Wenn 'Ignorieren' ausgewählt ist, wird der Wert des Adresszusatzes 2 ignoriert. Wenn 'Zu Mondu Adresszeile 1 hinzufügen' ausgewählt ist, wird der Wert des Adresszusatzes 2 zu der Mondu Adresszeile 1 hinzugefügt. Wenn 'Zu Mondu Adresszeile 2 hinzufügen' ausgewählt ist, wird der Wert des Adresszusatzes 2 zu der Mondu Adresszeile 2 hinzugefügt.</helpText>
+            <helpText lang="nl-NL">Wanneer 'Negeren' is geselecteerd, wordt de waarde van het adreszusatz 2 genegeerd. Wanneer 'Toevoegen aan Mondu Adresregel 1' is geselecteerd, wordt de waarde van het adreszusatz 2 toegevoegd aan de Mondu Adresregel 1. Wanneer 'Toevoegen aan Mondu Adresregel 2' is geselecteerd, wordt de waarde van het adreszusatz 2 toegevoegd aan de Mondu Adresregel 2.</helpText>
+            <helpText lang="fr-FR">Lorsque 'Ignorer' est sélectionné, la valeur du champ d'adresse supplémentaire 2 est ignorée. Lorsque 'Ajouter à la ligne d'adresse Mondu 1' est sélectionné, la valeur du champ d'adresse supplémentaire 2 est ajoutée à la Mondu Adresregel 1. Lorsque 'Ajouter à la ligne d'adresse Mondu 2' est sélectionné, la valeur du champ d'adresse supplémentaire 2 est ajoutée à la Mondu Adresregel 2.</helpText>
+        </input-field>
+
         <input-field type="bool">
             <name>extendedLogs</name>
             <label>Extended logs</label>

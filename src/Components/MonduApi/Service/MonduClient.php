@@ -18,9 +18,9 @@ class MonduClient
     private Client $restClient;
 
     /**
-     * @var string
+     * @var string|null
      */
-    private string $key;
+    private ?string $key = null;
 
     /**
      * @var string|null
@@ -84,8 +84,21 @@ class MonduClient
     public function confirmOrder($orderUuid, $data): ?string
     {
         $response = $this->sendRequest('orders/'. $orderUuid .'/confirm', 'POST', $data);
+        
+        $state = $response['state'] ?? $response['order']['state'] ?? null;
+        
+        if ($this->configService->isExtendedLogsEnabled()) {
+            $this->logger->info('mondu.INFO: confirmOrder full API response', [
+                'order_uuid' => $orderUuid,
+                'request_data' => $data,
+                'response' => $response,
+                'state_from_root' => $response['state'] ?? null,
+                'state_from_order' => $response['order']['state'] ?? null,
+                'final_state' => $state
+            ]);
+        }
 
-        return $response['order']['state'] ?? null;
+        return $state;
     }
 
     public function adjustOrder($orderUuid, $body = []): ?array
@@ -154,11 +167,9 @@ class MonduClient
         } catch (GuzzleException $e) {
             $responseBody = null;
             
-            // Check if this is a 422 error with special handling
             if (method_exists($e, 'getResponse') && $e->getResponse()) {
                 $responseBody = json_decode($e->getResponse()->getBody()->getContents(), true);
                 
-                // If webhook already subscribed and allowed - treat as success
                 if ($allowAlreadySubscribed && 
                     $e->getCode() == 422 && 
                     isset($responseBody['errors'][0]['details']) && 
@@ -167,19 +178,15 @@ class MonduClient
                     if ($this->configService->isExtendedLogsEnabled()) {
                         $this->logger->info("mondu.INFO: MonduClient [{$method} {$url}]: Webhook already registered - " . $responseBody['errors'][0]['details']);
                     }
-                    // Return success array to indicate webhook is registered
                     return ['status' => 'already_registered', 'message' => $responseBody['errors'][0]['details']];
                 }
                 
-                // If invoice already exists (duplicate external_reference_id) - return special status
                 if ($e->getCode() == 422 && 
                     isset($responseBody['errors'][0]['details']) && 
                     strpos($responseBody['errors'][0]['details'], 'must be unique') !== false) {
                     
-                    // Always log this to understand what's happening
                     $this->logger->warning("mondu.WARNING: MonduClient [{$method} {$url}]: Invoice already exists, returning special status - " . $responseBody['errors'][0]['details']);
                     
-                    // Return special status to indicate invoice already exists
                     return ['status' => 'already_exists', 'message' => $responseBody['errors'][0]['details']];
                 }
             }

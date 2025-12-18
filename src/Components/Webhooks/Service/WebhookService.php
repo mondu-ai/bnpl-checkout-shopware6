@@ -118,14 +118,64 @@ class WebhookService
             if ($this->configService->setSalesChannelId($this->salesChannelId)->isAutoTransitionOrderStateEnabled()) {
                 $this->transitionOrderState($externalReferenceId, 'process', $context, $monduId);
             }
-            $transitionResult = $this->transitionTransactionState($externalReferenceId, 'paid', $context, $monduId);
-
-            // Dispatch event for Flow Builder
+            
+            // Determine payment transaction state based on payment method
+            // Get order to check payment method
             $criteria = new Criteria([$this->getOrderUuid($externalReferenceId, $context, $monduId)]);
+            $criteria->addAssociation('transactions.paymentMethod');
             $criteria->addAssociation('orderCustomer.customer');
             /** @var OrderEntity $order */
             $order = $this->orderRepository->search($criteria, $context)->first();
             
+            $targetTransactionState = 'paid'; // Default to 'paid'
+            
+            if ($order) {
+                $transaction = $order->getTransactions()->first();
+                $paymentMethod = $transaction ? $transaction->getPaymentMethod() : null;
+                $paymentHandlerIdentifier = $paymentMethod ? $paymentMethod->getHandlerIdentifier() : null;
+                
+                // Check if this is Pay Now payment method
+                $isPayNow = $paymentHandlerIdentifier && str_contains($paymentHandlerIdentifier, 'MonduPayNowHandler');
+                
+                if ($this->configService->isExtendedLogsEnabled()) {
+                    $this->logger->info('mondu.INFO: handleConfirmed - determining payment state', [
+                        'order_number' => $externalReferenceId,
+                        'mondu_id' => $monduId,
+                        'payment_handler' => $paymentHandlerIdentifier,
+                        'is_pay_now' => $isPayNow
+                    ]);
+                }
+                
+                if ($isPayNow) {
+                    // For Pay Now: always set to 'paid' (ignore configuration)
+                    $targetTransactionState = 'paid';
+                    
+                    if ($this->configService->isExtendedLogsEnabled()) {
+                        $this->logger->info('mondu.INFO: Pay Now detected - setting transaction state to PAID', [
+                            'order_number' => $externalReferenceId,
+                            'mondu_id' => $monduId,
+                            'target_state' => $targetTransactionState
+                        ]);
+                    }
+                } else {
+                    // For other payment methods: use configuration
+                    $configuredState = $this->configService->setSalesChannelId($this->salesChannelId)->orderTransactionState();
+                    $targetTransactionState = $configuredState;
+                    
+                    if ($this->configService->isExtendedLogsEnabled()) {
+                        $this->logger->info('mondu.INFO: Non-Pay Now method - using configured state', [
+                            'order_number' => $externalReferenceId,
+                            'mondu_id' => $monduId,
+                            'configured_state' => $configuredState,
+                            'target_state' => $targetTransactionState
+                        ]);
+                    }
+                }
+            }
+            
+            $transitionResult = $this->transitionTransactionState($externalReferenceId, $targetTransactionState, $context, $monduId);
+
+            // Dispatch event for Flow Builder
             if ($order) {
                 $event = new MonduOrderConfirmedEvent(
                     $order,
@@ -504,8 +554,23 @@ class WebhookService
             $orderTransactionId = $transaction->getId();
             $currentState = $transaction->getStateMachineState()->getTechnicalName();
 
+            // Map state names to action names (Shopware expects actions, not states)
+            // Note: In Shopware, most actions have same name as state (paid, not pay)
+            $stateToAction = [
+                'authorized' => 'authorize',
+                'cancelled' => 'cancel',
+                'failed' => 'fail',
+                'refunded' => 'refund',
+                'refunded_partially' => 'refund_partially',
+                'open' => 'reopen',
+                // 'paid' => 'paid' - same name, no mapping needed
+            ];
+            
+            // Convert state to action if needed
+            $action = $stateToAction[$state] ?? $state;
+
             // Check if transition is allowed (prevents backward transitions)
-            if (!$this->isTransitionAllowed($currentState, $state)) {
+            if (!$this->isTransitionAllowed($currentState, $action)) {
                 $this->log('Prevented backward state transition', [
                     'externalReferenceId' => $externalReferenceId,
                     'currentState' => $currentState,
@@ -518,25 +583,30 @@ class WebhookService
             }
 
             // State transition allowed - proceed with logging
-            $this->logger->info('mondu.INFO: Attempting transaction state transition', [
-                'externalReferenceId' => $externalReferenceId,
-                'currentState' => $currentState,
-                'targetState' => $state,
-                'transactionId' => $orderTransactionId
-            ]);
+            if ($this->configService->isExtendedLogsEnabled()) {
+                $this->logger->info('mondu.INFO: Attempting transaction state transition', [
+                    'externalReferenceId' => $externalReferenceId,
+                    'currentState' => $currentState,
+                    'targetAction' => $action,
+                    'originalState' => $state,
+                    'transactionId' => $orderTransactionId
+                ]);
+            }
             
             $result = $this->stateMachineRegistry->transition(new Transition(
                 OrderTransactionDefinition::ENTITY_NAME,
                 $orderTransactionId,
-                $state,
+                $action,
                 'stateId'
             ), $context);
             
-            $this->logger->info('mondu.INFO: Transaction state transition SUCCESS', [
-                'externalReferenceId' => $externalReferenceId,
-                'targetState' => $state,
-                'result' => $result->first()?->getTechnicalName()
-            ]);
+            if ($this->configService->isExtendedLogsEnabled()) {
+                $this->logger->info('mondu.INFO: Transaction state transition SUCCESS', [
+                    'externalReferenceId' => $externalReferenceId,
+                    'targetAction' => $action,
+                    'result' => $result->first()?->getTechnicalName()
+                ]);
+            }
             
             return $result;
         } catch (MonduException $e) {
@@ -544,11 +614,12 @@ class WebhookService
         } catch (\Exception $e) {
             $this->logger->error('mondu.ERROR: transitionTransactionState Failed', [
                 'externalReferenceId' => $externalReferenceId,
-                'targetState' => $state,
+                'targetAction' => $action ?? $state,
+                'originalState' => $state,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            $this->log('transitionTransactionState Failed', [$externalReferenceId, $state], $e);
+            $this->log('transitionTransactionState Failed', [$externalReferenceId, $action ?? $state], $e);
             throw new MonduException($e->getMessage());
         }
     }
@@ -600,6 +671,16 @@ class WebhookService
         // Get target state from action
         $targetState = $actionToState[$targetAction] ?? $targetAction;
 
+        // Allow same state FIRST (idempotent - duplicate webhooks, finalize + webhook race condition)
+        // This must be checked before final states to avoid false warnings
+        if ($currentState === $targetState) {
+            $this->log('Same state transition (idempotent) - skipping', [
+                'currentState' => $currentState,
+                'targetState' => $targetState
+            ], null, 'info');
+            return true;
+        }
+
         // Get priorities
         $currentPriority = $statePriorities[$currentState] ?? 0;
         $targetPriority = $statePriorities[$targetState] ?? 0;
@@ -624,11 +705,6 @@ class WebhookService
                 'reason' => 'Current state is final'
             ], null, 'warning');
             return false;
-        }
-
-        // Allow same state (idempotent - duplicate webhooks)
-        if ($currentState === $targetState) {
-            return true;
         }
 
         // Only allow forward transitions (or same priority)
