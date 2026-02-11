@@ -178,11 +178,5 @@
             <argument type="service" id="Shopware\Core\Framework\Event\BusinessEventCollector"/>
             <tag name="console.command"/>
         </service>
-        <service id="Mondu\MonduPayment\Command\DebugB2CFilterCommand">
-            <argument type="service" id="Mondu\MonduPayment\Components\Checkout\Service\PaymentMethodFilterService"/>
-            <argument type="service" id="mondu.mondu_config"/>
-            <argument type="service" id="Shopware\Core\System\SalesChannel\Context\SalesChannelContextService"/>
-            <tag name="console.command"/>
-        </service>
     </services>
 </container>
