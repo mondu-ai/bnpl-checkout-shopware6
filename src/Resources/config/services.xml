@@ -99,9 +99,31 @@
             <tag name="shopware.entity.definition"/>
         </service>
 
+        <service id="Mondu\MonduPayment\Components\Checkout\Service\PaymentMethodFilterService">
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
+            <argument key="$monduOperationService" type="service" id="Mondu\MonduPayment\Components\MonduApi\Service\MonduOperationService"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+        </service>
+
         <service id="Mondu\MonduPayment\Components\Checkout\Subscriber\CheckoutSubscriber" >
             <tag name="kernel.event_subscriber" />
-            <argument key="$configService" type="service" id="mondu.mondu_config"/>
+            <argument key="$paymentMethodFilterService" type="service" id="Mondu\MonduPayment\Components\Checkout\Service\PaymentMethodFilterService"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\Checkout\Decorator\CheckoutGatewayRouteDecorator"
+                 decorates="Shopware\Core\Checkout\Gateway\SalesChannel\CheckoutGatewayRoute">
+            <argument type="service" id="Mondu\MonduPayment\Components\Checkout\Decorator\CheckoutGatewayRouteDecorator.inner"/>
+            <argument type="service" id="Mondu\MonduPayment\Components\Checkout\Service\PaymentMethodFilterService"/>
+            <argument type="service" id="mondu.mondu_config"/>
+            <argument type="service" id="monolog.logger.mondu"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\Checkout\Decorator\CachedPaymentMethodRouteDecorator"
+                 decorates="Shopware\Core\Checkout\Payment\SalesChannel\CachedPaymentMethodRoute">
+            <argument type="service" id="Mondu\MonduPayment\Components\Checkout\Decorator\CachedPaymentMethodRouteDecorator.inner"/>
+            <argument type="service" id="Mondu\MonduPayment\Components\Checkout\Service\PaymentMethodFilterService"/>
+            <argument type="service" id="mondu.mondu_config"/>
+            <argument type="service" id="monolog.logger.mondu"/>
         </service>
 
         <service id="Mondu\MonduPayment\Components\Order\Subscriber\AdjustOrderSubscriber" >
@@ -154,6 +176,12 @@
         </service>
         <service id="Mondu\MonduPayment\Command\CheckFlowAwareCommand">
             <argument type="service" id="Shopware\Core\Framework\Event\BusinessEventCollector"/>
+            <tag name="console.command"/>
+        </service>
+        <service id="Mondu\MonduPayment\Command\DebugB2CFilterCommand">
+            <argument type="service" id="Mondu\MonduPayment\Components\Checkout\Service\PaymentMethodFilterService"/>
+            <argument type="service" id="mondu.mondu_config"/>
+            <argument type="service" id="Shopware\Core\System\SalesChannel\Context\SalesChannelContextService"/>
             <tag name="console.command"/>
         </service>
     </services>

@@ -29,6 +29,11 @@ class OrderLineItemsService extends AbstractOrderLineItemsService
         }
 
         foreach ($shopwareLineItems as $shopwareLineItem) {
+            // Skip nested (child) line items – only send top-level items to Mondu
+            if (method_exists($shopwareLineItem, 'getParentId') && $shopwareLineItem->getParentId() !== null) {
+                continue;
+            }
+
             if (
                 isset($isLineItemCallback) && !$isLineItemCallback($shopwareLineItem) ||
                 !$this->orderUtilsService->isLineItem($shopwareLineItem)
@@ -36,9 +41,9 @@ class OrderLineItemsService extends AbstractOrderLineItemsService
                 continue;
             }
 
-
-            $lineItems[] = $forInvoice ? $this->getLineItemForInvoice($shopwareLineItem, $order) :
-                $this->getLineItemForOrder($shopwareLineItem, $order);
+            $lineItems[] = $forInvoice
+                ? $this->getLineItemForInvoice($shopwareLineItem, $order)
+                : $this->getLineItemForOrder($shopwareLineItem, $order);
         }
 
         return $lineItems;

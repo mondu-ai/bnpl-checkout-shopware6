@@ -400,21 +400,7 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
             'declined_url' => $returnUrl . '&payment=declined',
             'external_reference_id' => $externalReferenceId,
             'gross_amount_cents' => round($order->getPrice()->getTotalPrice() * 100),
-            'buyer' => [
-                'email' => $order->getOrderCustomer()->getEmail(),
-                'first_name' => $order->getOrderCustomer()->getFirstname(),
-                'last_name' => $order->getOrderCustomer()-> getLastName(),
-                'company_name' => $order->getOrderCustomer()->getCompany(),
-                'phone' => $order->getBillingAddress()->getPhoneNumber(),
-                'address_line1' => $addressLine1,
-                'address_line2' => $addressLine2,
-                'zip_code' => $order->getBillingAddress()->getZipCode(),
-                'is_registered' => !$order->getOrderCustomer()->getCustomer()->getGuest(),
-                'external_reference_id' => $order->getOrderCustomer()->getCustomer()->getCustomerNumber(),
-                'account_created_at' => $order->getOrderCustomer()->getCustomer()->getCreatedAt(),
-                'account_updated_at' => $order->getOrderCustomer()->getCustomer()->getUpdatedAt(),
-
-            ],
+            'buyer' => $this->buildBuyerPayload($order, $addressLine1, $addressLine2),
             'billing_address' => [
                 'address_line1' => $addressLine1,
                 'address_line2' => $addressLine2,
@@ -431,6 +417,46 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
             ],
             'lines' => $this->orderLinesService->getLines($order, $salesChannelContext->getContext())
         ];
+    }
+
+    /**
+     * Builds the buyer payload for Mondu create order request.
+     * Includes vat_number when available from billing address or order customer.
+     */
+    private function buildBuyerPayload(object $order, string $addressLine1, ?string $addressLine2): array
+    {
+        $orderCustomer = $order->getOrderCustomer();
+        $billingAddress = $order->getBillingAddress();
+        $customer = $orderCustomer->getCustomer();
+
+        $buyer = [
+            'email' => $orderCustomer->getEmail(),
+            'first_name' => $orderCustomer->getFirstname(),
+            'last_name' => $orderCustomer->getLastName(),
+            'company_name' => $orderCustomer->getCompany(),
+            'phone' => $billingAddress->getPhoneNumber(),
+            'address_line1' => $addressLine1,
+            'address_line2' => $addressLine2,
+            'zip_code' => $billingAddress->getZipCode(),
+            'is_registered' => !$customer->getGuest(),
+            'external_reference_id' => $customer->getCustomerNumber(),
+            'account_created_at' => $customer->getCreatedAt(),
+            'account_updated_at' => $customer->getUpdatedAt(),
+        ];
+
+        $vatId = $billingAddress->getVatId();
+        if (($vatId === null || $vatId === '') && method_exists($orderCustomer, 'getVatIds')) {
+            $vatIds = $orderCustomer->getVatIds();
+            $vatId = is_array($vatIds) ? ($vatIds[0] ?? null) : null;
+        }
+        if (($vatId === null || $vatId === '') && method_exists($orderCustomer, 'getVatId')) {
+            $vatId = $orderCustomer->getVatId();
+        }
+        if ($vatId !== null && $vatId !== '') {
+            $buyer['vat_number'] = (string) $vatId;
+        }
+
+        return $buyer;
     }
 
     public function createLocalOrder($transaction, $orderUuid, $salesChannelContext) {
