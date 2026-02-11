@@ -23,15 +23,31 @@ class MediaProvider
      *
      * @param  MediaService  $mediaService
      * @param  EntityRepository  $mediaRepository
-     * @param  string  $pluginPath
+     * @param  string  $pluginPath  Optional path to plugin root (e.g. from container). If not set or path has no plugin.png, the path is derived from the actual file location so CLI and admin behave the same.
      */
     public function __construct(
         private readonly MediaService $mediaService,
         private readonly EntityRepository $mediaRepository,
-        string $pluginPath
+        string $pluginPath = ''
     ) {
-        $this->resourcesPath = $pluginPath . '/src/Resources/public';
+        $pluginRoot = $this->resolvePluginRoot($pluginPath);
+        $this->resourcesPath = $pluginRoot . '/src/Resources/public';
         $this->paymentLogosPath = $this->resourcesPath . '/images/de';
+    }
+
+    /**
+     * Resolve plugin root path so resources (e.g. plugin.png) are found both when
+     * running from CLI (custom/plugins/...) and when loaded via composer (vendor/...).
+     * Prefers the path where plugin.png actually exists; otherwise uses the directory
+     * of the current class (real install location).
+     */
+    private function resolvePluginRoot(string $configuredPath): string
+    {
+        $candidate = rtrim($configuredPath, '/');
+        if ($candidate !== '' && file_exists($candidate . '/src/Resources/public/plugin.png')) {
+            return $candidate;
+        }
+        return dirname(__DIR__, 2);
     }
 
     /**
@@ -47,14 +63,23 @@ class MediaProvider
             return $existingMedia->getId();
         }
 
-        $file = file_get_contents($this->resourcesPath . '/plugin.png');
-        $mediaId = '';
-
-        if ($file) {
-            $mediaId = $this->mediaService->saveFile($file, 'png', 'image/png', 'mondu-payment-logo-v2', $context, 'payment_method', null, false);
+        $logoPath = $this->resourcesPath . '/plugin.png';
+        
+        if (!file_exists($logoPath)) {
+            // File not found - return empty string to avoid UUID validation error
+            return '';
         }
 
-        return $mediaId;
+        $file = file_get_contents($logoPath);
+        
+        if ($file === false || empty($file)) {
+            // Failed to read file - return empty string
+            return '';
+        }
+
+        $mediaId = $this->mediaService->saveFile($file, 'png', 'image/png', 'mondu-payment-logo-v2', $context, 'payment_method', null, false);
+
+        return $mediaId ?? '';
     }
 
     /**

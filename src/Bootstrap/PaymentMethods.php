@@ -254,6 +254,11 @@ class PaymentMethods extends AbstractBootstrap
                 $mediaId = $mediaProvider->getLogoMediaId($this->context);
             }
 
+            // Skip update if mediaId is empty to avoid UUID validation error
+            if (empty($mediaId)) {
+                continue;
+            }
+
             $paymentSearchResult = $this->paymentRepository->search(
                 (
                 (new Criteria())
