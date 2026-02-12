@@ -46,6 +46,21 @@ class OrderLineItemsService extends AbstractOrderLineItemsService
                 : $this->getLineItemForOrder($shopwareLineItem, $order);
         }
 
+        if (empty($lineItems)) {
+            foreach ($shopwareLineItems as $shopwareLineItem) {
+                if (
+                    isset($isLineItemCallback) && !$isLineItemCallback($shopwareLineItem) ||
+                    !$this->orderUtilsService->isLineItem($shopwareLineItem)
+                ) {
+                    continue;
+                }
+
+                $lineItems[] = $forInvoice
+                    ? $this->getLineItemForInvoice($shopwareLineItem, $order)
+                    : $this->getLineItemForOrder($shopwareLineItem, $order);
+            }
+        }
+
         return $lineItems;
     }
 

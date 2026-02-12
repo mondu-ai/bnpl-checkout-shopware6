@@ -286,6 +286,19 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         $orderData = $this->getOrderData($transaction, $salesChannelContext);
         $monduOrder = $this->monduClient->setSalesChannelId($salesChannelContext->getSalesChannelId())->createOrder($orderData);
 
+        if ($monduOrder === null || !isset($monduOrder['hosted_checkout_url'])) {
+            $order = $transaction->getOrder();
+            $this->logger->error('mondu.ERROR: Failed to create Mondu order - invalid response', [
+                'order_id' => $order->getId(),
+                'order_number' => $order->getOrderNumber(),
+                'mondu_response' => $monduOrder
+            ]);
+            throw new AsyncPaymentProcessException(
+                $transaction->getOrderTransaction()->getId(),
+                'Failed to create Mondu order: Invalid response from Mondu API'
+            );
+        }
+
         $this->saveEarlyOrderData($transaction, $monduOrder, $salesChannelContext);
 
         return $monduOrder['hosted_checkout_url'];
@@ -295,6 +308,15 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
     {
         try {
             $order = $transaction->getOrder();
+            
+            if ($monduOrder === null || !isset($monduOrder['uuid'])) {
+                $this->logger->error('mondu.ERROR: Failed to save early order data - missing uuid in Mondu response', [
+                    'order_id' => $order->getId(),
+                    'order_number' => $order->getOrderNumber(),
+                    'mondu_response' => $monduOrder
+                ]);
+                return;
+            }
             
             $this->orderDataRepository->upsert([
                 [

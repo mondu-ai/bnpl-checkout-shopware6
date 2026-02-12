@@ -63,7 +63,6 @@ class TransitionSubscriber implements EventSubscriberInterface
                 return;
             }
 
-            // Check if order is already cancelled to prevent "cannot be edited" errors
             if ($order->getStateMachineState()->getTechnicalName() === 'cancelled' && 
                 $event->getToPlace()->getTechnicalName() === 'cancelled') {
                 if ($this->configService->isExtendedLogsEnabled()) {
@@ -100,21 +99,21 @@ class TransitionSubscriber implements EventSubscriberInterface
                                 ]
                             );
                         }
-                        // Continue with local cancellation even if Mondu API fails
                     }
                     break;
                 case 'shipped':
                 case 'shipped_partially':
-                    $this->logger->warning('mondu.WARNING: About to call shipOrder', [
-                        'order' => $order->getId(),
-                        'delivery_id' => $deliveryId,
-                        'transition' => $event->getToPlace()->getTechnicalName()
-                    ]);
+                    if ($this->configService->isExtendedLogsEnabled()) {
+                        $this->logger->info('mondu.INFO: About to call shipOrder', [
+                            'order' => $order->getId(),
+                            'delivery_id' => $deliveryId,
+                            'transition' => $event->getToPlace()->getTechnicalName()
+                        ]);
+                    }
                     $this->shipOrder($order, $event->getContext(), $monduOrder, $deliveryId);
                     break;
             }
         } catch (\Throwable $e) {
-            // Catch all errors including "cannot be edited" OrderException
             if (strpos($e->getMessage(), 'cannot be edited') !== false || 
                 strpos($e->getMessage(), 'was cancelled') !== false) {
                 if ($this->configService->isExtendedLogsEnabled()) {
@@ -126,7 +125,6 @@ class TransitionSubscriber implements EventSubscriberInterface
                 return;
             }
             
-            // Re-throw other exceptions
             throw $e;
         }
     }
@@ -157,42 +155,47 @@ class TransitionSubscriber implements EventSubscriberInterface
 
     private function shipOrder(OrderEntity $order, Context $context, OrderDataEntity $monduData, ?string $deliveryId = null): void
     {
-        $this->logger->warning('mondu.WARNING: shipOrder() called', [
-            'order' => $order->getId(),
-            'delivery_id' => $deliveryId
-        ]);
+        if ($this->configService->isExtendedLogsEnabled()) {
+            $this->logger->info('mondu.INFO: shipOrder() called', [
+                'order' => $order->getId(),
+                'delivery_id' => $deliveryId
+            ]);
+        }
         
         $monduData = $this->getMonduDataFromOrder($order);
 
         if ($monduData->getOrderState() === 'shipped') {
-            $this->logger->warning('mondu.WARNING: Order already shipped, returning');
+            if ($this->configService->isExtendedLogsEnabled()) {
+                $this->logger->info('mondu.INFO: Order already shipped, returning');
+            }
             return;
         }
 
-        // Check if invoice was already sent to Mondu
         $invoiceCriteria = new Criteria();
         $invoiceCriteria->addFilter(new EqualsFilter('orderId', $order->getId()));
         $existingInvoice = $this->invoiceDataRepository->search($invoiceCriteria, $context)->first();
         
         if ($existingInvoice) {
-            $this->logger->warning('mondu.WARNING: Invoice already exists in DB, updating order state to shipped', [
-                'order' => $order->getId(),
-                'existing_invoice_id' => $existingInvoice->getId()
-            ]);
+            if ($this->configService->isExtendedLogsEnabled()) {
+                $this->logger->info('mondu.INFO: Invoice already exists in DB, updating order state to shipped', [
+                    'order' => $order->getId(),
+                    'existing_invoice_id' => $existingInvoice->getId()
+                ]);
+            }
             
-            // Invoice already sent, just update order state to shipped
             try {
                 $this->updateOrder($context, $monduData, [
                     OrderDataEntity::FIELD_ORDER_STATE => 'shipped'
                 ]);
-                $this->logger->warning('mondu.WARNING: Order state updated successfully to shipped');
+                
+                $this->sendTrackingInfo($order, $monduData->getReferenceId(), $deliveryId, $context);
+                
                 return;
             } catch (\Exception $e) {
                 $this->logger->error('mondu.ERROR: Failed to update order state to shipped', [
                     'order' => $order->getId(),
                     'error' => $e->getMessage()
                 ]);
-                // Don't throw - order state update failure shouldn't block the process
                 return;
             }
         }
@@ -202,8 +205,7 @@ class TransitionSubscriber implements EventSubscriberInterface
         }
 
         if ($this->configService->isSkipAllValidationMode()) {
-            // Try to get invoice URL from existing documents if available
-            $invoiceUrl = 'https://example.com/invoice.pdf';  // Default placeholder URL
+            $invoiceUrl = 'https://example.com/invoice.pdf';
             $invoiceNumber = $order->getOrderNumber();
             $hasRealInvoice = false;
             $documentId = null;
@@ -221,19 +223,13 @@ class TransitionSubscriber implements EventSubscriberInterface
                         }
                         $config = $document->getConfig();
                         $invoiceNumber = $config['custom']['invoiceNumber'] ?? $order->getOrderNumber();
-                        $documentId = $document->getId();  // Get real document ID if exists
+                        $documentId = $document->getId();
                         break;
                     }
                 }
             }
             
-            // In skip all validation mode, always send invoice call (with real URL or placeholder)
             try {
-                // Build invoice data manually (don't use getInvoiceData() as it requires invoice number in monduData)
-                // We need to access protected properties of invoiceDataService through reflection
-                // or use a workaround by calling methods directly
-                
-                // Get line items - use reflection to access protected property
                 $reflection = new \ReflectionClass($this->invoiceDataService);
                 $orderLineItemsServiceProperty = $reflection->getProperty('orderLineItemsService');
                 $orderLineItemsServiceProperty->setAccessible(true);
@@ -247,17 +243,14 @@ class TransitionSubscriber implements EventSubscriberInterface
                 $orderDiscountServiceProperty->setAccessible(true);
                 $orderDiscountService = $orderDiscountServiceProperty->getValue($this->invoiceDataService);
                 
-                // Get line items with documentId
                 $lineItemDocId = $documentId ?? $order->getOrderNumber();
                 $lineItems = $orderLineItemsService->getLineItems($order, $context, true);
                 
-                // Add documentId to each line item (required by Mondu API)
                 foreach ($lineItems as &$lineItem) {
                     $lineItem['documentId'] = $lineItemDocId;
                 }
-                unset($lineItem);  // Break reference
+                unset($lineItem);
                 
-                // Build invoice data structure manually
                 $invoiceData = [
                     'currency' => $orderUtilsService->getOrderCurrency($order),
                     'external_reference_id' => (string) $invoiceNumber,
@@ -289,7 +282,6 @@ class TransitionSubscriber implements EventSubscriberInterface
                 );
 
                 if ($invoice != null) {
-                    // Only save invoice data if we have a real document ID (required field)
                     if ($documentId !== null) {
                         $this->invoiceDataRepository->upsert([
                             [
@@ -315,28 +307,26 @@ class TransitionSubscriber implements EventSubscriberInterface
                     }
                 }
             } catch (\Exception $e) {
-                $this->logger->warning(
-                    'mondu.WARNING: Skip all validation mode: Invoice call failed (Exception: '. $e->getMessage().')',
-                    [
-                        'order' => $order->getId(),
-                        'order_number' => $order->getOrderNumber(),
-                        'mondu-reference-id' => $monduData->getReferenceId()
-                    ]
-                );
-                // Don't throw - continue silently in skip all validation mode
+                $this->logger->error('mondu.ERROR: Skip all validation mode: Invoice call failed', [
+                    'order' => $order->getId(),
+                    'order_number' => $order->getOrderNumber(),
+                    'mondu-reference-id' => $monduData->getReferenceId(),
+                    'error' => $e->getMessage()
+                ]);
             }
             
-            // Update Mondu order state to shipped
             try {
                 $this->updateOrder($context, $monduData, [
                     OrderDataEntity::FIELD_ORDER_STATE => 'shipped'
                 ]);
             } catch (\Exception $e) {
-                $this->logger->warning('mondu.WARNING: Failed to update Mondu order state to shipped', [
+                $this->logger->error('mondu.ERROR: Failed to update Mondu order state to shipped', [
                     'order' => $order->getId(),
                     'error' => $e->getMessage()
                 ]);
             }
+
+            $this->sendTrackingInfo($order, $monduData->getReferenceId(), $deliveryId, $context);
             
             return;
         }
@@ -349,22 +339,26 @@ class TransitionSubscriber implements EventSubscriberInterface
                 $invoiceData
             );
 
-            // Log what we received from API
-            $this->logger->warning('mondu.DEBUG: Invoice response from API', [
-                'order' => $order->getId(),
-                'invoice_type' => gettype($invoice),
-                'invoice_is_array' => is_array($invoice),
-                'invoice_status' => is_array($invoice) && isset($invoice['status']) ? $invoice['status'] : 'no status',
-                'invoice_content' => $invoice
-            ]);
+            if ($this->configService->isExtendedLogsEnabled()) {
+                $this->logger->info('mondu.INFO: Invoice response from API', [
+                    'order' => $order->getId(),
+                    'invoice_type' => gettype($invoice),
+                    'invoice_is_array' => is_array($invoice),
+                    'invoice_status' => is_array($invoice) && isset($invoice['status']) ? $invoice['status'] : 'no status',
+                    'invoice_content' => $invoice
+                ]);
+            }
 
-            // Check if invoice already exists
             if (is_array($invoice) && isset($invoice['status']) && $invoice['status'] === 'already_exists') {
-                $this->logger->warning('mondu.WARNING: Invoice already exists, updating order state to shipped');
-                // Invoice already sent, just update order state to shipped
+                if ($this->configService->isExtendedLogsEnabled()) {
+                    $this->logger->info('mondu.INFO: Invoice already exists, updating order state to shipped');
+                }
                 $this->updateOrder($context, $monduData, [
                     OrderDataEntity::FIELD_ORDER_STATE => 'shipped'
                 ]);
+                
+                $this->sendTrackingInfo($order, $monduData->getReferenceId(), $deliveryId, $context);
+                
                 return;
             }
 
@@ -372,7 +366,6 @@ class TransitionSubscriber implements EventSubscriberInterface
                 throw new MonduException('Error occurred while shipping an order. Please contact Mondu Support.');
             }
             
-            // Get attached document if available (may not exist when manually changing delivery state)
             $attachedDocument = null;
             if ($context->hasExtension('mail-attachments')) {
                 $mailAttachments = $context->getExtension('mail-attachments');
@@ -392,10 +385,11 @@ class TransitionSubscriber implements EventSubscriberInterface
                 ]
             ], $context);
             
-            // Update Mondu order state to shipped
             $this->updateOrder($context, $monduData, [
                 OrderDataEntity::FIELD_ORDER_STATE => 'shipped'
             ]);
+
+            $this->sendTrackingInfo($order, $monduData->getReferenceId(), $deliveryId, $context);
 
         } catch (\Exception $e) {
             $this->logger->critical(
@@ -407,13 +401,12 @@ class TransitionSubscriber implements EventSubscriberInterface
                 ]
             );
             
-            // Revert delivery state back to previous state if possible
             if ($deliveryId !== null) {
                 try {
                     $this->stateMachineRegistry->transition(new Transition(
                         OrderDeliveryDefinition::ENTITY_NAME,
                         $deliveryId,
-                        'reopen', // Transition back to "open" state
+                        'reopen',
                         'stateId'
                     ), $context);
                     
@@ -424,17 +417,88 @@ class TransitionSubscriber implements EventSubscriberInterface
                         ]);
                     }
                 } catch (\Exception $revertEx) {
-                    $this->logger->warning('mondu.WARNING: Failed to revert delivery state after shipment failure', [
+                    $this->logger->error('mondu.ERROR: Failed to revert delivery state after shipment failure', [
                         'order' => $order->getId(),
                         'delivery_id' => $deliveryId,
                         'error' => $revertEx->getMessage()
                     ]);
-                    // Continue - main exception will be thrown anyway
                 }
             }
             
-            // Show user-friendly error message instead of technical details
             throw new MonduException('Error occurred while shipping an order. Please contact Mondu Support.');
+        }
+    }
+
+    private function sendTrackingInfo(OrderEntity $order, string $monduOrderUuid, ?string $deliveryId, Context $context): void
+    {
+        try {
+            $deliveries = $order->getDeliveries();
+            if ($deliveries === null || $deliveries->count() === 0) {
+                return;
+            }
+
+            $delivery = null;
+            if ($deliveryId !== null) {
+                foreach ($deliveries as $d) {
+                    if ($d->getId() === $deliveryId) {
+                        $delivery = $d;
+                        break;
+                    }
+                }
+            }
+            
+            if ($delivery === null) {
+                $delivery = $deliveries->first();
+            }
+
+            if ($delivery === null) {
+                return;
+            }
+
+            $trackingCodes = $delivery->getTrackingCodes();
+            $trackingNumber = null;
+            
+            if ($trackingCodes !== null && $trackingCodes->count() > 0) {
+                $trackingNumber = $trackingCodes->first();
+            }
+
+            $shippingMethod = $delivery->getShippingMethod();
+            $shippingCompany = null;
+            if ($shippingMethod !== null) {
+                $shippingCompany = $shippingMethod->getName();
+            }
+
+            if ($trackingNumber !== null || $shippingCompany !== null) {
+                $externalInfo = [];
+                
+                if ($trackingNumber !== null) {
+                    $externalInfo['tracking_number'] = (string) $trackingNumber;
+                }
+                
+                if ($shippingCompany !== null) {
+                    $externalInfo['shipping_company'] = (string) $shippingCompany;
+                }
+
+                $this->monduClient
+                    ->setSalesChannelId($order->getSalesChannelId())
+                    ->updateExternalInfo($monduOrderUuid, $externalInfo);
+
+                if ($this->configService->isExtendedLogsEnabled()) {
+                    $this->logger->info('mondu.INFO: Tracking information sent to Mondu', [
+                        'order_id' => $order->getId(),
+                        'order_number' => $order->getOrderNumber(),
+                        'mondu_uuid' => $monduOrderUuid,
+                        'tracking_number' => $trackingNumber,
+                        'shipping_company' => $shippingCompany
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            $this->logger->error('mondu.ERROR: Failed to send tracking information to Mondu', [
+                'order_id' => $order->getId(),
+                'order_number' => $order->getOrderNumber(),
+                'error' => $e->getMessage()
+            ]);
         }
     }
 }
