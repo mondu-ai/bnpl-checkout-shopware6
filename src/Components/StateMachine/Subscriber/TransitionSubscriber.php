@@ -458,8 +458,12 @@ class TransitionSubscriber implements EventSubscriberInterface
             $trackingCodes = $delivery->getTrackingCodes();
             $trackingNumber = null;
             
-            if ($trackingCodes !== null && $trackingCodes->count() > 0) {
-                $trackingNumber = $trackingCodes->first();
+            if ($trackingCodes !== null) {
+                if (is_array($trackingCodes)) {
+                    $trackingNumber = !empty($trackingCodes) ? reset($trackingCodes) : null;
+                } else {
+                    $trackingNumber = $trackingCodes->count() > 0 ? $trackingCodes->first() : null;
+                }
             }
 
             $shippingMethod = $delivery->getShippingMethod();

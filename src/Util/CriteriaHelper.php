@@ -18,7 +18,6 @@ class CriteriaHelper
             ->addAssociation('lineItems')
             ->addAssociation('transactions.paymentMethod');
 
-        // sort by latest transactions to get the current transaction
         $criteria->getAssociation('transactions')->addSorting(new FieldSorting('createdAt'));
 
         return $criteria;

@@ -72,7 +72,6 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
             $paymentState = $request->query->getAlpha('payment');
             $context = $salesChannelContext->getContext();
 
-            // Log payment state for debugging
             if ($this->configService->isExtendedLogsEnabled()) {
                 $this->logger->info('mondu.INFO: finalize() called with paymentState', [
                     'paymentState' => $paymentState,
@@ -157,9 +156,7 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
                             'error' => $e->getMessage()
                         ]);
                     }
-                    // Don't re-throw - order was confirmed in Mondu, webhook will handle the rest
                 } else {
-                    // Re-throw unexpected errors
                     throw $e;
                 }
             }
@@ -176,7 +173,6 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
                         ]);
                     }
                 } else {
-                    // cancelled
                     $this->transactionStateHandler->cancel($transaction->getOrderTransaction()->getId(), $context);
                     
                     if ($this->configService->isExtendedLogsEnabled()) {
@@ -199,7 +195,6 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
                     }
                     return;
                 } else {
-                    // Re-throw unexpected errors
                     throw $e;
                 }
             }
@@ -308,7 +303,7 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
     {
         try {
             $order = $transaction->getOrder();
-            
+
             if ($monduOrder === null || !isset($monduOrder['uuid'])) {
                 $this->logger->error('mondu.ERROR: Failed to save early order data - missing uuid in Mondu response', [
                     'order_id' => $order->getId(),
@@ -367,46 +362,39 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
             ]);
         }
 
-        // get plugin configuration
         $addressAdditionHandling1 = $this->configService->getHandlingAddressAdditionalField1();
         $addressAdditionHandling2 = $this->configService->getHandlingAddressAdditionalField2();
-        
-        //billing address handling with additional address line 1 & 2
+
         $billingAddress = $order->getBillingAddress();
         $addressAddition1 = $billingAddress->getAdditionalAddressLine1();
         $addressAddition2 = $billingAddress->getAdditionalAddressLine2();   
         $addressLine1 = $billingAddress->getStreet();
         $addressLine2 = null;
         $shippingAddressLine2 = null;
-        
-        //billing address handling with additional address line 1
+
         if ($addressAdditionHandling1 === 'addtoaddressline1' && !empty($addressAddition1)) {
             $addressLine1 .= ' ' . $addressAddition1;
         } elseif ($addressAdditionHandling1 === 'addtoaddressline2' && !empty($addressAddition1)) {
             $addressLine2 = $addressAddition1;
         }
 
-        //billing address handling with additional address line 2
         if ($addressAdditionHandling2 === 'addtoaddressline2' && !empty($addressAddition2)) {
             $addressLine2 .= ' ' . $addressAddition2;
         } elseif ($addressAdditionHandling2 === 'addtoaddressline1' && !empty($addressAddition2)) {
             $addressLine1 .= ' ' . $addressAddition2;
         }
 
-        //shipping address handling with additional address line 1 & 2
         $shippingAddress = $order->getDeliveries()->getShippingAddress()->first();
         $shippingAddressLine1 = $shippingAddress->getStreet();
         $shippingAddressAddition1 = $shippingAddress->getAdditionalAddressLine1();
         $shippingAddressAddition2 = $shippingAddress->getAdditionalAddressLine2();
-        
-        //shipping address handling with additional address line 1
+
         if ($addressAdditionHandling1 === 'addtoaddressline1' && !empty($shippingAddressAddition1)) {
             $shippingAddressLine1 .= ' ' . $shippingAddressAddition1;
         } elseif ($addressAdditionHandling1 === 'addtoaddressline2' && !empty($shippingAddressAddition1)) {
             $shippingAddressLine2 = $shippingAddressAddition1;
         }
 
-        //shipping address handling with additional address line 2
         if ($addressAdditionHandling2 === 'addtoaddressline2' && !empty($shippingAddressAddition2)) {
             $shippingAddressLine2 .= ' ' . $shippingAddressAddition2;
         } elseif ($addressAdditionHandling2 === 'addtoaddressline1' && !empty($shippingAddressAddition2)) {
@@ -441,10 +429,6 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         ];
     }
 
-    /**
-     * Builds the buyer payload for Mondu create order request.
-     * Includes vat_number when available from billing address or order customer.
-     */
     private function buildBuyerPayload(object $order, string $addressLine1, ?string $addressLine2): array
     {
         $orderCustomer = $order->getOrderCustomer();

@@ -35,12 +35,6 @@ class MediaProvider
         $this->paymentLogosPath = $this->resourcesPath . '/images/de';
     }
 
-    /**
-     * Resolve plugin root path so resources (e.g. plugin.png) are found both when
-     * running from CLI (custom/plugins/...) and when loaded via composer (vendor/...).
-     * Prefers the path where plugin.png actually exists; otherwise uses the directory
-     * of the current class (real install location).
-     */
     private function resolvePluginRoot(string $configuredPath): string
     {
         $candidate = rtrim($configuredPath, '/');
@@ -66,14 +60,12 @@ class MediaProvider
         $logoPath = $this->resourcesPath . '/plugin.png';
         
         if (!file_exists($logoPath)) {
-            // File not found - return empty string to avoid UUID validation error
             return '';
         }
 
         $file = file_get_contents($logoPath);
-        
+
         if ($file === false || empty($file)) {
-            // Failed to read file - return empty string
             return '';
         }
 
@@ -102,7 +94,6 @@ class MediaProvider
         $logoPath = $this->paymentLogosPath . '/' . $logoFileName;
         
         if (!file_exists($logoPath)) {
-            // Fallback to default logo if specific logo not found
             return $this->getLogoMediaId($context);
         }
 

@@ -17,7 +17,7 @@ class OrderLinesService extends AbstractOrderLinesService
     public function getLines(OrderEntity $order, Context $context): array
     {
         $lineItems = $this->orderLineItemsService->getLineItems($order, $context);
-        
+
         if (empty($lineItems)) {
             throw new \RuntimeException(
                 'Cannot create Mondu order: No valid line items found. ' .
