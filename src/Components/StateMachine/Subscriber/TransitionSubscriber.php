@@ -187,9 +187,6 @@ class TransitionSubscriber implements EventSubscriberInterface
                 $this->updateOrder($context, $monduData, [
                     OrderDataEntity::FIELD_ORDER_STATE => 'shipped'
                 ]);
-                
-                $this->sendTrackingInfo($order, $monduData->getReferenceId(), $deliveryId, $context);
-                
                 return;
             } catch (\Exception $e) {
                 $this->logger->error('mondu.ERROR: Failed to update order state to shipped', [
@@ -260,6 +257,7 @@ class TransitionSubscriber implements EventSubscriberInterface
                     'shipping_price_cents' => $orderUtilsService->getShippingPriceCents($order),
                     'line_items' => $lineItems
                 ];
+                $invoiceData = $this->addShipmentDetailsToInvoiceData($invoiceData, $order, $deliveryId);
 
                 if ($this->configService->isExtendedLogsEnabled()) {
                     $this->logger->info(
@@ -326,12 +324,14 @@ class TransitionSubscriber implements EventSubscriberInterface
                 ]);
             }
 
-            $this->sendTrackingInfo($order, $monduData->getReferenceId(), $deliveryId, $context);
-            
             return;
         }
 
-        $invoiceData = $this->invoiceDataService->getInvoiceData($order, $context);
+        $invoiceData = $this->addShipmentDetailsToInvoiceData(
+            $this->invoiceDataService->getInvoiceData($order, $context),
+            $order,
+            $deliveryId
+        );
 
         try {
             $invoice = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->invoiceOrder(
@@ -356,9 +356,6 @@ class TransitionSubscriber implements EventSubscriberInterface
                 $this->updateOrder($context, $monduData, [
                     OrderDataEntity::FIELD_ORDER_STATE => 'shipped'
                 ]);
-                
-                $this->sendTrackingInfo($order, $monduData->getReferenceId(), $deliveryId, $context);
-                
                 return;
             }
 
@@ -388,8 +385,6 @@ class TransitionSubscriber implements EventSubscriberInterface
             $this->updateOrder($context, $monduData, [
                 OrderDataEntity::FIELD_ORDER_STATE => 'shipped'
             ]);
-
-            $this->sendTrackingInfo($order, $monduData->getReferenceId(), $deliveryId, $context);
 
         } catch (\Exception $e) {
             $this->logger->critical(
@@ -429,80 +424,56 @@ class TransitionSubscriber implements EventSubscriberInterface
         }
     }
 
-    private function sendTrackingInfo(OrderEntity $order, string $monduOrderUuid, ?string $deliveryId, Context $context): void
+    /**
+     * Adds shipment details (tracking_number, shipping_company) to invoice request body.
+     */
+    private function addShipmentDetailsToInvoiceData(array $invoiceData, OrderEntity $order, ?string $deliveryId): array
     {
-        try {
-            $deliveries = $order->getDeliveries();
-            if ($deliveries === null || $deliveries->count() === 0) {
-                return;
-            }
-
-            $delivery = null;
-            if ($deliveryId !== null) {
-                foreach ($deliveries as $d) {
-                    if ($d->getId() === $deliveryId) {
-                        $delivery = $d;
-                        break;
-                    }
-                }
-            }
-            
-            if ($delivery === null) {
-                $delivery = $deliveries->first();
-            }
-
-            if ($delivery === null) {
-                return;
-            }
-
-            $trackingCodes = $delivery->getTrackingCodes();
-            $trackingNumber = null;
-            
-            if ($trackingCodes !== null) {
-                if (is_array($trackingCodes)) {
-                    $trackingNumber = !empty($trackingCodes) ? reset($trackingCodes) : null;
-                } else {
-                    $trackingNumber = $trackingCodes->count() > 0 ? $trackingCodes->first() : null;
-                }
-            }
-
-            $shippingMethod = $delivery->getShippingMethod();
-            $shippingCompany = null;
-            if ($shippingMethod !== null) {
-                $shippingCompany = $shippingMethod->getName();
-            }
-
-            if ($trackingNumber !== null || $shippingCompany !== null) {
-                $externalInfo = [];
-                
-                if ($trackingNumber !== null) {
-                    $externalInfo['tracking_number'] = (string) $trackingNumber;
-                }
-                
-                if ($shippingCompany !== null) {
-                    $externalInfo['shipping_company'] = (string) $shippingCompany;
-                }
-
-                $this->monduClient
-                    ->setSalesChannelId($order->getSalesChannelId())
-                    ->updateExternalInfo($monduOrderUuid, $externalInfo);
-
-                if ($this->configService->isExtendedLogsEnabled()) {
-                    $this->logger->info('mondu.INFO: Tracking information sent to Mondu', [
-                        'order_id' => $order->getId(),
-                        'order_number' => $order->getOrderNumber(),
-                        'mondu_uuid' => $monduOrderUuid,
-                        'tracking_number' => $trackingNumber,
-                        'shipping_company' => $shippingCompany
-                    ]);
-                }
-            }
-        } catch (\Exception $e) {
-            $this->logger->error('mondu.ERROR: Failed to send tracking information to Mondu', [
-                'order_id' => $order->getId(),
-                'order_number' => $order->getOrderNumber(),
-                'error' => $e->getMessage()
-            ]);
+        $deliveries = $order->getDeliveries();
+        if ($deliveries === null || $deliveries->count() === 0) {
+            return $invoiceData;
         }
+
+        $delivery = null;
+        if ($deliveryId !== null) {
+            foreach ($deliveries as $d) {
+                if ($d->getId() === $deliveryId) {
+                    $delivery = $d;
+                    break;
+                }
+            }
+        }
+        if ($delivery === null) {
+            $delivery = $deliveries->first();
+        }
+        if ($delivery === null) {
+            return $invoiceData;
+        }
+
+        $trackingCodes = $delivery->getTrackingCodes();
+        $trackingNumber = null;
+        if ($trackingCodes !== null) {
+            if (is_array($trackingCodes)) {
+                $trackingNumber = !empty($trackingCodes) ? reset($trackingCodes) : null;
+            } else {
+                $trackingNumber = $trackingCodes->count() > 0 ? $trackingCodes->first() : null;
+            }
+        }
+
+        $shippingMethod = $delivery->getShippingMethod();
+        $shippingCompany = null;
+        if ($shippingMethod !== null) {
+            $shippingCompany = $shippingMethod->getName();
+        }
+
+        $extra = [];
+        if ($trackingNumber !== null) {
+            $extra['tracking_number'] = (string) $trackingNumber;
+        }
+        if ($shippingCompany !== null) {
+            $extra['shipping_company'] = (string) $shippingCompany;
+        }
+
+        return $extra !== [] ? $invoiceData + $extra : $invoiceData;
     }
 }
