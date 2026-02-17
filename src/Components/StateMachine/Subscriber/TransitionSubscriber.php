@@ -462,8 +462,15 @@ class TransitionSubscriber implements EventSubscriberInterface
 
         $shippingMethod = $delivery->getShippingMethod();
         $shippingCompany = null;
+        $shippingMethodName = null;
+        $shippingMethodId = null;
+        $shippingMethodTechnicalName = null;
+
         if ($shippingMethod !== null) {
             $shippingCompany = $shippingMethod->getName();
+            $shippingMethodName = $shippingMethod->getName();
+            $shippingMethodId = $shippingMethod->getId();
+            $shippingMethodTechnicalName = $shippingMethod->getTechnicalName();
         }
 
         $extra = [];
@@ -472,6 +479,9 @@ class TransitionSubscriber implements EventSubscriberInterface
         }
         if ($shippingCompany !== null) {
             $extra['shipping_company'] = (string) $shippingCompany;
+        }
+        if ($shippingMethodName !== null && $shippingMethodName !== '') {
+            $extra['shipping_method'] = (string) $shippingMethodName;
         }
 
         return $extra !== [] ? $invoiceData + $extra : $invoiceData;
