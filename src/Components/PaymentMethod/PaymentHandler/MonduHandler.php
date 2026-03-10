@@ -4,6 +4,9 @@ namespace Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler;
 
 use Shopware\Core\Checkout\Payment\PaymentException;
 use Mondu\MonduPayment\Components\Order\Model\OrderDataEntity;
+use Mondu\MonduPayment\Components\Events\MonduOrderCancelledEvent;
+use Mondu\MonduPayment\Components\Events\MonduOrderDeclinedEvent;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService;
 use Shopware\Core\Checkout\Payment\Cart\PaymentTransactionStruct;
 use Shopware\Core\Checkout\Payment\Cart\PaymentHandler\AbstractPaymentHandler;
@@ -21,6 +24,7 @@ use Shopware\Core\Checkout\Cart\Cart;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\Struct\Struct;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
+use Psr\Log\LoggerInterface;
 
 class MonduHandler extends AbstractPaymentHandler
 {
@@ -38,7 +42,9 @@ class MonduHandler extends AbstractPaymentHandler
         private readonly ConfigService $configService,
         private readonly AbstractOrderLinesService $orderLinesService,
         private readonly EntityRepository $orderRepository,
-        private readonly EntityRepository $orderTransactionRepository
+        private readonly EntityRepository $orderTransactionRepository,
+        private readonly LoggerInterface $logger,
+        private readonly EventDispatcherInterface $eventDispatcher
     ) {}
 
     public function supports(
@@ -74,55 +80,213 @@ class MonduHandler extends AbstractPaymentHandler
     ): void {
         $transactionId = $transaction->getOrderTransactionId();
         $paymentState = $request->query->getAlpha('payment');
+        $order = null;
 
-        if ($paymentState === self::PAYMENT_STATE_SUCCESS) {
-            $paymentOrderUuid = $request->query->get('order_uuid');
-
-            // Get sales channel ID from the order
+        try {
             $orderTransaction = $this->getOrderTransaction($transactionId, $context);
             $order = $orderTransaction->getOrder();
             $salesChannelId = $order->getSalesChannelId();
 
-            $confirmResponseState = $this->monduClient->setSalesChannelId($salesChannelId)->confirmOrder(
-                $paymentOrderUuid,
-                ['external_reference_id' => $order->getOrderNumber()]
-            );
+            if ($this->configService->setSalesChannelId($salesChannelId)->isExtendedLogsEnabled()) {
+                $this->logger->info('mondu.INFO: finalize() called with paymentState', [
+                    'paymentState' => $paymentState,
+                    'order_id' => $order->getId(),
+                    'order_number' => $order->getOrderNumber(),
+                    'transaction_id' => $transactionId,
+                    'all_query_params' => $request->query->all()
+                ]);
+            }
 
-            if (!$this->isOrderConfirmed($confirmResponseState)) {
+            if ($paymentState === self::PAYMENT_STATE_SUCCESS) {
+                $paymentOrderUuid = $request->query->get('order_uuid');
+
+                $confirmResponseState = $this->monduClient->setSalesChannelId($salesChannelId)->confirmOrder(
+                    $paymentOrderUuid,
+                    ['external_reference_id' => $order->getOrderNumber()]
+                );
+
+                if (!$this->isOrderConfirmed($confirmResponseState)) {
+                    $this->logger->error('mondu.ERROR: Order confirmation failed', [
+                        'order_number' => $order->getOrderNumber(),
+                        'order_uuid' => $paymentOrderUuid,
+                        'confirmResponseState' => $confirmResponseState,
+                        'expected' => 'confirmed or pending'
+                    ]);
+
+                    throw PaymentException::customerCanceled(
+                        $transactionId,
+                        'Order not confirmed.'
+                    );
+                }
+
+                $this->monduClient
+                     ->setSalesChannelId($salesChannelId)
+                     ->updateExternalInfo(
+                         $paymentOrderUuid,
+                         ['external_reference_id' => $order->getOrderNumber()]
+                     );
+
+                $this->createLocalOrder($transaction, $paymentOrderUuid, $context);
+
+                $orderTransactionState = $this->configService->setSalesChannelId($salesChannelId)->orderTransactionState();
+
+                $paymentMethod = $orderTransaction->getPaymentMethod();
+                $paymentHandlerIdentifier = $paymentMethod ? $paymentMethod->getHandlerIdentifier() : '';
+                $isPayNow = str_contains($paymentHandlerIdentifier, 'MonduPayNowHandler');
+
+                try {
+                    if (
+                        $orderTransactionState == self::ORDER_TRANSACTION_STATE_PAID &&
+                        $confirmResponseState == self::RESPONSE_STATE_PENDING
+                    ) {
+                        if ($this->configService->isExtendedLogsEnabled()) {
+                            $this->logger->info('mondu.INFO: Mondu returned pending - setting to process', [
+                                'order_number' => $order->getOrderNumber(),
+                                'confirmResponseState' => $confirmResponseState,
+                                'isPayNow' => $isPayNow
+                            ]);
+                        }
+                        $this->transactionStateHandler->process($transactionId, $context);
+                    } elseif ($isPayNow) {
+                        if ($this->configService->isExtendedLogsEnabled()) {
+                            $this->logger->info('mondu.INFO: Pay Now with confirmed - setting to paid', [
+                                'order_number' => $order->getOrderNumber(),
+                                'confirmResponseState' => $confirmResponseState
+                            ]);
+                        }
+                        $this->transactionStateHandler->paid($transactionId, $context);
+                    } elseif ($orderTransactionState == self::ORDER_TRANSACTION_STATE_AUTHORIZED) {
+                        $this->transactionStateHandler->authorize($transactionId, $context);
+                    } else {
+                        $this->transactionStateHandler->paid($transactionId, $context);
+                    }
+                } catch (\Throwable $e) {
+                    if (strpos($e->getMessage(), 'cannot be edited') !== false ||
+                        strpos($e->getMessage(), 'was cancelled') !== false) {
+                        if ($this->configService->isExtendedLogsEnabled()) {
+                            $this->logger->warning('mondu.INFO: Order was cancelled during transaction state change, this should not affect the customer', [
+                                'order_id' => $order->getId(),
+                                'order_number' => $order->getOrderNumber(),
+                                'intended_state' => $orderTransactionState,
+                                'error' => $e->getMessage()
+                            ]);
+                        }
+                    } else {
+                        throw $e;
+                    }
+                }
+            } else {
+                try {
+                    if ($paymentState === 'declined') {
+                        $this->transactionStateHandler->fail($transactionId, $context);
+
+                        if ($this->configService->isExtendedLogsEnabled()) {
+                            $this->logger->info('mondu.INFO: Transaction state set to FAIL for declined payment', [
+                                'order_id' => $order->getId(),
+                                'order_number' => $order->getOrderNumber(),
+                                'transaction_id' => $transactionId
+                            ]);
+                        }
+                    } else {
+                        $this->transactionStateHandler->cancel($transactionId, $context);
+
+                        if ($this->configService->isExtendedLogsEnabled()) {
+                            $this->logger->info('mondu.INFO: Transaction state set to CANCEL for cancelled payment', [
+                                'order_id' => $order->getId(),
+                                'order_number' => $order->getOrderNumber(),
+                                'transaction_id' => $transactionId
+                            ]);
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    if (strpos($e->getMessage(), 'cannot be edited') !== false ||
+                        strpos($e->getMessage(), 'was cancelled') !== false) {
+                        if ($this->configService->isExtendedLogsEnabled()) {
+                            $this->logger->info('mondu.INFO: Order was already cancelled by webhook, finalize completed without further action', [
+                                'order_id' => $order->getId(),
+                                'order_number' => $order->getOrderNumber(),
+                                'error' => $e->getMessage()
+                            ]);
+                        }
+                        return;
+                    } else {
+                        throw $e;
+                    }
+                }
+
+                $paymentOrderUuid = $request->query->get('order_uuid');
+
+                if ($paymentState === 'declined') {
+                    $event = new MonduOrderDeclinedEvent(
+                        $order,
+                        $paymentOrderUuid,
+                        'declined',
+                        $context
+                    );
+                    $this->eventDispatcher->dispatch($event, $event->getName());
+
+                    if ($this->configService->isExtendedLogsEnabled()) {
+                        $this->logger->info('mondu.INFO: Dispatched MonduOrderDeclinedEvent from finalize()', [
+                            'order_id' => $order->getId(),
+                            'order_number' => $order->getOrderNumber(),
+                            'mondu_id' => $paymentOrderUuid,
+                            'event_name' => $event->getName()
+                        ]);
+                    }
+                } elseif ($paymentState === 'cancelled') {
+                    $event = new MonduOrderCancelledEvent(
+                        $order,
+                        $paymentOrderUuid,
+                        'cancelled',
+                        $context
+                    );
+                    $this->eventDispatcher->dispatch($event, $event->getName());
+
+                    if ($this->configService->isExtendedLogsEnabled()) {
+                        $this->logger->info('mondu.INFO: Dispatched MonduOrderCancelledEvent from finalize()', [
+                            'order_id' => $order->getId(),
+                            'order_number' => $order->getOrderNumber(),
+                            'mondu_id' => $paymentOrderUuid,
+                            'event_name' => $event->getName()
+                        ]);
+                    }
+                }
+
                 throw PaymentException::customerCanceled(
                     $transactionId,
-                    'Order not confirmed.'
+                    'Canceled/declined payment in Mondu Checkout.'
                 );
             }
-
-            $this->monduClient
-                 ->setSalesChannelId($salesChannelId)
-                 ->updateExternalInfo(
-                     $paymentOrderUuid,
-                     ['external_reference_id' => $order->getOrderNumber()]
-                 );
-            
-            $this->createLocalOrder($transaction, $paymentOrderUuid, $context);
-
-            $orderTransactionState = $this->configService->setSalesChannelId($salesChannelId)->orderTransactionState();
-
-            if (
-                $orderTransactionState == self::ORDER_TRANSACTION_STATE_PAID &&
-                $confirmResponseState == self::RESPONSE_STATE_PENDING
-            ) {
-                $this->transactionStateHandler->process($transactionId, $context);
-            } else if ($orderTransactionState == self::ORDER_TRANSACTION_STATE_AUTHORIZED) {
-                $this->transactionStateHandler->authorize($transactionId, $context);
+        } catch (\Throwable $globalEx) {
+            if ($paymentState === 'declined' || $paymentState === 'cancelled') {
+                if ($this->configService->isExtendedLogsEnabled()) {
+                    $this->logger->info('mondu.INFO: Payment cancelled/declined by user', [
+                        'paymentState' => $paymentState,
+                        'order_id' => $order?->getId() ?? 'unknown',
+                        'order_number' => $order?->getOrderNumber() ?? 'unknown',
+                        'exception' => get_class($globalEx),
+                        'message' => $globalEx->getMessage(),
+                        'code' => $globalEx->getCode(),
+                        'file' => $globalEx->getFile(),
+                        'line' => $globalEx->getLine(),
+                        'trace' => $globalEx->getTraceAsString()
+                    ]);
+                }
             } else {
-                $this->transactionStateHandler->paid($transactionId, $context);
+                $this->logger->error('mondu.ERROR: Unexpected exception in finalize()', [
+                    'exception' => get_class($globalEx),
+                    'message' => $globalEx->getMessage(),
+                    'code' => $globalEx->getCode(),
+                    'file' => $globalEx->getFile(),
+                    'line' => $globalEx->getLine(),
+                    'order_id' => $order?->getId() ?? 'unknown',
+                    'order_number' => $order?->getOrderNumber() ?? 'unknown',
+                    'paymentState' => $paymentState ?? 'unknown',
+                    'trace' => $globalEx->getTraceAsString()
+                ]);
             }
-        } else {
-            $this->transactionStateHandler->fail($transactionId, $context);
 
-            throw PaymentException::customerCanceled(
-                $transactionId,
-                'Canceled/declined payment in Mondu Checkout.'
-            );
+            throw $globalEx;
         }
     }
 
@@ -134,7 +298,61 @@ class MonduHandler extends AbstractPaymentHandler
         $salesChannelId = $order->getSalesChannelId();
         $monduOrder = $this->monduClient->setSalesChannelId($salesChannelId)->createOrder($orderData);
 
+        if ($monduOrder === null || !isset($monduOrder['hosted_checkout_url'])) {
+            $this->logger->error('mondu.ERROR: Failed to create Mondu order - invalid response', [
+                'order_id' => $order->getId(),
+                'order_number' => $order->getOrderNumber(),
+                'mondu_response' => $monduOrder
+            ]);
+            throw PaymentException::asyncProcessInterrupted(
+                $transaction->getOrderTransactionId(),
+                'Failed to create Mondu order: Invalid response from Mondu API'
+            );
+        }
+
+        $this->saveEarlyOrderData($order, $monduOrder, $context);
+
         return $monduOrder['hosted_checkout_url'];
+    }
+
+    private function saveEarlyOrderData($order, $monduOrder, Context $context): void
+    {
+        try {
+            if ($monduOrder === null || !isset($monduOrder['uuid'])) {
+                $this->logger->error('mondu.ERROR: Failed to save early order data - missing uuid in Mondu response', [
+                    'order_id' => $order->getId(),
+                    'order_number' => $order->getOrderNumber(),
+                    'mondu_response' => $monduOrder
+                ]);
+                return;
+            }
+
+            $this->orderDataRepository->upsert([
+                [
+                    OrderDataEntity::FIELD_ORDER_ID => $order->getId(),
+                    OrderDataEntity::FIELD_ORDER_VERSION_ID => $order->getVersionId(),
+                    OrderDataEntity::FIELD_REFERENCE_ID => $monduOrder['uuid'],
+                    OrderDataEntity::FIELD_EXTERNAL_REFERENCE_ID => $monduOrder['external_reference_id'] ?? null,
+                    OrderDataEntity::FIELD_ORDER_STATE => $monduOrder['state'] ?? 'pending',
+                    OrderDataEntity::FIELD_VIBAN => null,
+                    OrderDataEntity::FIELD_DURATION => 0,
+                    OrderDataEntity::FIELD_IS_SUCCESSFUL => false,
+                ]
+            ], $context);
+
+            if ($this->configService->isExtendedLogsEnabled()) {
+                $this->logger->info('mondu.INFO: Early order data saved', [
+                    'order_id' => $order->getId(),
+                    'mondu_uuid' => $monduOrder['uuid'],
+                    'external_reference_id' => $monduOrder['external_reference_id'] ?? null,
+                ]);
+            }
+        } catch (\Exception $e) {
+            $this->logger->error('mondu.ERROR: Failed to save early order data', [
+                'error' => $e->getMessage(),
+                'mondu_uuid' => $monduOrder['uuid'] ?? null,
+            ]);
+        }
     }
 
     protected function getOrderData(PaymentTransactionStruct $transaction, Context $context)
@@ -143,11 +361,61 @@ class MonduHandler extends AbstractPaymentHandler
         $order = $orderTransaction->getOrder();
         $returnUrl = $transaction->getReturnUrl();
 
-        $shippingAddress = $order->getDeliveries()->getShippingAddress()->first();
         $paymentMethod = MethodHelper::shortNameToMonduName($orderTransaction->getPaymentMethod()->getShortName());
 
+        $externalReferenceId = uniqid('M_SW6_');
+        $salesChannelId = $order->getSalesChannelId();
+
+        if ($this->configService->setSalesChannelId($salesChannelId)->isExtendedLogsEnabled()) {
+            $this->logger->info('mondu.INFO: Generated external_reference_id for Mondu order', [
+                'external_reference_id' => $externalReferenceId,
+                'order_id' => $order->getId(),
+                'order_number' => $order->getOrderNumber(),
+                'payment_method' => $paymentMethod,
+                'total_amount' => $order->getPrice()->getTotalPrice(),
+            ]);
+        }
+
+        $addressAdditionHandling1 = $this->configService->getHandlingAddressAdditionalField1();
+        $addressAdditionHandling2 = $this->configService->getHandlingAddressAdditionalField2();
+
+        $billingAddress = $order->getBillingAddress();
+        $addressAddition1 = $billingAddress->getAdditionalAddressLine1();
+        $addressAddition2 = $billingAddress->getAdditionalAddressLine2();
+        $addressLine1 = $billingAddress->getStreet();
+        $addressLine2 = null;
+        $shippingAddressLine2 = null;
+
+        if ($addressAdditionHandling1 === 'addtoaddressline1' && !empty($addressAddition1)) {
+            $addressLine1 .= ' ' . $addressAddition1;
+        } elseif ($addressAdditionHandling1 === 'addtoaddressline2' && !empty($addressAddition1)) {
+            $addressLine2 = $addressAddition1;
+        }
+
+        if ($addressAdditionHandling2 === 'addtoaddressline2' && !empty($addressAddition2)) {
+            $addressLine2 .= ' ' . $addressAddition2;
+        } elseif ($addressAdditionHandling2 === 'addtoaddressline1' && !empty($addressAddition2)) {
+            $addressLine1 .= ' ' . $addressAddition2;
+        }
+
+        $shippingAddress = $order->getDeliveries()->getShippingAddress()->first();
         // Use billing address as fallback if shipping address is not available
-        $addressForShipping = $shippingAddress ?? $order->getBillingAddress();
+        $addressForShipping = $shippingAddress ?? $billingAddress;
+        $shippingAddressLine1 = $addressForShipping->getStreet();
+        $shippingAddressAddition1 = $addressForShipping->getAdditionalAddressLine1();
+        $shippingAddressAddition2 = $addressForShipping->getAdditionalAddressLine2();
+
+        if ($addressAdditionHandling1 === 'addtoaddressline1' && !empty($shippingAddressAddition1)) {
+            $shippingAddressLine1 .= ' ' . $shippingAddressAddition1;
+        } elseif ($addressAdditionHandling1 === 'addtoaddressline2' && !empty($shippingAddressAddition1)) {
+            $shippingAddressLine2 = $shippingAddressAddition1;
+        }
+
+        if ($addressAdditionHandling2 === 'addtoaddressline2' && !empty($shippingAddressAddition2)) {
+            $shippingAddressLine2 .= ' ' . $shippingAddressAddition2;
+        } elseif ($addressAdditionHandling2 === 'addtoaddressline1' && !empty($shippingAddressAddition2)) {
+            $shippingAddressLine1 .= ' ' . $shippingAddressAddition2;
+        }
 
         return [
             'currency' => $order->getCurrency()->getIsoCode(),
@@ -156,30 +424,19 @@ class MonduHandler extends AbstractPaymentHandler
             'success_url' => $returnUrl . '&payment=success',
             'cancel_url' => $returnUrl . '&payment=cancelled',
             'declined_url' => $returnUrl . '&payment=declined',
-            'external_reference_id' => uniqid('M_SW6_'),
+            'external_reference_id' => $externalReferenceId,
             'gross_amount_cents' => round($order->getPrice()->getTotalPrice() * 100),
-            'buyer' => [
-                'email' => $order->getOrderCustomer()->getEmail(),
-                'first_name' => $order->getOrderCustomer()->getFirstname(),
-                'last_name' => $order->getOrderCustomer()-> getLastName(),
-                'company_name' => $order->getOrderCustomer()->getCompany(),
-                'phone' => $order->getBillingAddress()->getPhoneNumber(),
-                'address_line1' => $order->getBillingAddress()->getStreet(),
-                'zip_code' => $order->getBillingAddress()->getZipCode(),
-                'is_registered' => !$order->getOrderCustomer()->getCustomer()->getGuest(),
-                'external_reference_id' => $order->getOrderCustomer()->getCustomer()->getCustomerNumber(),
-                'account_created_at' => $order->getOrderCustomer()->getCustomer()->getCreatedAt(),
-                'account_updated_at' => $order->getOrderCustomer()->getCustomer()->getUpdatedAt(),
-
-            ],
+            'buyer' => $this->buildBuyerPayload($order, $addressLine1, $addressLine2),
             'billing_address' => [
-                'address_line1' => $order->getBillingAddress()->getStreet(),
-                'city' => $order->getBillingAddress()->getCity(),
-                'country_code' => $order->getBillingAddress()->getCountry()->getIso(),
-                'zip_code' => $order->getBillingAddress()->getZipCode(),
+                'address_line1' => $addressLine1,
+                'address_line2' => $addressLine2,
+                'city' => $billingAddress->getCity(),
+                'country_code' => $billingAddress->getCountry()->getIso(),
+                'zip_code' => $billingAddress->getZipCode(),
             ],
             'shipping_address' => [
-                'address_line1' => $addressForShipping->getStreet(),
+                'address_line1' => $shippingAddressLine1,
+                'address_line2' => $shippingAddressLine2,
                 'city' => $addressForShipping->getCity(),
                 'country_code' => $addressForShipping->getCountry()->getIso(),
                 'zip_code' => $addressForShipping->getZipCode(),
@@ -188,12 +445,48 @@ class MonduHandler extends AbstractPaymentHandler
         ];
     }
 
+    private function buildBuyerPayload($order, string $addressLine1, ?string $addressLine2): array
+    {
+        $orderCustomer = $order->getOrderCustomer();
+        $billingAddress = $order->getBillingAddress();
+        $customer = $orderCustomer->getCustomer();
+
+        $buyer = [
+            'email' => $orderCustomer->getEmail(),
+            'first_name' => $orderCustomer->getFirstname(),
+            'last_name' => $orderCustomer->getLastName(),
+            'company_name' => $orderCustomer->getCompany(),
+            'phone' => $billingAddress->getPhoneNumber(),
+            'address_line1' => $addressLine1,
+            'address_line2' => $addressLine2,
+            'zip_code' => $billingAddress->getZipCode(),
+            'is_registered' => !$customer->getGuest(),
+            'external_reference_id' => $customer->getCustomerNumber(),
+            'account_created_at' => $customer->getCreatedAt(),
+            'account_updated_at' => $customer->getUpdatedAt(),
+        ];
+
+        $vatId = $billingAddress->getVatId();
+        if (($vatId === null || $vatId === '') && method_exists($orderCustomer, 'getVatIds')) {
+            $vatIds = $orderCustomer->getVatIds();
+            $vatId = is_array($vatIds) ? ($vatIds[0] ?? null) : null;
+        }
+        if (($vatId === null || $vatId === '') && method_exists($orderCustomer, 'getVatId')) {
+            $vatId = $orderCustomer->getVatId();
+        }
+        if ($vatId !== null && $vatId !== '') {
+            $buyer['vat_number'] = (string) $vatId;
+        }
+
+        return $buyer;
+    }
+
     public function createLocalOrder($transaction, $orderUuid, $context) {
         $orderTransaction = $this->getOrderTransaction($transaction->getOrderTransactionId(), $context);
         $order = $orderTransaction->getOrder();
         $salesChannelId = $order->getSalesChannelId();
         $monduOrder = $this->monduClient->setSalesChannelId($salesChannelId)->getMonduOrder($orderUuid);
-        
+
         if (!$monduOrder) {
             throw PaymentException::asyncProcessInterrupted($transaction->getOrderTransactionId(), 'Could not fetch Mondu Order.');
         }
@@ -206,6 +499,7 @@ class MonduHandler extends AbstractPaymentHandler
                 OrderDataEntity::FIELD_ORDER_STATE => $monduOrder['state'],
                 OrderDataEntity::FIELD_VIBAN => $monduOrder['bank_account']['iban'],
                 OrderDataEntity::FIELD_DURATION => $monduOrder['authorized_net_term'],
+                OrderDataEntity::FIELD_EXTERNAL_REFERENCE_ID => $monduOrder['external_reference_id'] ?? null,
                 OrderDataEntity::FIELD_IS_SUCCESSFUL => true,
             ]
         ], $context);
