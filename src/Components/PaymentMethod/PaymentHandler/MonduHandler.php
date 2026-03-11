@@ -398,7 +398,7 @@ class MonduHandler extends AbstractPaymentHandler
             $addressLine1 .= ' ' . $addressAddition2;
         }
 
-        $shippingAddress = $order->getDeliveries()->getShippingAddress()->first();
+        $shippingAddress = $order->getDeliveries()->first()?->getShippingOrderAddress();
         // Use billing address as fallback if shipping address is not available
         $addressForShipping = $shippingAddress ?? $billingAddress;
         $shippingAddressLine1 = $addressForShipping->getStreet();
@@ -515,7 +515,7 @@ class MonduHandler extends AbstractPaymentHandler
         $criteria = new Criteria([$transactionId]);
         $criteria->addAssociation('order.orderCustomer.customer');
         $criteria->addAssociation('order.billingAddress.country');
-        $criteria->addAssociation('order.deliveries.shippingAddress.country');
+        $criteria->addAssociation('order.deliveries.shippingOrderAddress.country');
         $criteria->addAssociation('order.currency');
         $criteria->addAssociation('order.lineItems');
         $criteria->addAssociation('order.price.calculatedTaxes');
@@ -529,7 +529,7 @@ class MonduHandler extends AbstractPaymentHandler
         $criteria = new Criteria([$orderId]);
         $criteria->addAssociation('orderCustomer.customer');
         $criteria->addAssociation('billingAddress.country');
-        $criteria->addAssociation('deliveries.shippingAddress.country');
+        $criteria->addAssociation('deliveries.shippingOrderAddress.country');
         $criteria->addAssociation('currency');
         $criteria->addAssociation('lineItems');
         $criteria->addAssociation('price.calculatedTaxes');
