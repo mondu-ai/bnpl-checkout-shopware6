@@ -41,9 +41,10 @@ class OrderExceptionSubscriber implements EventSubscriberInterface
             ]);
         }
 
-        // ONLY handle "cannot be edited" or "was cancelled" errors (when order was already cancelled by webhook)
+        // Handle state transition errors and cancellation errors
         if (stripos($exception->getMessage(), 'cannot be edited') !== false ||
-            stripos($exception->getMessage(), 'was cancelled') !== false) {
+            stripos($exception->getMessage(), 'was cancelled') !== false ||
+            stripos($exception->getMessage(), 'Illegal transition') !== false) {
 
             $requestUri = $request->getRequestUri();
 

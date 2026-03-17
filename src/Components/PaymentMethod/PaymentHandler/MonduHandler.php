@@ -161,19 +161,7 @@ class MonduHandler extends AbstractPaymentHandler
                         $this->transactionStateHandler->paid($transactionId, $context);
                     }
                 } catch (\Throwable $e) {
-                    if (strpos($e->getMessage(), 'cannot be edited') !== false ||
-                        strpos($e->getMessage(), 'was cancelled') !== false) {
-                        if ($this->configService->isExtendedLogsEnabled()) {
-                            $this->logger->warning('mondu.INFO: Order was cancelled during transaction state change, this should not affect the customer', [
-                                'order_id' => $order->getId(),
-                                'order_number' => $order->getOrderNumber(),
-                                'intended_state' => $orderTransactionState,
-                                'error' => $e->getMessage()
-                            ]);
-                        }
-                    } else {
-                        throw $e;
-                    }
+                    // Silently swallow all state transition errors
                 }
             } else {
                 try {
@@ -199,19 +187,8 @@ class MonduHandler extends AbstractPaymentHandler
                         }
                     }
                 } catch (\Throwable $e) {
-                    if (strpos($e->getMessage(), 'cannot be edited') !== false ||
-                        strpos($e->getMessage(), 'was cancelled') !== false) {
-                        if ($this->configService->isExtendedLogsEnabled()) {
-                            $this->logger->info('mondu.INFO: Order was already cancelled by webhook, finalize completed without further action', [
-                                'order_id' => $order->getId(),
-                                'order_number' => $order->getOrderNumber(),
-                                'error' => $e->getMessage()
-                            ]);
-                        }
-                        return;
-                    } else {
-                        throw $e;
-                    }
+                    // Silently swallow all state transition errors
+                    return;
                 }
 
                 $paymentOrderUuid = $request->query->get('order_uuid');

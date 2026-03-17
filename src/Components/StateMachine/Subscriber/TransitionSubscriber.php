@@ -465,20 +465,20 @@ class TransitionSubscriber implements EventSubscriberInterface
             }
         }
 
-        $extra = [];
+        $shippingInfo = [];
         if ($trackingNumber !== null) {
-            $extra['tracking_number'] = (string) $trackingNumber;
+            $shippingInfo['tracking_number'] = (string) $trackingNumber;
         }
         if ($trackingUrl !== null) {
-            $extra['tracking_url'] = $trackingUrl;
+            $shippingInfo['tracking_url'] = $trackingUrl;
         }
         if ($shippingCompany !== null) {
-            $extra['shipping_company'] = (string) $shippingCompany;
+            $shippingInfo['shipping_company'] = (string) $shippingCompany;
         }
         if ($shippingMethodName !== null && $shippingMethodName !== '') {
-            $extra['shipping_method'] = (string) $shippingMethodName;
+            $shippingInfo['shipping_method'] = (string) $shippingMethodName;
         }
 
-        return $extra !== [] ? $invoiceData + $extra : $invoiceData;
+        return $shippingInfo !== [] ? array_merge($invoiceData, ['shipping_info' => $shippingInfo]) : $invoiceData;
     }
 }
