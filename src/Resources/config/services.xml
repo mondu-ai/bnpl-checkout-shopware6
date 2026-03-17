@@ -170,6 +170,11 @@
             <argument key="$logger" type="service" id="monolog.logger.mondu"/>
         </service>
 
+        <service id="Mondu\MonduPayment\Components\Logger\MonduLogHandler" public="true">
+            <argument type="service" id="mondu.mondu_config"/>
+            <argument key="$filename">%kernel.logs_dir%/mondu_%kernel.environment%.log</argument>
+        </service>
+
         <service id="Mondu\MonduPayment\Bootstrap\MediaProvider" public="true">
             <argument type="service" key="$mediaService" id="Shopware\Core\Content\Media\MediaService"/>
             <argument type="service" key="$mediaRepository" id="media.repository"/>

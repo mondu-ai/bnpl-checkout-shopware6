@@ -401,6 +401,21 @@ class MonduHandler extends AbstractPaymentHandler
         $shippingAddress = $order->getDeliveries()->first()?->getShippingOrderAddress();
         // Use billing address as fallback if shipping address is not available
         $addressForShipping = $shippingAddress ?? $billingAddress;
+
+        $this->logger->info('mondu.INFO: Shipping address resolved', [
+            'order_id'              => $order->getId(),
+            'order_number'          => $order->getOrderNumber(),
+            'using_fallback'        => $shippingAddress === null,
+            'shipping_street'       => $addressForShipping->getStreet(),
+            'shipping_city'         => $addressForShipping->getCity(),
+            'shipping_zip'          => $addressForShipping->getZipCode(),
+            'shipping_country'      => $addressForShipping->getCountry()?->getIso(),
+            'billing_street'        => $billingAddress->getStreet(),
+            'billing_city'          => $billingAddress->getCity(),
+            'billing_zip'           => $billingAddress->getZipCode(),
+            'addresses_match'       => $addressForShipping->getStreet() === $billingAddress->getStreet()
+                && $addressForShipping->getZipCode() === $billingAddress->getZipCode(),
+        ]);
         $shippingAddressLine1 = $addressForShipping->getStreet();
         $shippingAddressAddition1 = $addressForShipping->getAdditionalAddressLine1();
         $shippingAddressAddition2 = $addressForShipping->getAdditionalAddressLine2();

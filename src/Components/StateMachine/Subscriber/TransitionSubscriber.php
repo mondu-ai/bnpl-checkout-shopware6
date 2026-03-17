@@ -229,6 +229,8 @@ class TransitionSubscriber implements EventSubscriberInterface
                 }
             }
 
+            $invoice = null;
+
             try {
                 $reflection = new \ReflectionClass($this->invoiceDataService);
                 $orderLineItemsServiceProperty = $reflection->getProperty('orderLineItemsService');
@@ -289,16 +291,29 @@ class TransitionSubscriber implements EventSubscriberInterface
                 ]);
             }
 
-            try {
-                $this->updateOrder($context, $monduData, [
-                    OrderDataEntity::FIELD_ORDER_STATE => 'shipped'
-                ]);
-            } catch (\Exception $e) {
-                $this->logger->error('mondu.ERROR: Failed to update Mondu order state to shipped', [
-                    'order' => $order->getId(),
-                    'error' => $e->getMessage()
-                ]);
+            if ($invoice === null) {
+                if ($deliveryId !== null) {
+                    try {
+                        $this->stateMachineRegistry->transition(new Transition(
+                            OrderDeliveryDefinition::ENTITY_NAME,
+                            $deliveryId,
+                            'reopen',
+                            'stateId'
+                        ), $context);
+                    } catch (\Exception $revertEx) {
+                        $this->logger->error('mondu.ERROR: Failed to revert delivery state after invoice failure', [
+                            'order' => $order->getId(),
+                            'delivery_id' => $deliveryId,
+                            'error' => $revertEx->getMessage()
+                        ]);
+                    }
+                }
+                throw new MonduException('Error occurred while shipping an order. Invoice API call failed. Please contact Mondu Support.');
             }
+
+            $this->updateOrder($context, $monduData, [
+                OrderDataEntity::FIELD_ORDER_STATE => 'shipped'
+            ]);
 
             return;
         }
@@ -430,15 +445,23 @@ class TransitionSubscriber implements EventSubscriberInterface
         $shippingMethod = $delivery->getShippingMethod();
         $shippingCompany = null;
         $shippingMethodName = null;
+        $trackingUrl = null;
 
         if ($shippingMethod !== null) {
             $shippingCompany = $shippingMethod->getName();
             $shippingMethodName = $shippingMethod->getName();
+            $templateUrl = $shippingMethod->getTrackingUrl();
+            if ($templateUrl !== null && $templateUrl !== '' && $trackingNumber !== null) {
+                $trackingUrl = str_replace('%s', (string) $trackingNumber, $templateUrl);
+            }
         }
 
         $extra = [];
         if ($trackingNumber !== null) {
             $extra['tracking_number'] = (string) $trackingNumber;
+        }
+        if ($trackingUrl !== null) {
+            $extra['tracking_url'] = $trackingUrl;
         }
         if ($shippingCompany !== null) {
             $extra['shipping_company'] = (string) $shippingCompany;

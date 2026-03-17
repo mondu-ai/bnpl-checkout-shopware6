@@ -347,7 +347,8 @@ class WebhookService
                 'stateId'
             ), $context);
         } catch (\Exception $e) {
-            $this->log('transitionOrderState Failed', [$externalReferenceId, $state], $e);
+            $level = str_contains($e->getMessage(), 'Illegal transition') ? 'warning' : 'critical';
+            $this->log('transitionOrderState Failed', [$externalReferenceId, $state], $e, $level);
             return null;
         }
     }
