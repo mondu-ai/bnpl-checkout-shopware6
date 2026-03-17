@@ -165,7 +165,7 @@ class WebhookService
                 $this->eventDispatcher->dispatch($event, $event->getName());
             }
 
-            return [[ 'message' => $transitionResult->last()->getTechnicalName(), 'code' => Response::HTTP_OK ], Response::HTTP_OK];
+            return [[ 'message' => $transitionResult->last()?->getTechnicalName() ?? 'ok', 'code' => Response::HTTP_OK ], Response::HTTP_OK];
         } catch (MonduException $e) {
             $this->log('handleConfirmed Webhook Failed', [$params], $e);
             return [[ 'message' => $e->getMessage(), 'code' => $e->getStatusCode() ], $e->getStatusCode()];
@@ -210,7 +210,7 @@ class WebhookService
                     $this->eventDispatcher->dispatch($event, $event->getName());
                 }
 
-                return [[ 'message' => $transitionResult->last()->getTechnicalName(), 'code' => Response::HTTP_OK ], Response::HTTP_OK];
+                return [[ 'message' => $transitionResult->last()?->getTechnicalName() ?? 'ok', 'code' => Response::HTTP_OK ], Response::HTTP_OK];
 
             } catch (\Exception $e) {
                 $this->log('handlePending transition failed', [
@@ -328,7 +328,7 @@ class WebhookService
                 }
             }
 
-            return [[ 'message' => $transitionResult->last()->getTechnicalName(), 'code' => Response::HTTP_OK ], Response::HTTP_OK];
+            return [[ 'message' => $transitionResult->last()?->getTechnicalName() ?? 'ok', 'code' => Response::HTTP_OK ], Response::HTTP_OK];
         } catch (MonduException $e) {
             $this->log('handleDeclinedOrCanceled Webhook Failed', [$params], $e);
 
@@ -347,8 +347,6 @@ class WebhookService
                 'stateId'
             ), $context);
         } catch (\Exception $e) {
-            $level = str_contains($e->getMessage(), 'Illegal transition') ? 'warning' : 'critical';
-            $this->log('transitionOrderState Failed', [$externalReferenceId, $state], $e, $level);
             return null;
         }
     }
@@ -401,13 +399,6 @@ class WebhookService
 
             // Check if transition is allowed (prevents backward transitions)
             if (!$this->isTransitionAllowed($currentState, $action)) {
-                $this->log('Prevented backward state transition', [
-                    'externalReferenceId' => $externalReferenceId,
-                    'currentState' => $currentState,
-                    'attemptedState' => $state,
-                    'reason' => 'State transition not allowed - would be regression'
-                ], null, 'warning');
-
                 return new StateMachineStateCollection([$transaction->getStateMachineState()]);
             }
 
@@ -419,15 +410,8 @@ class WebhookService
             ), $context);
 
             return $result;
-        } catch (MonduException $e) {
-            throw $e;
         } catch (\Exception $e) {
-            $level = str_contains($e->getMessage(), 'Illegal transition') ? 'warning' : 'critical';
-            $this->log('transitionTransactionState Failed', [$externalReferenceId, $action ?? $state], $e, $level);
-            if ($level === 'warning') {
-                return new StateMachineStateCollection([$transaction->getStateMachineState()]);
-            }
-            throw new MonduException($e->getMessage());
+            return new StateMachineStateCollection();
         }
     }
 

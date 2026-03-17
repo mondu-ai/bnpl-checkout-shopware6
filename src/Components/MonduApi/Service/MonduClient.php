@@ -58,6 +58,10 @@ class MonduClient
     {
         $response = $this->sendRequest('orders/'.$orderUid.'/invoices', 'POST', $body);
 
+        if (isset($response['status']) && $response['status'] === 'already_exists') {
+            return $response;
+        }
+
         return $response['invoice'] ?? null;
     }
 
