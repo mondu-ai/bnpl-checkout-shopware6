@@ -422,7 +422,11 @@ class WebhookService
         } catch (MonduException $e) {
             throw $e;
         } catch (\Exception $e) {
-            $this->log('transitionTransactionState Failed', [$externalReferenceId, $action ?? $state], $e);
+            $level = str_contains($e->getMessage(), 'Illegal transition') ? 'warning' : 'critical';
+            $this->log('transitionTransactionState Failed', [$externalReferenceId, $action ?? $state], $e, $level);
+            if ($level === 'warning') {
+                return new StateMachineStateCollection([$transaction->getStateMachineState()]);
+            }
             throw new MonduException($e->getMessage());
         }
     }
