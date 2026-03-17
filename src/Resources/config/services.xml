@@ -176,7 +176,7 @@
         </service>
 
         <service id="Mondu\MonduPayment\Bootstrap\MediaProvider" public="true">
-            <argument type="service" key="$mediaService" id="Shopware\Core\Content\Media\MediaService"/>
+            <argument type="service" key="$fileSaver" id="Shopware\Core\Content\Media\File\FileSaver"/>
             <argument type="service" key="$mediaRepository" id="media.repository"/>
         </service>
 

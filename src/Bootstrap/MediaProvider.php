@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Mondu\MonduPayment\Bootstrap;
 
-use Shopware\Core\Content\Media\MediaService;
+use Shopware\Core\Content\Media\File\FileSaver;
+use Shopware\Core\Content\Media\File\MediaFile;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
+use Shopware\Core\Framework\Uuid\Uuid;
 
 /**
  * MediaProvider Class.
@@ -18,15 +20,8 @@ class MediaProvider
     private readonly string $resourcesPath;
     private readonly string $paymentLogosPath;
 
-    /**
-     * Constructs a `MediaProvider`
-     *
-     * @param  MediaService  $mediaService
-     * @param  EntityRepository  $mediaRepository
-     * @param  string  $pluginPath  Optional path to plugin root (e.g. from container). If not set or path has no plugin.png, the path is derived from the actual file location so CLI and admin behave the same.
-     */
     public function __construct(
-        private readonly MediaService $mediaService,
+        private readonly FileSaver $fileSaver,
         private readonly EntityRepository $mediaRepository,
         string $pluginPath = ''
     ) {
@@ -44,11 +39,6 @@ class MediaProvider
         return dirname(__DIR__, 2);
     }
 
-    /**
-     * @param  Context  $context
-     *
-     * @return string
-     */
     public function getLogoMediaId(Context $context): string
     {
         $existingMedia = $this->hasMediaAlreadyInstalled($context);
@@ -69,19 +59,9 @@ class MediaProvider
             return '';
         }
 
-        $mediaId = $this->mediaService->saveFile($file, 'png', 'image/png', 'mondu-payment-logo-v2', $context, 'payment_method', null, false);
-
-        return $mediaId ?? '';
+        return $this->saveMediaFile($file, 'mondu-payment-logo-v2', $context);
     }
 
-    /**
-     * Get media ID for specific payment method logo
-     *
-     * @param  string  $logoFileName
-     * @param  Context  $context
-     *
-     * @return string
-     */
     public function getPaymentMethodLogoMediaId(string $logoFileName, Context $context): string
     {
         $mediaName = 'mondu-' . pathinfo($logoFileName, PATHINFO_FILENAME);
@@ -98,20 +78,14 @@ class MediaProvider
         }
 
         $file = file_get_contents($logoPath);
-        $mediaId = '';
 
-        if ($file) {
-            $mediaId = $this->mediaService->saveFile($file, 'png', 'image/png', $mediaName, $context, 'payment_method', null, false);
+        if (!$file) {
+            return '';
         }
 
-        return $mediaId;
+        return $this->saveMediaFile($file, $mediaName, $context);
     }
 
-    /**
-     * @param  Context  $context
-     *
-     * @return void
-     */
     public function removePaymentLogo(Context $context): void
     {
         $existingMedia = $this->hasMediaAlreadyInstalled($context);
@@ -121,38 +95,37 @@ class MediaProvider
         }
     }
 
-    /**
-     * @param  Context  $context
-     *
-     * @return \Shopware\Core\Framework\DataAbstractionLayer\Entity|null
-     */
+    private function saveMediaFile(string $fileContent, string $fileName, Context $context): string
+    {
+        $mediaId = Uuid::randomHex();
+        $this->mediaRepository->create([['id' => $mediaId]], $context);
+
+        $tempFile = tempnam(sys_get_temp_dir(), 'mondu_');
+        file_put_contents($tempFile, $fileContent);
+
+        try {
+            $mediaFile = new MediaFile($tempFile, 'image/png', 'png', strlen($fileContent));
+            $this->fileSaver->persistFileToMedia($mediaFile, $fileName, $mediaId, $context);
+        } finally {
+            @unlink($tempFile);
+        }
+
+        return $mediaId;
+    }
+
     protected function hasMediaAlreadyInstalled(Context $context)
     {
         $criteria = (new Criteria())->addFilter(
-            new EqualsFilter(
-                'fileName',
-                'mondu-payment-logo-v2'
-            )
+            new EqualsFilter('fileName', 'mondu-payment-logo-v2')
         );
 
         return $this->mediaRepository->search($criteria, $context)->first();
     }
 
-    /**
-     * Check if media already installed by custom name
-     *
-     * @param  Context  $context
-     * @param  string  $mediaName
-     *
-     * @return \Shopware\Core\Framework\DataAbstractionLayer\Entity|null
-     */
     protected function hasMediaAlreadyInstalledByName(Context $context, string $mediaName)
     {
         $criteria = (new Criteria())->addFilter(
-            new EqualsFilter(
-                'fileName',
-                $mediaName
-            )
+            new EqualsFilter('fileName', $mediaName)
         );
 
         return $this->mediaRepository->search($criteria, $context)->first();

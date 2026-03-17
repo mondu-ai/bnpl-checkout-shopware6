@@ -7,6 +7,7 @@ namespace Mondu\MonduPayment\Components\StateMachine\Subscriber;
 use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
 use Mondu\MonduPayment\Components\Order\Model\Extension\OrderExtension;
 use Mondu\MonduPayment\Components\Order\Model\OrderDataEntity;
+use Mondu\MonduPayment\Components\Order\Util\DocumentUrlHelper;
 use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 use Mondu\MonduPayment\Components\StateMachine\Exception\MonduException;
 use Mondu\MonduPayment\Services\InvoiceServices\AbstractInvoiceDataService;
@@ -37,7 +38,8 @@ class TransitionSubscriber implements EventSubscriberInterface
         private readonly EntityRepository $invoiceDataRepository,
         private readonly LoggerInterface $logger,
         private readonly AbstractInvoiceDataService $invoiceDataService,
-        private readonly StateMachineRegistry $stateMachineRegistry
+        private readonly StateMachineRegistry $stateMachineRegistry,
+        private readonly DocumentUrlHelper $documentUrlHelper
     ) {}
 
     public static function getSubscribedEvents(): array
@@ -216,7 +218,7 @@ class TransitionSubscriber implements EventSubscriberInterface
                         $document->getDocumentType()->getTechnicalName() === 'invoice' ||
                         $document->getDocumentType()->getTechnicalName() === 'zugferd_embedded_invoice'
                     ) {
-                        $foundUrl = $this->invoiceDataService->getDocumentUrl($document);
+                        $foundUrl = $this->documentUrlHelper->generateRouteForDocument($document);
                         if ($foundUrl !== null) {
                             $invoiceUrl = $foundUrl;
                             $hasRealInvoice = true;
@@ -323,6 +325,13 @@ class TransitionSubscriber implements EventSubscriberInterface
             $order,
             $deliveryId
         );
+
+        if ($this->configService->isExtendedLogsEnabled()) {
+            $this->logger->info('mondu.INFO: Invoice data before API call', [
+                'order' => $order->getId(),
+                'invoice_data' => array_diff_key($invoiceData, ['line_items' => null])
+            ]);
+        }
 
         try {
             $invoice = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->invoiceOrder(

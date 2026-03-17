@@ -271,7 +271,9 @@ class PaymentMethods extends AbstractBootstrap
      */
     protected function updatePaymentMethodImage(): void
     {
-        $mediaProvider = $this->container->get(MediaProvider::class);
+        $fileSaver = $this->container->get(\Shopware\Core\Content\Media\File\FileSaver::class);
+        $mediaRepository = $this->container->get('media.repository');
+        $mediaProvider = new MediaProvider($fileSaver, $mediaRepository);
 
         foreach (self::PAYMENT_METHODS as $handlerClass => $paymentMethod) {
             $logoFileName = self::PAYMENT_METHOD_LOGOS[$handlerClass] ?? null;
