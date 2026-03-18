@@ -399,7 +399,18 @@ class WebhookService
 
             // Check if transition is allowed (prevents backward transitions)
             if (!$this->isTransitionAllowed($currentState, $action)) {
-                return new StateMachineStateCollection([$transaction->getStateMachineState()]);
+                $finalStates = ['cancelled', 'failed', 'paid', 'paid_partially', 'refunded', 'refunded_partially', 'chargeback'];
+                // For declined/cancelled webhooks on a final state: reopen first, then apply target
+                if (in_array($currentState, $finalStates) && in_array($action, ['fail', 'cancel'])) {
+                    $this->stateMachineRegistry->transition(new Transition(
+                        OrderTransactionDefinition::ENTITY_NAME,
+                        $orderTransactionId,
+                        'reopen',
+                        'stateId'
+                    ), $context);
+                } else {
+                    return new StateMachineStateCollection([$transaction->getStateMachineState()]);
+                }
             }
 
             $result = $this->stateMachineRegistry->transition(new Transition(

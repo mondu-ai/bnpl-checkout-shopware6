@@ -161,34 +161,30 @@ class MonduHandler extends AbstractPaymentHandler
                         $this->transactionStateHandler->paid($transactionId, $context);
                     }
                 } catch (\Throwable $e) {
-                    // Silently swallow all state transition errors
+                    if (strpos($e->getMessage(), 'cannot be edited') !== false ||
+                        strpos($e->getMessage(), 'was cancelled') !== false) {
+                        // Order was already cancelled, this is expected
+                    } else {
+                        throw $e;
+                    }
                 }
             } else {
                 try {
                     if ($paymentState === 'declined') {
+                        // fail is available from 'open' state
                         $this->transactionStateHandler->fail($transactionId, $context);
-
-                        if ($this->configService->isExtendedLogsEnabled()) {
-                            $this->logger->info('mondu.INFO: Transaction state set to FAIL for declined payment', [
-                                'order_id' => $order->getId(),
-                                'order_number' => $order->getOrderNumber(),
-                                'transaction_id' => $transactionId
-                            ]);
-                        }
                     } else {
+                        // 'cancel' is not available from 'open' - go via process → cancel
+                        $this->transactionStateHandler->process($transactionId, $context);
                         $this->transactionStateHandler->cancel($transactionId, $context);
-
-                        if ($this->configService->isExtendedLogsEnabled()) {
-                            $this->logger->info('mondu.INFO: Transaction state set to CANCEL for cancelled payment', [
-                                'order_id' => $order->getId(),
-                                'order_number' => $order->getOrderNumber(),
-                                'transaction_id' => $transactionId
-                            ]);
-                        }
                     }
                 } catch (\Throwable $e) {
-                    // Silently swallow all state transition errors
-                    return;
+                    if (strpos($e->getMessage(), 'cannot be edited') !== false ||
+                        strpos($e->getMessage(), 'was cancelled') !== false) {
+                        return;
+                    } else {
+                        throw $e;
+                    }
                 }
 
                 $paymentOrderUuid = $request->query->get('order_uuid');
