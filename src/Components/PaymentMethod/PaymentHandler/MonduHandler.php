@@ -187,6 +187,8 @@ class MonduHandler extends AbstractPaymentHandler
                 $paymentOrderUuid = $request->query->get('order_uuid');
 
                 if ($paymentState === 'declined') {
+                    $request->getSession()->set('mondu_payment_declined', true);
+
                     $event = new MonduOrderDeclinedEvent(
                         $order,
                         $paymentOrderUuid,

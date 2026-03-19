@@ -60,7 +60,7 @@ export default defineConfig({
                 'mond1-s-w6': path.resolve(__dirname, 'src/main.ts'),
             },
             output: {
-                entryFileNames: 'assets/[name]-[hash].js',
+                entryFileNames: 'assets/[name].js',
             },
         },
     },
