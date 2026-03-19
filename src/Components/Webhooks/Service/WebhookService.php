@@ -29,10 +29,7 @@ use Mondu\MonduPayment\Components\Events\MonduOrderCancelledEvent;
 
 class WebhookService
 {
-    /**
-     * @var null
-     */
-    private $salesChannelId;
+    private ?string $salesChannelId;
 
     public function __construct(
         private readonly StateMachineRegistry $stateMachineRegistry,
@@ -59,8 +56,7 @@ class WebhookService
         try {
             $keys = $this->monduClient->setSalesChannelId($this->salesChannelId)->getWebhooksSecret($key);
 
-            if (isset($keys['webhook_secret']))
-            {
+            if (isset($keys['webhook_secret'])) {
                 $this->configService->setSalesChannelId($this->salesChannelId)->setWebhooksSecret($keys['webhook_secret']);
             }
 

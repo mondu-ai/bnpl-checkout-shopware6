@@ -10,6 +10,7 @@ use Mondu\MonduPayment\Components\Order\Model\OrderDataEntity;
 use Mondu\MonduPayment\Components\Order\Util\DocumentUrlHelper;
 use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 use Mondu\MonduPayment\Components\StateMachine\Exception\MonduException;
+use Mondu\MonduPayment\Components\StateMachine\Exception\MonduInvoiceException;
 use Mondu\MonduPayment\Services\InvoiceServices\AbstractInvoiceDataService;
 use Mondu\MonduPayment\Util\CriteriaHelper;
 use Psr\Log\LoggerInterface;
@@ -291,6 +292,20 @@ class TransitionSubscriber implements EventSubscriberInterface
                     'mondu-reference-id' => $monduData->getReferenceId(),
                     'error' => $e->getMessage()
                 ]);
+            }
+
+            if (is_array($invoice) && isset($invoice['status']) && $invoice['status'] === 'already_exists') {
+                if ($deliveryId !== null) {
+                    try {
+                        $this->stateMachineRegistry->transition(new Transition(
+                            OrderDeliveryDefinition::ENTITY_NAME,
+                            $deliveryId,
+                            'reopen',
+                            'stateId'
+                        ), $context);
+                    } catch (\Exception $revertEx) {}
+                }
+                throw new MonduInvoiceException('Invoice could not be created: the invoice reference ID is already in use on Mondu. Please use a unique invoice number.');
             }
 
             if ($invoice === null) {

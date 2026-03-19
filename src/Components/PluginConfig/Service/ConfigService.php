@@ -66,8 +66,9 @@ class ConfigService
      */
     public function isSandbox(): mixed
     {
-        if (!is_null($this->overrideSandbox))
+        if ($this->overrideSandbox !== null) {
             return $this->overrideSandbox;
+        }
 
         $config = $this->getPluginConfiguration();
 
