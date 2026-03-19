@@ -48,36 +48,10 @@ class PaymentMethodFilterService
             $disallowedPaymentMethods = $allPaymentMethods;
         }
 
-        $b2cReason = null;
-        if ($configService->isHideMonduForB2CEnabled()
-            && $configService->isAccountTypeSelectionEnabled()
-        ) {
-            $customer = $context->getCustomer();
-            $accountType = $customer?->getAccountType();
-            if ($customer !== null && $accountType === 'private') {
-                $disallowedPaymentMethods = array_unique(array_merge($disallowedPaymentMethods, $allPaymentMethods));
-                $b2cReason = 'B2C: accountType=private';
-            } else {
-                $b2cReason = 'show: accountType=' . ($accountType ?? 'null');
-            }
-        } else {
-            $b2cReason = 'hideMonduForB2C=' . ($configService->isHideMonduForB2CEnabled() ? '1' : '0')
-                . ' showAccountTypeSelection=' . ($configService->isAccountTypeSelectionEnabled() ? '1' : '0');
-        }
-
         $result = array_map(
             fn (string $name) => MethodHelper::monduNameToHandler($name),
             $disallowedPaymentMethods
         );
-
-        if ($configService->isExtendedLogsEnabled()) {
-            $this->logger->info('[B2C Filter]', [
-                'salesChannelId' => $salesChannelId,
-                'reason' => $b2cReason,
-                'disallowedCount' => count($result),
-                'monduHidden' => count($result) > 0,
-            ]);
-        }
 
         return $result;
     }

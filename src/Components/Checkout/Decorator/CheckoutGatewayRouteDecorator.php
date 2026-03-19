@@ -36,21 +36,11 @@ class CheckoutGatewayRouteDecorator extends AbstractCheckoutGatewayRoute
             return $response;
         }
 
-        $beforeCount = $response->getPaymentMethods()->count();
         $paymentMethods = $response->getPaymentMethods()->filter(
             static fn ($method) => !in_array($method->getHandlerIdentifier(), $disallowedHandlers, true)
         );
-        $afterCount = $paymentMethods->count();
-        $removed = $beforeCount - $afterCount;
 
         $this->configService->setSalesChannelId($context->getSalesChannelId());
-        if ($removed > 0 || $this->configService->isExtendedLogsEnabled()) {
-            $this->logger->info('[B2C Filter] CheckoutGatewayRouteDecorator', [
-                'before' => $beforeCount,
-                'after' => $afterCount,
-                'removed' => $removed,
-            ]);
-        }
 
         return new CheckoutGatewayRouteResponse(
             $paymentMethods,
