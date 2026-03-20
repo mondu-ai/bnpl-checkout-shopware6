@@ -170,11 +170,15 @@ class MonduHandler extends AbstractPaymentHandler
                 }
             } else {
                 try {
-                    // Both cancelled and declined: go via process → cancel so Shopware can
-                    // redirect buyer to order edit page (to retry payment).
-                    // For declined: webhook will later transition the state to 'failed' via reopen → fail.
+                    // Go via process first (required by SW state machine), then:
+                    // - declined → fail ("Fehlgeschlagen") so merchant can distinguish from cancelled
+                    // - cancelled → cancel ("Abgebrochen")
                     $this->transactionStateHandler->process($transactionId, $context);
-                    $this->transactionStateHandler->cancel($transactionId, $context);
+                    if ($paymentState === 'declined') {
+                        $this->transactionStateHandler->fail($transactionId, $context);
+                    } else {
+                        $this->transactionStateHandler->cancel($transactionId, $context);
+                    }
                 } catch (\Throwable $e) {
                     if (strpos($e->getMessage(), 'cannot be edited') !== false ||
                         strpos($e->getMessage(), 'was cancelled') !== false) {
