@@ -10,6 +10,7 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 class OrderExceptionSubscriber implements EventSubscriberInterface
@@ -47,21 +48,44 @@ class OrderExceptionSubscriber implements EventSubscriberInterface
             stripos($exception->getMessage(), 'Illegal transition') !== false) {
 
             $requestUri = $request->getRequestUri();
+            $route = $request->attributes->get('_route', '');
 
             if ($this->configService->isExtendedLogsEnabled()) {
                 $this->logger->info('mondu.INFO: Caught "cannot be edited" or "was cancelled" exception', [
                     'error' => $exception->getMessage(),
                     'uri' => $requestUri,
                     'class' => get_class($exception),
-                    'route' => $request->attributes->get('_route')
+                    'route' => $route
                 ]);
             }
 
             if (stripos($requestUri, '/payment/finalize-transaction') !== false ||
                 stripos($requestUri, '/checkout/finalize') !== false ||
                 stripos($requestUri, '/account/order/edit') !== false ||
-                stripos($request->attributes->get('_route', ''), 'payment') !== false ||
-                stripos($request->attributes->get('_route', ''), 'order') !== false) {
+                stripos($route, 'payment') !== false ||
+                stripos($route, 'order') !== false) {
+
+                // For the payment finalize route, redirect to the errorUrl from the JWT token
+                // so the buyer lands on the order edit page (not the order list).
+                // PaymentProcessor internally tries to cancel an already-cancelled/failed transaction,
+                // which throws IllegalTransitionException — we handle it gracefully here.
+                if (stripos($requestUri, '/payment/finalize-transaction') !== false ||
+                    $route === 'payment.finalize.transaction') {
+                    $errorUrl = $this->extractErrorUrlFromToken($request);
+                    if ($errorUrl !== null) {
+                        $separator = parse_url($errorUrl, PHP_URL_QUERY) ? '&' : '?';
+                        $redirectUrl = $errorUrl . $separator . 'error-code=CHECKOUT__CUSTOMER_CANCELED_EXTERNAL_PAYMENT';
+
+                        if ($this->configService->isExtendedLogsEnabled()) {
+                            $this->logger->info('mondu.INFO: Redirecting to order edit page (from JWT errorUrl)', [
+                                'redirectUrl' => $redirectUrl
+                            ]);
+                        }
+
+                        $event->setResponse(new RedirectResponse($redirectUrl));
+                        return;
+                    }
+                }
 
                 if ($this->configService->isExtendedLogsEnabled()) {
                     $this->logger->info('mondu.INFO: Redirecting user to order page instead of showing error', [
@@ -69,23 +93,10 @@ class OrderExceptionSubscriber implements EventSubscriberInterface
                     ]);
                 }
 
-                preg_match('/"([^"]+)"/', $exception->getMessage(), $matches);
-                $orderNumber = $matches[1] ?? null;
-
                 try {
                     $redirectUrl = $this->router->generate('frontend.account.order.page', [], UrlGeneratorInterface::ABSOLUTE_PATH);
 
-                    $response = new RedirectResponse($redirectUrl);
-
-                    $session = $request->hasSession() ? $request->getSession() : null;
-                    if ($session) {
-                        $message = $orderNumber
-                            ? "Payment for order {$orderNumber} was declined. The order has been automatically cancelled."
-                            : "Payment was declined. The order has been automatically cancelled.";
-                        $session->getFlashBag()->add('info', $message);
-                    }
-
-                    $event->setResponse($response);
+                    $event->setResponse(new RedirectResponse($redirectUrl));
 
                     if ($this->configService->isExtendedLogsEnabled()) {
                         $this->logger->info('mondu.INFO: Successfully set redirect response', [
@@ -98,6 +109,26 @@ class OrderExceptionSubscriber implements EventSubscriberInterface
                     ]);
                 }
             }
+        }
+    }
+
+    private function extractErrorUrlFromToken(Request $request): ?string
+    {
+        $token = $request->query->get('_sw_payment_token');
+        if (!\is_string($token)) {
+            return null;
+        }
+
+        $parts = explode('.', $token);
+        if (\count($parts) !== 3) {
+            return null;
+        }
+
+        try {
+            $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
+            return isset($payload['eul']) && \is_string($payload['eul']) ? $payload['eul'] : null;
+        } catch (\Throwable) {
+            return null;
         }
     }
 }
