@@ -7,6 +7,9 @@ import './module/sw-mondu-test-api-button';
 // Import decorator to fix ZUGFeRD invoice filtering in Credit Note modal
 import './decorator/sw-order-document-settings-credit-note-modal';
 
+// Import decorator to show Mondu-specific error messages in admin state cards
+import './decorator/sw-order-state-cards';
+
 // Import locales/snippets
 import deDE from '../snippet/de-DE.json';
 import enGB from '../snippet/en-GB.json';

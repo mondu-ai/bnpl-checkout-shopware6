@@ -161,38 +161,16 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
                 }
             }
         } else {
+            // Move transaction to in_progress first (open → in_progress).
+            // For declined: let PaymentService call fail() by throwing asyncFinalizeInterrupted.
+            // For cancelled: let PaymentService call cancel() by throwing customerCanceled.
+            // This avoids double state transitions since PaymentService always transitions after catch.
             try {
-                if ($paymentState === 'declined') {
-                    $this->transactionStateHandler->fail($transaction->getOrderTransaction()->getId(), $context);
-                    
-                    if ($this->configService->isExtendedLogsEnabled()) {
-                        $this->logger->info('mondu.INFO: Transaction state set to FAIL for declined payment', [
-                            'order_id' => $transaction->getOrder()->getId(),
-                            'order_number' => $transaction->getOrder()->getOrderNumber(),
-                            'transaction_id' => $transaction->getOrderTransaction()->getId()
-                        ]);
-                    }
-                } else {
-                    $this->transactionStateHandler->cancel($transaction->getOrderTransaction()->getId(), $context);
-                    
-                    if ($this->configService->isExtendedLogsEnabled()) {
-                        $this->logger->info('mondu.INFO: Transaction state set to CANCEL for cancelled payment', [
-                            'order_id' => $transaction->getOrder()->getId(),
-                            'order_number' => $transaction->getOrder()->getOrderNumber(),
-                            'transaction_id' => $transaction->getOrderTransaction()->getId()
-                        ]);
-                    }
-                }
+                $this->transactionStateHandler->process($transaction->getOrderTransaction()->getId(), $context);
             } catch (\Throwable $e) {
-                if (strpos($e->getMessage(), 'cannot be edited') !== false || 
-                    strpos($e->getMessage(), 'was cancelled') !== false) {
-                    if ($this->configService->isExtendedLogsEnabled()) {
-                        $this->logger->info('mondu.INFO: Order was already cancelled by webhook, finalize completed without further action', [
-                            'order_id' => $transaction->getOrder()->getId(),
-                            'order_number' => $transaction->getOrder()->getOrderNumber(),
-                            'error' => $e->getMessage()
-                        ]);
-                    }
+                if (strpos($e->getMessage(), 'cannot be edited') !== false ||
+                    strpos($e->getMessage(), 'was cancelled') !== false ||
+                    stripos($e->getMessage(), 'Illegal transition') !== false) {
                     return;
                 } else {
                     throw $e;
@@ -201,7 +179,7 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
 
             $paymentOrderUuid = $request->query->get('order_uuid');
             $order = $transaction->getOrder();
-            
+
             if ($paymentState === 'declined') {
                 $event = new MonduOrderDeclinedEvent(
                     $order,
@@ -210,7 +188,7 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
                     $salesChannelContext->getContext()
                 );
                 $this->eventDispatcher->dispatch($event, $event->getName());
-                
+
                 if ($this->configService->isExtendedLogsEnabled()) {
                     $this->logger->info('mondu.INFO: Dispatched MonduOrderDeclinedEvent from finalize()', [
                         'order_id' => $order->getId(),
@@ -219,6 +197,13 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
                         'event_name' => $event->getName()
                     ]);
                 }
+
+                // Throw asyncFinalizeInterrupted so PaymentService calls fail() → "failed" state.
+                // Do NOT throw customerCanceled here — that causes PaymentService to call cancel() instead.
+                throw PaymentException::asyncFinalizeInterrupted(
+                    $transactionId,
+                    'Payment declined by Mondu.'
+                );
             } elseif ($paymentState === 'cancelled') {
                 $event = new MonduOrderCancelledEvent(
                     $order,
@@ -227,7 +212,7 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
                     $salesChannelContext->getContext()
                 );
                 $this->eventDispatcher->dispatch($event, $event->getName());
-                
+
                 if ($this->configService->isExtendedLogsEnabled()) {
                     $this->logger->info('mondu.INFO: Dispatched MonduOrderCancelledEvent from finalize()', [
                         'order_id' => $order->getId(),
@@ -236,12 +221,12 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
                         'event_name' => $event->getName()
                     ]);
                 }
-            }
 
-            throw PaymentException::customerCanceled(
-                $transactionId,
-                'Canceled/declined payment in Mondu Checkout.'
-            );
+                throw PaymentException::customerCanceled(
+                    $transactionId,
+                    'Canceled payment in Mondu Checkout.'
+                );
+            }
         }
         } catch (\Throwable $globalEx) {
             if ($paymentState === 'declined' || $paymentState === 'cancelled') {

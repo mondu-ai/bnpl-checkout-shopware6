@@ -138,11 +138,17 @@
             <argument key="$configService" type="service" id="mondu.mondu_config"/>
         </service>
 
+        <service id="Mondu\MonduPayment\Components\Logger\MonduLogHandler">
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
+            <argument key="$filename">%kernel.logs_dir%/mondu_%kernel.environment%.log</argument>
+        </service>
+
         <service id="Mondu\MonduPayment\Components\Order\Subscriber\OrderExceptionSubscriber" >
             <tag name="kernel.event_subscriber" />
             <argument key="$logger" type="service" id="monolog.logger.mondu"/>
             <argument key="$router" type="service" id="router"/>
             <argument key="$configService" type="service" id="mondu.mondu_config"/>
+            <argument key="$transactionStateHandler" type="service" id="Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler"/>
         </service>
 
         <service id="Mondu\MonduPayment\Components\Order\Subscriber\CreditNoteSubscriber" >

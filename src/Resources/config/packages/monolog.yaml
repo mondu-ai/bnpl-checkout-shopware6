@@ -3,7 +3,6 @@ monolog:
 
   handlers:
     monduLogHandler:
-      type: rotating_file
-      path: "%kernel.logs_dir%/mondu_%kernel.environment%.log"
-      level: info
+      type: service
+      id: Mondu\MonduPayment\Components\Logger\MonduLogHandler
       channels: [ "mondu" ]

@@ -9,6 +9,7 @@ use Mondu\MonduPayment\Components\Order\Model\Extension\OrderExtension;
 use Mondu\MonduPayment\Components\Order\Model\OrderDataEntity;
 use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 use Mondu\MonduPayment\Components\StateMachine\Exception\MonduException;
+use Mondu\MonduPayment\Components\StateMachine\Exception\MonduInvoiceException;
 use Mondu\MonduPayment\Services\InvoiceServices\AbstractInvoiceDataService;
 use Mondu\MonduPayment\Util\CriteriaHelper;
 use Psr\Log\LoggerInterface;
@@ -274,6 +275,7 @@ class TransitionSubscriber implements EventSubscriberInterface
                     );
                 }
 
+                $invoice = null;
                 $invoice = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->invoiceOrder(
                     $monduData->getReferenceId(),
                     $invoiceData
@@ -291,7 +293,7 @@ class TransitionSubscriber implements EventSubscriberInterface
                             ]
                         ], $context);
                     }
-                    
+
                     if ($this->configService->isExtendedLogsEnabled()) {
                         $this->logger->info(
                             'mondu.INFO: Skip all validation mode: Invoice successfully sent to Mondu',
@@ -312,7 +314,41 @@ class TransitionSubscriber implements EventSubscriberInterface
                     'error' => $e->getMessage()
                 ]);
             }
-            
+
+            if (is_array($invoice) && isset($invoice['status']) && $invoice['status'] === 'already_exists') {
+                if ($deliveryId !== null) {
+                    try {
+                        $this->stateMachineRegistry->transition(new Transition(
+                            OrderDeliveryDefinition::ENTITY_NAME,
+                            $deliveryId,
+                            'reopen',
+                            'stateId'
+                        ), $context);
+                    } catch (\Exception $revertEx) {}
+                }
+                throw new MonduInvoiceException('Invoice could not be created: the invoice reference ID is already in use on Mondu. Please use a unique invoice number.');
+            }
+
+            if ($invoice === null) {
+                if ($deliveryId !== null) {
+                    try {
+                        $this->stateMachineRegistry->transition(new Transition(
+                            OrderDeliveryDefinition::ENTITY_NAME,
+                            $deliveryId,
+                            'reopen',
+                            'stateId'
+                        ), $context);
+                    } catch (\Exception $revertEx) {
+                        $this->logger->error('mondu.ERROR: Failed to revert delivery state after invoice failure', [
+                            'order' => $order->getId(),
+                            'delivery_id' => $deliveryId,
+                            'error' => $revertEx->getMessage()
+                        ]);
+                    }
+                }
+                throw new MonduInvoiceException('Error occurred while shipping an order. Invoice API call failed. Please contact Mondu Support.');
+            }
+
             try {
                 $this->updateOrder($context, $monduData, [
                     OrderDataEntity::FIELD_ORDER_STATE => 'shipped'
@@ -350,13 +386,17 @@ class TransitionSubscriber implements EventSubscriberInterface
             }
 
             if (is_array($invoice) && isset($invoice['status']) && $invoice['status'] === 'already_exists') {
-                if ($this->configService->isExtendedLogsEnabled()) {
-                    $this->logger->info('mondu.INFO: Invoice already exists, updating order state to shipped');
+                if ($deliveryId !== null) {
+                    try {
+                        $this->stateMachineRegistry->transition(new Transition(
+                            OrderDeliveryDefinition::ENTITY_NAME,
+                            $deliveryId,
+                            'reopen',
+                            'stateId'
+                        ), $context);
+                    } catch (\Exception $revertEx) {}
                 }
-                $this->updateOrder($context, $monduData, [
-                    OrderDataEntity::FIELD_ORDER_STATE => 'shipped'
-                ]);
-                return;
+                throw new MonduInvoiceException('Invoice could not be created: the invoice reference ID is already in use on Mondu. Please use a unique invoice number.');
             }
 
             if ($invoice == null) {
@@ -463,27 +503,31 @@ class TransitionSubscriber implements EventSubscriberInterface
         $shippingMethod = $delivery->getShippingMethod();
         $shippingCompany = null;
         $shippingMethodName = null;
-        $shippingMethodId = null;
-        $shippingMethodTechnicalName = null;
+        $trackingUrl = null;
 
         if ($shippingMethod !== null) {
             $shippingCompany = $shippingMethod->getName();
             $shippingMethodName = $shippingMethod->getName();
-            $shippingMethodId = $shippingMethod->getId();
-            $shippingMethodTechnicalName = $shippingMethod->getTechnicalName();
+            $templateUrl = $shippingMethod->getTrackingUrl();
+            if ($templateUrl !== null && $templateUrl !== '' && $trackingNumber !== null) {
+                $trackingUrl = str_replace('%s', (string) $trackingNumber, $templateUrl);
+            }
         }
 
-        $extra = [];
+        $shippingInfo = [];
         if ($trackingNumber !== null) {
-            $extra['tracking_number'] = (string) $trackingNumber;
+            $shippingInfo['tracking_number'] = (string) $trackingNumber;
+        }
+        if ($trackingUrl !== null) {
+            $shippingInfo['tracking_url'] = $trackingUrl;
         }
         if ($shippingCompany !== null) {
-            $extra['shipping_company'] = (string) $shippingCompany;
+            $shippingInfo['shipping_company'] = (string) $shippingCompany;
         }
         if ($shippingMethodName !== null && $shippingMethodName !== '') {
-            $extra['shipping_method'] = (string) $shippingMethodName;
+            $shippingInfo['shipping_method'] = (string) $shippingMethodName;
         }
 
-        return $extra !== [] ? $invoiceData + $extra : $invoiceData;
+        return $shippingInfo !== [] ? array_merge($invoiceData, ['shipping_info' => $shippingInfo]) : $invoiceData;
     }
 }

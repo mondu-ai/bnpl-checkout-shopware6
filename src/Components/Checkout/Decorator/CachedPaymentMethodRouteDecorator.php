@@ -40,21 +40,10 @@ class CachedPaymentMethodRouteDecorator extends AbstractPaymentMethodRoute
             return $response;
         }
 
-        $beforeCount = $response->getPaymentMethods()->count();
         $filtered = $response->getObject()->filter(
             static fn ($method) => !in_array($method->getHandlerIdentifier(), $disallowedHandlers, true)
         );
-        $afterCount = $filtered->getEntities()->count();
-        $removed = $beforeCount - $afterCount;
-
         $this->configService->setSalesChannelId($context->getSalesChannelId());
-        if ($removed > 0 || $this->configService->isExtendedLogsEnabled()) {
-            $this->logger->info('[B2C Filter] CachedPaymentMethodRouteDecorator', [
-                'before' => $beforeCount,
-                'after' => $afterCount,
-                'removed' => $removed,
-            ]);
-        }
 
         return new PaymentMethodRouteResponse($filtered);
     }
