@@ -400,7 +400,7 @@ class TransitionSubscriber implements EventSubscriberInterface
             }
 
             if ($invoice == null) {
-                throw new MonduException('Error occurred while shipping an order. Please contact Mondu Support.');
+                throw new MonduInvoiceException('Error occurred while shipping an order. Invoice API call failed. Please contact Mondu Support.');
             }
             
             $attachedDocument = null;
@@ -460,7 +460,7 @@ class TransitionSubscriber implements EventSubscriberInterface
                 }
             }
             
-            throw new MonduException('Error occurred while shipping an order. Please contact Mondu Support.');
+            throw new MonduInvoiceException('Error occurred while shipping an order. Invoice API call failed. Please contact Mondu Support.');
         }
     }
 
