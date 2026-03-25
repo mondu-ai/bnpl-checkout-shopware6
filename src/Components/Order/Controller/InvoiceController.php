@@ -13,6 +13,7 @@ use Symfony\Component\Routing\Annotation\Route;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
+use Mondu\MonduPayment\Components\Order\Model\OrderDataEntity;
 use Mondu\MonduPayment\Util\CriteriaHelper;
 
 #[Route(defaults: ['_routeScope' => ['api']])]
@@ -46,6 +47,11 @@ class InvoiceController extends AbstractController
                 );
 
                 if ($cancellation != null) {
+                    $this->invoiceDataRepository->delete([['id' => $invoiceEntity->getId()]], $context);
+                    $this->orderDataRepository->update([[
+                        'id' => $orderEntity->getId(),
+                        OrderDataEntity::FIELD_ORDER_STATE => 'authorized',
+                    ]], $context);
                     return new Response(json_encode(['status' => 'ok', 'error' => '0']), Response::HTTP_OK);
                 }
 
