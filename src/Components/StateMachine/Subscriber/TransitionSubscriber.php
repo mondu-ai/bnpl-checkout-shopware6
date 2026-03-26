@@ -427,14 +427,16 @@ class TransitionSubscriber implements EventSubscriberInterface
             ]);
 
         } catch (\Exception $e) {
-            $this->logger->critical(
-                'mondu.CRITICAL: Exception during shipment. (Exception: '. $e->getMessage().')',
-                [
-                    'order' => $order->getId(),
-                    'mondu-reference-id' => $monduData->getReferenceId(),
-                    'delivery_id' => $deliveryId
-                ]
-            );
+            if ($this->configService->isExtendedLogsEnabled()) {
+                $this->logger->warning(
+                    'mondu.WARNING: Exception during shipment. (Exception: '. $e->getMessage().')',
+                    [
+                        'order' => $order->getId(),
+                        'mondu-reference-id' => $monduData->getReferenceId(),
+                        'delivery_id' => $deliveryId
+                    ]
+                );
+            }
             
             if ($deliveryId !== null) {
                 try {
