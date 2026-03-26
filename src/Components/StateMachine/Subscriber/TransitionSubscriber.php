@@ -26,6 +26,8 @@ use Shopware\Core\System\StateMachine\StateMachineRegistry;
 use Shopware\Core\System\StateMachine\Transition;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Mondu\MonduPayment\Components\Invoice\InvoiceDataEntity;
+use Shopware\Core\Content\MailTemplate\Subscriber\MailSendSubscriberConfig;
+use Shopware\Core\Content\Flow\Dispatching\Action\SendMailAction;
 
 class TransitionSubscriber implements EventSubscriberInterface
 {
@@ -209,21 +211,68 @@ class TransitionSubscriber implements EventSubscriberInterface
             $documentId = null;
             
             if ($order->getDocuments() && $order->getDocuments()->count() > 0) {
-                foreach ($order->getDocuments() as $document) {
-                    if (
-                        $document->getDocumentType()->getTechnicalName() === 'invoice' ||
-                        $document->getDocumentType()->getTechnicalName() === 'zugferd_embedded_invoice'
-                    ) {
-                        $foundUrl = $this->invoiceDataService->getDocumentUrl($document);
-                        if ($foundUrl !== null) {
-                            $invoiceUrl = $foundUrl;
-                            $hasRealInvoice = true;
+                // Prefer the document explicitly selected by the admin in the UI
+                $selectedDocumentIds = [];
+                $mailConfig = $context->getExtension(SendMailAction::MAIL_CONFIG_EXTENSION);
+                if ($mailConfig instanceof MailSendSubscriberConfig) {
+                    $selectedDocumentIds = $mailConfig->getDocumentIds();
+                }
+
+                $chosenDoc = null;
+
+                // First: try to find the selected document among invoice-type docs
+                if (!empty($selectedDocumentIds) && $order->getDocuments()) {
+                    foreach ($order->getDocuments() as $document) {
+                        if (
+                            in_array($document->getId(), $selectedDocumentIds) &&
+                            (
+                                $document->getDocumentType()->getTechnicalName() === 'invoice' ||
+                                $document->getDocumentType()->getTechnicalName() === 'zugferd_embedded_invoice'
+                            )
+                        ) {
+                            $chosenDoc = $document;
+                            break;
                         }
-                        $config = $document->getConfig();
-                        $invoiceNumber = $config['custom']['invoiceNumber'] ?? $order->getOrderNumber();
-                        $documentId = $document->getId();
-                        break;
                     }
+                }
+
+                // Fallback: take the newest active (non-cancelled) invoice document
+                if ($chosenDoc === null) {
+                    // Collect IDs of documents that have been cancelled (referenced by a storno doc)
+                    $cancelledByStornoIds = [];
+                    foreach ($order->getDocuments() as $document) {
+                        if ($document->getReferencedDocumentId() !== null) {
+                            $cancelledByStornoIds[] = $document->getReferencedDocumentId();
+                        }
+                    }
+
+                    $invoiceDocs = [];
+                    foreach ($order->getDocuments() as $document) {
+                        if (
+                            (
+                                $document->getDocumentType()->getTechnicalName() === 'invoice' ||
+                                $document->getDocumentType()->getTechnicalName() === 'zugferd_embedded_invoice'
+                            ) &&
+                            !in_array($document->getId(), $cancelledByStornoIds)
+                        ) {
+                            $invoiceDocs[] = $document;
+                        }
+                    }
+                    usort($invoiceDocs, function($a, $b) {
+                        return $b->getCreatedAt() <=> $a->getCreatedAt();
+                    });
+                    $chosenDoc = $invoiceDocs[0] ?? null;
+                }
+
+                if ($chosenDoc !== null) {
+                    $foundUrl = $this->invoiceDataService->getDocumentUrl($chosenDoc);
+                    if ($foundUrl !== null) {
+                        $invoiceUrl = $foundUrl;
+                        $hasRealInvoice = true;
+                    }
+                    $config = $chosenDoc->getConfig();
+                    $invoiceNumber = $config['custom']['invoiceNumber'] ?? $order->getOrderNumber();
+                    $documentId = $chosenDoc->getId();
                 }
             }
             
@@ -281,7 +330,7 @@ class TransitionSubscriber implements EventSubscriberInterface
                     $invoiceData
                 );
 
-                if ($invoice != null) {
+                if ($invoice != null && isset($invoice['uuid'])) {
                     if ($documentId !== null) {
                         $this->invoiceDataRepository->upsert([
                             [
@@ -326,7 +375,7 @@ class TransitionSubscriber implements EventSubscriberInterface
                         ), $context);
                     } catch (\Exception $revertEx) {}
                 }
-                throw new MonduInvoiceException('Invoice could not be created: the invoice reference ID is already in use on Mondu. Please use a unique invoice number.');
+                throw new MonduInvoiceException('Invoice already exists in Mondu. Please cancel the existing invoice before shipping.');
             }
 
             if ($invoice === null) {
@@ -386,17 +435,7 @@ class TransitionSubscriber implements EventSubscriberInterface
             }
 
             if (is_array($invoice) && isset($invoice['status']) && $invoice['status'] === 'already_exists') {
-                if ($deliveryId !== null) {
-                    try {
-                        $this->stateMachineRegistry->transition(new Transition(
-                            OrderDeliveryDefinition::ENTITY_NAME,
-                            $deliveryId,
-                            'reopen',
-                            'stateId'
-                        ), $context);
-                    } catch (\Exception $revertEx) {}
-                }
-                throw new MonduInvoiceException('Invoice could not be created: the invoice reference ID is already in use on Mondu. Please use a unique invoice number.');
+                throw new MonduInvoiceException('Invoice already exists in Mondu. Please cancel the existing invoice before shipping.');
             }
 
             if ($invoice == null) {

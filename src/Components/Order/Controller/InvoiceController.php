@@ -40,6 +40,11 @@ class InvoiceController extends AbstractController
             $orderEntity = $this->orderDataRepository->search($criteria, $context)->first();
             $invoiceEntity = $this->invoiceDataRepository->search($invoiceCriteria, $context)->first();
 
+            // Invoice was never sent to Mondu — nothing to cancel on their side, just succeed
+            if ($orderEntity != null && $invoiceEntity === null) {
+                return new Response(json_encode(['status' => 'ok', 'error' => '0']), Response::HTTP_OK);
+            }
+
             if ($orderEntity != null && $invoiceEntity != null) {
                 $cancellation = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->cancelInvoice(
                     $orderEntity->getReferenceId(),

@@ -58,6 +58,10 @@ class MonduClient
     {
         $response = $this->sendRequest('orders/'.$orderUid.'/invoices', 'POST', $body);
 
+        if (is_array($response) && isset($response['status'])) {
+            return $response;
+        }
+
         return $response['invoice'] ?? null;
     }
 
@@ -155,7 +159,7 @@ class MonduClient
         }
     }
 
-    public function sendRequest($url, $method = 'GET', $body = [], $allowAlreadySubscribed = false) 
+    public function sendRequest($url, $method = 'GET', $body = [], $allowAlreadySubscribed = false)
     {
         $request = $this->getRequestObject($url, $method, $body);
 
@@ -166,7 +170,7 @@ class MonduClient
 
         } catch (GuzzleException $e) {
             $responseBody = null;
-            
+
             if (method_exists($e, 'getResponse') && $e->getResponse()) {
                 $responseBody = json_decode($e->getResponse()->getBody()->getContents(), true);
                 
