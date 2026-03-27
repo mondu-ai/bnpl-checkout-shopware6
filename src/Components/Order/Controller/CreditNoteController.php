@@ -44,6 +44,10 @@ class CreditNoteController extends AbstractController
             $invoiceEntity = $this->invoiceDataRepository->search($invoiceCriteria, $context)->first();
 
             if ($invoiceEntity != null) {
+                if ($creditNoteEntity === null) {
+                    return new Response(json_encode(['status' => 'credit_note_not_registered_in_mondu', 'error' => '2']), Response::HTTP_BAD_REQUEST);
+                }
+
                 $cancellation = $this->monduClient->setSalesChannelId($document->getOrder()->getSalesChannelId())->cancelCreditNote(
                     $invoiceEntity->getExternalInvoiceUuid(),
                     $creditNoteEntity->getExternalInvoiceUuid()

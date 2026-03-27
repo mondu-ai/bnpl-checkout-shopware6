@@ -57,7 +57,23 @@ class CreditNoteSubscriber implements EventSubscriberInterface
                     $invoiceCriteria->addFilter(new EqualsFilter('orderId', $orderId));
                     $invoiceEntity = $this->invoiceDataRepository->search($invoiceCriteria, $event->getContext())->first();
 
-                    $order = $this->getOrder($orderId, $event->getContext());
+                    if ($invoiceEntity === null) {
+                        $this->logger->warning('mondu.WARNING: Parent invoice not found for credit note, skipping Mondu API call', [
+                            'order_id' => $orderId,
+                            'invoice_number' => $invoiceNumber,
+                            'credit_note_number' => $creditNoteNumber,
+                        ]);
+                        return;
+                    }
+
+                    // Fetch the order at the specific version used for this document so that
+                    // only credit items belonging to THIS credit note are included in the sum,
+                    // not credit items from previously created credit notes on the same order.
+                    $orderVersionId = $payload['orderVersionId'] ?? null;
+                    $orderContext = $orderVersionId
+                        ? $event->getContext()->createWithVersionId($orderVersionId)
+                        : $event->getContext();
+                    $order = $this->getOrder($orderId, $orderContext);
 
                     $grossAmountCents = 0;
                     $taxCents = 0;
