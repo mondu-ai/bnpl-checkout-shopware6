@@ -13,6 +13,8 @@ use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Event\EntityWrittenEvent;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\NotEqualsFilter;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Mondu\MonduPayment\Components\StateMachine\Exception\MonduException;
 use Mondu\MonduPayment\Components\Invoice\InvoiceDataEntity;
@@ -66,14 +68,18 @@ class CreditNoteSubscriber implements EventSubscriberInterface
                         return;
                     }
 
-                    // Fetch the order at the specific version used for this document so that
-                    // only credit items belonging to THIS credit note are included in the sum,
-                    // not credit items from previously created credit notes on the same order.
-                    $orderVersionId = $payload['orderVersionId'] ?? null;
-                    $orderContext = $orderVersionId
-                        ? $event->getContext()->createWithVersionId($orderVersionId)
-                        : $event->getContext();
-                    $order = $this->getOrder($orderId, $orderContext);
+                    // Find the most recently processed credit note for this order.
+                    // Credit note entries have invoiceNumber = their own CN number (≠ parent invoice number).
+                    // We use its createdAt as a cutoff so that only credit items added AFTER
+                    // that point are counted — i.e. only the items belonging to THIS credit note.
+                    $prevCNCriteria = new Criteria();
+                    $prevCNCriteria->addFilter(new EqualsFilter('orderId', $orderId));
+                    $prevCNCriteria->addFilter(new NotEqualsFilter('invoiceNumber', $invoiceNumber));
+                    $prevCNCriteria->addSorting(new FieldSorting('createdAt', FieldSorting::DESCENDING));
+                    $prevCNCriteria->setLimit(1);
+                    $latestPrevCN = $this->invoiceDataRepository->search($prevCNCriteria, $event->getContext())->first();
+
+                    $order = $this->getOrder($orderId, $event->getContext());
 
                     $grossAmountCents = 0;
                     $taxCents = 0;
@@ -82,35 +88,36 @@ class CreditNoteSubscriber implements EventSubscriberInterface
                             continue;
                         }
 
+                        // Skip credit items that were already covered by a previous credit note
+                        if ($latestPrevCN !== null && $lineItem->getCreatedAt() <= $latestPrevCN->getCreatedAt()) {
+                            continue;
+                        }
+
                         $grossAmountCents += round(abs($lineItem->getPrice()->getTotalPrice()) * 100);
                         $taxCents += round(abs($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity()) * 100);
                     }
 
-                    if ($invoiceEntity != null) {
-                        $response = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->createCreditNote(
-                            $invoiceEntity->getExternalInvoiceUuid(),
+                    $response = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->createCreditNote(
+                        $invoiceEntity->getExternalInvoiceUuid(),
+                        [
+                            'external_reference_id' => $creditNoteNumber,
+                            'gross_amount_cents' => $grossAmountCents,
+                            'tax_cents' => $taxCents
+                        ]
+                    );
+
+                    if ($response == null) {
+                        $this->log('Credit Credit Note Response Failed', [$event]);
+                    } else {
+                        $this->invoiceDataRepository->upsert([
                             [
-                                'external_reference_id' => $creditNoteNumber,
-                                'gross_amount_cents' => $grossAmountCents,
-                                'tax_cents' => $taxCents
+                                InvoiceDataEntity::FIELD_ORDER_ID => $order->getId(),
+                                InvoiceDataEntity::FIELD_ORDER_VERSION_ID => $order->getVersionId(),
+                                InvoiceDataEntity::FIELD_DOCUMENT_ID => $payload['id'],
+                                InvoiceDataEntity::FIELD_INVOICE_NUMBER => $creditNoteNumber,
+                                InvoiceDataEntity::FIELD_EXTERNAL_INVOICE_UUID => $response['credit_note']['uuid'],
                             ]
-                        );
-
-                        if ($response == null) {
-                            $this->log('Credit Credit Note Response Failed', [$event]);
-                        } else {
-
-                            $this->invoiceDataRepository->upsert([
-                                [
-                                    InvoiceDataEntity::FIELD_ORDER_ID => $order->getId(),
-                                    InvoiceDataEntity::FIELD_ORDER_VERSION_ID => $order->getVersionId(),
-                                    InvoiceDataEntity::FIELD_DOCUMENT_ID => $payload['id'],
-                                    InvoiceDataEntity::FIELD_INVOICE_NUMBER => $creditNoteNumber,
-                                    InvoiceDataEntity::FIELD_EXTERNAL_INVOICE_UUID => $response['credit_note']['uuid']                                    ,
-                                ]
-                              ], $event->getContext());
-
-                        }
+                        ], $event->getContext());
                     }
                 }
             }
