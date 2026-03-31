@@ -13,7 +13,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Event\EntityWrittenEvent;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\NotEqualsFilter;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\NotFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Mondu\MonduPayment\Components\StateMachine\Exception\MonduException;
@@ -74,7 +74,7 @@ class CreditNoteSubscriber implements EventSubscriberInterface
                     // that point are counted — i.e. only the items belonging to THIS credit note.
                     $prevCNCriteria = new Criteria();
                     $prevCNCriteria->addFilter(new EqualsFilter('orderId', $orderId));
-                    $prevCNCriteria->addFilter(new NotEqualsFilter('invoiceNumber', $invoiceNumber));
+                    $prevCNCriteria->addFilter(new NotFilter(NotFilter::CONNECTION_AND, [new EqualsFilter('invoiceNumber', $invoiceNumber)]));
                     $prevCNCriteria->addSorting(new FieldSorting('createdAt', FieldSorting::DESCENDING));
                     $prevCNCriteria->setLimit(1);
                     $latestPrevCN = $this->invoiceDataRepository->search($prevCNCriteria, $event->getContext())->first();
