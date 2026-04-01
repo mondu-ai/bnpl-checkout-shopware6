@@ -5,10 +5,7 @@ export default class InvoiceService extends Shopware.Classes.ApiService {
 
   cancel(orderId, invoiceId) {
     return this.httpClient
-      .post(`/mondu/orders/${orderId}/${invoiceId}/cancel`,
-        {
-          headers: this.getBasicHeaders()
-        })
+      .post(`/mondu/orders/${orderId}/${invoiceId}/cancel`, {}, { headers: this.getBasicHeaders() })
       .then(response => response.data)
   }
 }

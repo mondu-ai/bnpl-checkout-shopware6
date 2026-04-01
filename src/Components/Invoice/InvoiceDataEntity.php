@@ -60,11 +60,6 @@ class InvoiceDataEntity extends Entity
      */
     protected ?string $externalInvoiceUuid;
 
-    public function getId(): ?string
-    {
-        return $this->name;
-    }
-
     public function getOrderId(): ?string
     {
         return $this->orderId;

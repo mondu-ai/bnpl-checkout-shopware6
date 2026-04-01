@@ -351,7 +351,7 @@ class TransitionSubscriber implements EventSubscriberInterface
                         ), $context);
                     } catch (\Exception $revertEx) {}
                 }
-                throw new MonduInvoiceException('Invoice could not be created: the invoice reference ID is already in use on Mondu. Please use a unique invoice number.');
+                throw new MonduInvoiceException('Invoice already exists in Mondu. Please cancel the existing invoice before shipping.');
             }
 
             if ($invoice === null) {
@@ -371,12 +371,19 @@ class TransitionSubscriber implements EventSubscriberInterface
                         ]);
                     }
                 }
-                throw new MonduException('Error occurred while shipping an order. Invoice API call failed. Please contact Mondu Support.');
+                throw new MonduInvoiceException('Error occurred while shipping an order. Invoice API call failed. Please contact Mondu Support.');
             }
 
-            $this->updateOrder($context, $monduData, [
-                OrderDataEntity::FIELD_ORDER_STATE => 'shipped'
-            ]);
+            try {
+                $this->updateOrder($context, $monduData, [
+                    OrderDataEntity::FIELD_ORDER_STATE => 'shipped'
+                ]);
+            } catch (\Exception $e) {
+                $this->logger->error('mondu.ERROR: Failed to update Mondu order state to shipped', [
+                    'order' => $order->getId(),
+                    'error' => $e->getMessage()
+                ]);
+            }
 
             return;
         }

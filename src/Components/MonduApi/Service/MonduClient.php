@@ -58,7 +58,7 @@ class MonduClient
     {
         $response = $this->sendRequest('orders/'.$orderUid.'/invoices', 'POST', $body);
 
-        if (isset($response['status']) && $response['status'] === 'already_exists') {
+        if (is_array($response) && isset($response['status'])) {
             return $response;
         }
 
@@ -191,7 +191,9 @@ class MonduClient
                         if (strpos($details, 'must be unique') !== false ||
                             strpos($details, 'order cannot be shipped or complete') !== false) {
 
-                            $this->logger->warning("mondu.WARNING: MonduClient [{$method} {$url}]: Invoice already exists, returning special status - " . $details);
+                            if ($this->configService->isExtendedLogsEnabled()) {
+                                $this->logger->info("mondu.INFO: MonduClient [{$method} {$url}]: Invoice already exists, returning special status - " . $details);
+                            }
 
                             return ['status' => 'already_exists', 'message' => $details];
                         }
@@ -199,7 +201,9 @@ class MonduClient
                 }
             }
 
-            $this->logger->critical("mondu.CRITICAL: MonduClient [{$method} {$url}]: Failed with an exception message: {$e->getMessage()}");
+            if ($this->configService->isExtendedLogsEnabled()) {
+                $this->logger->warning("mondu.WARNING: MonduClient [{$method} {$url}]: Failed with an exception message: {$e->getMessage()}");
+            }
 
             $eventLog = [
                 'response_status' => strval($e->getCode()),
