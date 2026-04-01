@@ -214,21 +214,67 @@ class TransitionSubscriber implements EventSubscriberInterface
             $documentId = null;
 
             if ($order->getDocuments() && $order->getDocuments()->count() > 0) {
-                foreach ($order->getDocuments() as $document) {
-                    if (
-                        $document->getDocumentType()->getTechnicalName() === 'invoice' ||
-                        $document->getDocumentType()->getTechnicalName() === 'zugferd_embedded_invoice'
-                    ) {
-                        $foundUrl = $this->documentUrlHelper->generateRouteForDocument($document);
-                        if ($foundUrl !== null) {
-                            $invoiceUrl = $foundUrl;
-                            $hasRealInvoice = true;
+                // Prefer the document explicitly selected by the admin in the UI
+                $selectedDocumentIds = [];
+                if ($context->hasExtension('mail-attachments')) {
+                    $mailAttachments = $context->getExtension('mail-attachments');
+                    $selectedDocumentIds = $mailAttachments->getDocumentIds();
+                }
+
+                $chosenDoc = null;
+
+                // First: try to find the selected document among invoice-type docs
+                if (!empty($selectedDocumentIds)) {
+                    foreach ($order->getDocuments() as $document) {
+                        if (
+                            in_array($document->getId(), $selectedDocumentIds) &&
+                            (
+                                $document->getDocumentType()->getTechnicalName() === 'invoice' ||
+                                $document->getDocumentType()->getTechnicalName() === 'zugferd_embedded_invoice'
+                            )
+                        ) {
+                            $chosenDoc = $document;
+                            break;
                         }
-                        $config = $document->getConfig();
-                        $invoiceNumber = $config['custom']['invoiceNumber'] ?? $order->getOrderNumber();
-                        $documentId = $document->getId();
-                        break;
                     }
+                }
+
+                // Fallback: take the newest active (non-cancelled) invoice document
+                if ($chosenDoc === null) {
+                    $cancelledByStornoIds = [];
+                    foreach ($order->getDocuments() as $document) {
+                        if ($document->getReferencedDocumentId() !== null) {
+                            $cancelledByStornoIds[] = $document->getReferencedDocumentId();
+                        }
+                    }
+
+                    $invoiceDocs = [];
+                    foreach ($order->getDocuments() as $document) {
+                        if (
+                            (
+                                $document->getDocumentType()->getTechnicalName() === 'invoice' ||
+                                $document->getDocumentType()->getTechnicalName() === 'zugferd_embedded_invoice'
+                            ) &&
+                            !in_array($document->getId(), $cancelledByStornoIds)
+                        ) {
+                            $invoiceDocs[] = $document;
+                        }
+                    }
+                    usort($invoiceDocs, function ($a, $b) {
+                        return $b->getCreatedAt() <=> $a->getCreatedAt();
+                    });
+                    $chosenDoc = $invoiceDocs[0] ?? null;
+                }
+
+                if ($chosenDoc !== null) {
+                    $foundUrl = $this->documentUrlHelper->generateRouteForDocument($chosenDoc);
+                    if ($foundUrl !== null) {
+                        $invoiceUrl = $foundUrl;
+                        $hasRealInvoice = true;
+                    }
+                    $config = $chosenDoc->getConfig();
+                    $invoiceNumber = $config['custom']['invoiceNumber'] ?? $order->getOrderNumber();
+                    $documentId = $chosenDoc->getId();
                 }
             }
 
@@ -272,7 +318,7 @@ class TransitionSubscriber implements EventSubscriberInterface
                     $invoiceData
                 );
 
-                if ($invoice != null) {
+                if ($invoice != null && isset($invoice['uuid'])) {
                     if ($documentId !== null) {
                         $this->invoiceDataRepository->upsert([
                             [
@@ -355,17 +401,11 @@ class TransitionSubscriber implements EventSubscriberInterface
             );
 
             if (is_array($invoice) && isset($invoice['status']) && $invoice['status'] === 'already_exists') {
-                if ($this->configService->isExtendedLogsEnabled()) {
-                    $this->logger->info('mondu.INFO: Invoice already exists, updating order state to shipped');
-                }
-                $this->updateOrder($context, $monduData, [
-                    OrderDataEntity::FIELD_ORDER_STATE => 'shipped'
-                ]);
-                return;
+                throw new MonduInvoiceException('Invoice already exists in Mondu. Please cancel the existing invoice before shipping.');
             }
 
             if ($invoice == null) {
-                throw new MonduException('Error occurred while shipping an order. Please contact Mondu Support.');
+                throw new MonduInvoiceException('Error occurred while shipping an order. Invoice API call failed. Please contact Mondu Support.');
             }
 
             $attachedDocument = null;
@@ -392,14 +432,16 @@ class TransitionSubscriber implements EventSubscriberInterface
             ]);
 
         } catch (\Exception $e) {
-            $this->logger->critical(
-                'Exception during shipment. (Exception: '. $e->getMessage().')',
-                [
-                    'order' => $order->getId(),
-                    'mondu-reference-id' => $monduData->getReferenceId(),
-                    'delivery_id' => $deliveryId
-                ]
-            );
+            if ($this->configService->isExtendedLogsEnabled()) {
+                $this->logger->warning(
+                    'mondu.WARNING: Exception during shipment. (Exception: '. $e->getMessage().')',
+                    [
+                        'order' => $order->getId(),
+                        'mondu-reference-id' => $monduData->getReferenceId(),
+                        'delivery_id' => $deliveryId
+                    ]
+                );
+            }
 
             // Revert delivery state on failure
             if ($deliveryId !== null) {
@@ -426,7 +468,7 @@ class TransitionSubscriber implements EventSubscriberInterface
                 }
             }
 
-            throw new MonduException('Error: ' . $e->getMessage());
+            throw new MonduInvoiceException('Error occurred while shipping an order. Invoice API call failed. Please contact Mondu Support.');
         }
     }
 
