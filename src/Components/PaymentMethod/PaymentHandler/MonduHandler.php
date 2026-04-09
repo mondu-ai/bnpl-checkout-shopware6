@@ -135,18 +135,17 @@ class MonduHandler extends AbstractPaymentHandler
                 $isPayNow = str_contains($paymentHandlerIdentifier, 'MonduPayNowHandler');
 
                 try {
-                    if (
-                        $orderTransactionState == self::ORDER_TRANSACTION_STATE_PAID &&
-                        $confirmResponseState == self::RESPONSE_STATE_PENDING
-                    ) {
+                    if ($confirmResponseState == self::RESPONSE_STATE_PENDING) {
+                        // Mondu requires manual review — always set to "Unconfirmed" regardless of configured state
                         if ($this->configService->isExtendedLogsEnabled()) {
-                            $this->logger->info('mondu.INFO: Mondu returned pending - setting to process', [
+                            $this->logger->info('mondu.INFO: Mondu returned pending - setting to processUnconfirmed', [
                                 'order_number' => $order->getOrderNumber(),
                                 'confirmResponseState' => $confirmResponseState,
+                                'orderTransactionState' => $orderTransactionState,
                                 'isPayNow' => $isPayNow
                             ]);
                         }
-                        $this->transactionStateHandler->process($transactionId, $context);
+                        $this->transactionStateHandler->processUnconfirmed($transactionId, $context);
                     } elseif ($isPayNow) {
                         if ($this->configService->isExtendedLogsEnabled()) {
                             $this->logger->info('mondu.INFO: Pay Now with confirmed - setting to paid', [
