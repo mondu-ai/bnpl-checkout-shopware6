@@ -160,6 +160,12 @@
             <argument key="$logger" type="service" id="monolog.logger.mondu"/>
         </service>
 
+        <service id="Mondu\MonduPayment\Components\Order\Subscriber\CreditNoteDocumentSubscriber">
+            <tag name="kernel.event_subscriber" />
+            <argument key="$connection" type="service" id="Doctrine\DBAL\Connection"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+        </service>
+
         <service id="Mondu\MonduPayment\Bootstrap\MediaProvider" public="true">
             <argument type="service" key="$mediaService" id="Shopware\Core\Content\Media\MediaService"/>
             <argument type="service" key="$mediaRepository" id="media.repository"/>
