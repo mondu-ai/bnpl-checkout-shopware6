@@ -10,6 +10,9 @@ import './decorator/sw-order-document-settings-credit-note-modal';
 // Import decorator to show Mondu-specific error messages in admin state cards
 import './decorator/sw-order-state-cards';
 
+// Import decorator to hide raw technical event id in Flow Builder list (6.6 shows it by default; 6.7 doesn't)
+import './decorator/sw-flow-list';
+
 // Import locales/snippets
 import deDE from '../snippet/de-DE.json';
 import enGB from '../snippet/en-GB.json';

@@ -15,6 +15,14 @@
             "Mondu Payments.order.Approved": "Mondu Payments / Bestellung / Genehmigt"
         }
     },
+    "sw-flow-custom-event": {
+        "flow-list": {
+            "Mondu Payments_order_Confirmed": "Mondu: Bestellung bestätigt",
+            "Mondu Payments_order_Cancelled": "Mondu: Bestellung storniert",
+            "Mondu Payments_order_Pending": "Mondu: Bestellung ausstehend",
+            "Mondu Payments_order_Declined": "Mondu: Bestellung abgelehnt"
+        }
+    },
     "sw-order-mondu": {
         "documentCard": {
             "labelCancelInvoice": "Rechnung stornieren",
