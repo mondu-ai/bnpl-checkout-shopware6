@@ -33,6 +33,14 @@ class OrderExceptionSubscriber implements EventSubscriberInterface
         $exception = $event->getThrowable();
         $request = $event->getRequest();
 
+        // Skip Admin API requests — this subscriber only handles the frontend
+        // checkout/payment flow (cannot be edited / was cancelled / Illegal transition).
+        // Admin API exceptions (e.g. MissingPrivilegeException on /api/search/*) are
+        // unrelated to Mondu and would only produce noise in the log.
+        if (str_starts_with($request->getPathInfo(), '/api/')) {
+            return;
+        }
+
         if ($this->configService->isExtendedLogsEnabled()) {
             $this->logger->info('mondu.DEBUG: Exception caught in subscriber', [
                 'message' => $exception->getMessage(),
