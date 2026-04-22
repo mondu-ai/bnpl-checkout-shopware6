@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mondu\MonduPayment\Components\Order\Subscriber;
 
 use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
+use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 use Mondu\MonduPayment\Util\CriteriaHelper;
 use Psr\Log\LoggerInterface;
 use Shopware\Core\Checkout\Order\OrderEntity;
@@ -26,7 +27,8 @@ class CreditNoteSubscriber implements EventSubscriberInterface
         private readonly EntityRepository $orderDataRepository,
         private readonly EntityRepository $invoiceDataRepository,
         private readonly MonduClient $monduClient,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        private readonly ConfigService $configService
     ) {}
 
     public static function getSubscribedEvents(): array
@@ -60,11 +62,13 @@ class CreditNoteSubscriber implements EventSubscriberInterface
                     $invoiceEntity = $this->invoiceDataRepository->search($invoiceCriteria, $event->getContext())->first();
 
                     if ($invoiceEntity === null) {
-                        $this->logger->warning('mondu.WARNING: Parent invoice not found for credit note, skipping Mondu API call', [
-                            'order_id' => $orderId,
-                            'invoice_number' => $invoiceNumber,
-                            'credit_note_number' => $creditNoteNumber,
-                        ]);
+                        if ($this->configService->isExtendedLogsEnabled()) {
+                            $this->logger->warning('mondu.WARNING: Parent invoice not found for credit note, skipping Mondu API call', [
+                                'order_id' => $orderId,
+                                'invoice_number' => $invoiceNumber,
+                                'credit_note_number' => $creditNoteNumber,
+                            ]);
+                        }
                         return;
                     }
 
@@ -72,12 +76,21 @@ class CreditNoteSubscriber implements EventSubscriberInterface
                     // Credit note entries have invoiceNumber = their own CN number (≠ parent invoice number).
                     // We use its createdAt as a cutoff so that only credit items added AFTER
                     // that point are counted — i.e. only the items belonging to THIS credit note.
+                    // Exclude credit notes whose Shopware document has been detached from the
+                    // parent invoice (referencedDocumentId=NULL) — those are cancelled-at-Mondu
+                    // entries, and their items must be re-counted for the new CN.
                     $prevCNCriteria = new Criteria();
+                    $prevCNCriteria->addAssociation('document');
                     $prevCNCriteria->addFilter(new EqualsFilter('orderId', $orderId));
                     $prevCNCriteria->addFilter(new NotFilter(NotFilter::CONNECTION_AND, [new EqualsFilter('invoiceNumber', $invoiceNumber)]));
                     $prevCNCriteria->addSorting(new FieldSorting('createdAt', FieldSorting::DESCENDING));
-                    $prevCNCriteria->setLimit(1);
-                    $latestPrevCN = $this->invoiceDataRepository->search($prevCNCriteria, $event->getContext())->first();
+                    $latestPrevCN = null;
+                    foreach ($this->invoiceDataRepository->search($prevCNCriteria, $event->getContext())->getEntities() as $candidate) {
+                        if ($candidate->getDocument() !== null && $candidate->getDocument()->getReferencedDocumentId() !== null) {
+                            $latestPrevCN = $candidate;
+                            break;
+                        }
+                    }
 
                     $order = $this->getOrder($orderId, $event->getContext());
 
@@ -106,7 +119,19 @@ class CreditNoteSubscriber implements EventSubscriberInterface
                         ]
                     );
 
-                    if ($response == null) {
+                    if (is_array($response) && ($response['status'] ?? null) === 'invoice_cancelled') {
+                        if ($this->configService->isExtendedLogsEnabled()) {
+                            $this->logger->warning('mondu.WARNING: Cannot create credit note — parent invoice is cancelled at Mondu', [
+                                'order_id' => $orderId,
+                                'invoice_number' => $invoiceNumber,
+                                'credit_note_number' => $creditNoteNumber,
+                                'message' => $response['message'] ?? '',
+                            ]);
+                        }
+                        throw new MonduException('Credit note cannot be created because the parent invoice has been cancelled at Mondu. Please cancel the Shopware credit note document and use a different invoice.');
+                    }
+
+                    if ($response == null || !isset($response['credit_note']['uuid'])) {
                         $this->log('Credit Credit Note Response Failed', [$event]);
                     } else {
                         $this->invoiceDataRepository->upsert([
@@ -121,6 +146,10 @@ class CreditNoteSubscriber implements EventSubscriberInterface
                     }
                 }
             }
+        } catch (MonduException $e) {
+            // preserve the specific message (e.g. "parent invoice cancelled at Mondu")
+            $this->logger->critical('mondu.CRITICAL: Create Credit Note Failed. (Exception: ' . $e->getMessage() . ')', [$event]);
+            throw $e;
         } catch (\Exception $e) {
             $this->log('Create Credit Note Failed', [$event], $e);
         }

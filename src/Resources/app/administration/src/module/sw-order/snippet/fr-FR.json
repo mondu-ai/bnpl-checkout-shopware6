@@ -26,7 +26,10 @@
       "labelCancelCreditNote": "Annuler la note de crédit",
       "cancelSuccessTitle": "Bravo! Opération réussie.",
       "cancelSuccessMessage": "Annulation réussie.",
-      "cancelErrorMessage": "Une erreur s'est produite. Le document n'a pas pu être annulé."
+      "cancelErrorMessage": "Une erreur s'est produite. Le document n'a pas pu être annulé.",
+      "cancelErrorAlreadyCancelled": "Cette note de crédit a déjà été annulée chez Mondu.",
+      "cancelErrorNotFound": "Cette note de crédit est introuvable chez Mondu.",
+      "cancelErrorNotRegistered": "Cette note de crédit n'est pas enregistrée chez Mondu et ne peut pas être annulée via cette intégration."
     }
   },
   "sw-mondu-config": {

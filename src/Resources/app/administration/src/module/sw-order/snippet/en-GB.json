@@ -34,7 +34,10 @@
       "labelCancelCreditNote": "Cancel Credit Note",
       "cancelSuccessTitle": "Success!",
       "cancelSuccessMessage": "Successfully cancelled.",
-      "cancelErrorMessage": "Error ocurred. Document could not be cancelled."
+      "cancelErrorMessage": "Error ocurred. Document could not be cancelled.",
+      "cancelErrorAlreadyCancelled": "This credit note has already been cancelled at Mondu.",
+      "cancelErrorNotFound": "This credit note could not be found at Mondu.",
+      "cancelErrorNotRegistered": "This credit note is not registered with Mondu and cannot be cancelled through this integration."
     }
   },
   "sw-mondu-config": {

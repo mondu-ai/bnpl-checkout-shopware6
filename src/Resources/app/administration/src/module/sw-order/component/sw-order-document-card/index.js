@@ -28,11 +28,21 @@ Shopware.Component.override('sw-order-document-card', {
           message: this.$tc('sw-order-mondu.documentCard.cancelSuccessMessage')
         });
       }).catch((error) => {
-        if (error['error'] != '0') {
-          this.createNotificationError({
-            message: this.$tc('sw-order-mondu.documentCard.cancelErrorMessage')
-          });
-        }
+        const payload = error?.response?.data ?? error ?? {};
+        const status = payload.status || '';
+
+        const snippetKey = {
+          already_cancelled: 'sw-order-mondu.documentCard.cancelErrorAlreadyCancelled',
+          not_found_in_mondu: 'sw-order-mondu.documentCard.cancelErrorNotFound',
+          credit_note_not_registered_in_mondu: 'sw-order-mondu.documentCard.cancelErrorNotRegistered',
+          invoice_not_registered_in_mondu: 'sw-order-mondu.documentCard.cancelErrorNotRegistered',
+          document_not_found: 'sw-order-mondu.documentCard.cancelErrorNotRegistered',
+          invoice_number_missing: 'sw-order-mondu.documentCard.cancelErrorNotRegistered'
+        }[status] || 'sw-order-mondu.documentCard.cancelErrorMessage';
+
+        this.createNotificationError({
+          message: this.$tc(snippetKey)
+        });
       });
     }
   }
