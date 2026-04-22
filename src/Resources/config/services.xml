@@ -158,6 +158,7 @@
             <argument key="$invoiceDataRepository" type="service" id="mondu_invoice_data.repository"/>
             <argument key="$monduClient" type="service" id="mondu.mondu_api"/>
             <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
         </service>
 
         <service id="Mondu\MonduPayment\Components\Order\Subscriber\CreditNoteDocumentSubscriber">

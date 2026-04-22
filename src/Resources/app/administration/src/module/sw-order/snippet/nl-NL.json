@@ -23,7 +23,10 @@
       "labelCancelCreditNote": "Kredietnota annuleren",
       "cancelSuccessTitle": "Gelukt!",
       "cancelSuccessMessage": "Succesvol geannuleerd.",
-      "cancelErrorMessage": "Er is een fout opgetreden. Document kon niet worden geannuleerd."
+      "cancelErrorMessage": "Er is een fout opgetreden. Document kon niet worden geannuleerd.",
+      "cancelErrorAlreadyCancelled": "Deze kredietnota is al geannuleerd bij Mondu.",
+      "cancelErrorNotFound": "Deze kredietnota kon niet worden gevonden bij Mondu.",
+      "cancelErrorNotRegistered": "Deze kredietnota is niet geregistreerd bij Mondu en kan niet via deze integratie worden geannuleerd."
     }
   },
   "sw-mondu-config": {
