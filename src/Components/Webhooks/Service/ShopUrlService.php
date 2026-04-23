@@ -17,11 +17,24 @@ class ShopUrlService
     ) {}
 
     /**
-     * Get shop URL for the given sales channel ID
+     * Get shop URL for the given sales channel ID.
+     *
+     * When a sales channel id is given, the sales-channel domain wins over the
+     * current HTTP_HOST. In the admin context (saving config per sales channel)
+     * HTTP_HOST points to the admin URL, not to the storefront of that channel —
+     * auto-registering a webhook with that URL would produce a wrong address
+     * (e.g. main URL for a French channel that should be mounted under /fr).
      */
     public function getShopUrl(?string $salesChannelId = null): string
     {
-        // If we're in a web context, try to get URL from $_SERVER first
+        if ($salesChannelId) {
+            $scUrl = $this->getSalesChannelUrl($salesChannelId);
+            if ($scUrl !== '') {
+                return $scUrl;
+            }
+        }
+
+        // No sales channel id (or it had no domain): fall back to the request.
         if (isset($_SERVER['HTTP_ORIGIN'])) {
             return $_SERVER['HTTP_ORIGIN'];
         }
@@ -31,17 +44,12 @@ class ShopUrlService
             return $protocol . '://' . $_SERVER['HTTP_HOST'];
         }
 
-        // Fallback: get URL from sales channel configuration
-        if ($salesChannelId) {
-            return $this->getSalesChannelUrl($salesChannelId);
-        }
-
         // Final fallback: get URL from default sales channel
         return $this->getDefaultSalesChannelUrl();
     }
 
     /**
-     * Get URL from specific sales channel
+     * Get URL from specific sales channel. Returns '' if the channel has no domain.
      */
     private function getSalesChannelUrl(string $salesChannelId): string
     {
@@ -54,17 +62,20 @@ class ShopUrlService
 
         if ($salesChannel && $salesChannel->getDomains()->count() > 0) {
             $domain = $salesChannel->getDomains()->first();
-            $url = $domain->getUrl();
-            
-            // Ensure URL has protocol
+            $url = rtrim((string) $domain->getUrl(), '/');
+
+            if ($url === '') {
+                return '';
+            }
+
             if (!preg_match('/^https?:\/\//', $url)) {
                 $url = 'https://' . $url;
             }
-            
+
             return $url;
         }
 
-        return $this->getDefaultSalesChannelUrl();
+        return '';
     }
 
     /**

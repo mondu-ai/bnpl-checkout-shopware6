@@ -31,20 +31,10 @@ class OrderExceptionSubscriber implements EventSubscriberInterface
     {
         $exception = $event->getThrowable();
         $request = $event->getRequest();
-        
-        // LOG ALL EXCEPTIONS to debug
-        if ($this->configService->isExtendedLogsEnabled()) {
-            $this->logger->info('mondu.DEBUG: Exception caught in subscriber', [
-                'message' => $exception->getMessage(),
-                'class' => get_class($exception),
-                'uri' => $request->getRequestUri(),
-                'route' => $request->attributes->get('_route'),
-            ]);
-        }
-        
+
         // ONLY handle "cannot be edited" or "was cancelled" errors (when order was already cancelled by webhook)
         // Do NOT handle regular PaymentException::customerCanceled (which is normal user cancellation)
-        if (stripos($exception->getMessage(), 'cannot be edited') !== false || 
+        if (stripos($exception->getMessage(), 'cannot be edited') !== false ||
             stripos($exception->getMessage(), 'was cancelled') !== false) {
             
             $requestUri = $request->getRequestUri();
@@ -91,12 +81,6 @@ class OrderExceptionSubscriber implements EventSubscriberInterface
                     }
                     
                     $event->setResponse($response);
-                    
-                    if ($this->configService->isExtendedLogsEnabled()) {
-                        $this->logger->info('mondu.INFO: Successfully set redirect response', [
-                            'redirectUrl' => $redirectUrl
-                        ]);
-                    }
                 } catch (\Exception $e) {
                     // If redirect fails, at least log it
                     $this->logger->error('mondu.CRITICAL: Failed to redirect user', [

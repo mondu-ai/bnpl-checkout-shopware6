@@ -18,19 +18,17 @@ class MediaProvider
     private readonly string $resourcesPath;
     private readonly string $paymentLogosPath;
 
-    /**
-     * Constructs a `MediaProvider`
-     *
-     * @param  MediaService  $mediaService
-     * @param  EntityRepository  $mediaRepository
-     * @param  string  $pluginPath
-     */
     public function __construct(
         private readonly MediaService $mediaService,
-        private readonly EntityRepository $mediaRepository,
-        string $pluginPath
+        private readonly EntityRepository $mediaRepository
     ) {
-        $this->resourcesPath = $pluginPath . '/src/Resources/public';
+        // Resolve the plugin root from this file's location so the path works
+        // regardless of how the plugin is installed: composer (vendor/mondu/…),
+        // manual upload (custom/plugins/Mond1SW6/), symlink, etc. Hard-coding
+        // %kernel.project_dir%/custom/plugins/Mond1SW6 would fail for every
+        // non-custom-plugins install.
+        $pluginRoot = \dirname(__DIR__, 2);
+        $this->resourcesPath = $pluginRoot . '/src/Resources/public';
         $this->paymentLogosPath = $this->resourcesPath . '/images/de';
     }
 
