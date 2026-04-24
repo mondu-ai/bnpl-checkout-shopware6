@@ -99,6 +99,19 @@
             <tag name="shopware.entity.definition"/>
         </service>
 
+        <!--
+            Workaround for a SW6.6 Core inconsistency where ZUGFeRD credit notes
+            cannot be created after a normal `credit_note` on the same invoice.
+            See the class-level PHPDoc in ZugferdCreditNoteRendererDecorator.
+        -->
+        <service id="Mondu\MonduPayment\Components\Document\Decorator\ZugferdCreditNoteRendererDecorator"
+                 decorates="Shopware\Core\Checkout\Document\Renderer\ZugferdCreditNoteRenderer">
+            <argument type="service" id="Mondu\MonduPayment\Components\Document\Decorator\ZugferdCreditNoteRendererDecorator.inner"/>
+            <argument type="service" id="Doctrine\DBAL\Connection"/>
+            <argument type="service" id="mondu.mondu_config"/>
+            <argument type="service" id="monolog.logger.mondu"/>
+        </service>
+
         <service id="Mondu\MonduPayment\Components\Checkout\Service\PaymentMethodFilterService">
             <argument key="$configService" type="service" id="mondu.mondu_config"/>
             <argument key="$monduOperationService" type="service" id="Mondu\MonduPayment\Components\MonduApi\Service\MonduOperationService"/>
