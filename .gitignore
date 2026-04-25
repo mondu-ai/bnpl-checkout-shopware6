@@ -7,6 +7,11 @@ yarn-error.log*
 # Build outputs
 src/Resources/app/administration/node_modules/
 src/Resources/app/storefront/node_modules/
+plugin-sw66/src/Resources/app/administration/node_modules/
+plugin-sw67/src/Resources/app/administration/node_modules/
+
+# Monorepo build artefacts
+dist/
 
 # IDE files
 .vscode/

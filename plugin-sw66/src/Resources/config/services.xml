@@ -1,0 +1,137 @@
+<?xml version="1.0" ?>
+<container xmlns="http://symfony.com/schema/dic/services"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="https://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+
+    <imports>
+        <!--
+          core-services.xml is overlaid next to this file by build/build.sh.
+          It carries the SW6.7 baseline wiring; registrations below re-declare
+          the handful of services whose signature/behaviour differs on SW6.6.
+        -->
+        <import resource="./core-services.xml"/>
+    </imports>
+
+    <services>
+        <!--
+          ===== Payment handlers (SW6.6 signature) =====
+          SW6.7 added $orderRepository and $orderTransactionRepository; SW6.6
+          still uses the pre-6.7 signature with $logger/$eventDispatcher.
+          Re-declaring with the same service id replaces the core-services.xml
+          registration at container compile time.
+        -->
+        <service id="Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduHandler">
+            <argument type="service" id="Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler"/>
+            <argument type="service" id="mondu.mondu_api"/>
+            <argument key="$productRepository" type="service" id="product.repository"/>
+            <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
+            <argument key="$orderLinesService" type="service" id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <argument key="$eventDispatcher" type="service" id="event_dispatcher"/>
+            <tag name="shopware.payment.method" />
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduSepaHandler">
+            <argument type="service" id="Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler"/>
+            <argument type="service" id="mondu.mondu_api"/>
+            <argument key="$productRepository" type="service" id="product.repository"/>
+            <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
+            <argument key="$orderLinesService" type="service" id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <tag name="shopware.payment.method" />
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduInstallmentHandler">
+            <argument type="service" id="Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler"/>
+            <argument type="service" id="mondu.mondu_api"/>
+            <argument key="$productRepository" type="service" id="product.repository"/>
+            <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
+            <argument key="$orderLinesService" type="service" id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <tag name="shopware.payment.method" />
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduInstallmentByInvoiceHandler">
+            <argument type="service" id="Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler"/>
+            <argument type="service" id="mondu.mondu_api"/>
+            <argument key="$productRepository" type="service" id="product.repository"/>
+            <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
+            <argument key="$orderLinesService" type="service" id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <tag name="shopware.payment.method" />
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduPayNowHandler">
+            <argument type="service" id="Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler"/>
+            <argument type="service" id="mondu.mondu_api"/>
+            <argument key="$productRepository" type="service" id="product.repository"/>
+            <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
+            <argument key="$orderLinesService" type="service" id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <tag name="shopware.payment.method" />
+        </service>
+
+        <!--
+          ===== Checkout filter & subscriber (SW6.6 paths) =====
+          6.6 filters payment methods via PaymentMethodFilterService injected
+          into CheckoutSubscriber; 6.7 uses a slimmer subscriber that only takes
+          ConfigService (route-gate decorators do the filtering in 6.7).
+        -->
+        <service id="Mondu\MonduPayment\Components\Checkout\Service\PaymentMethodFilterService">
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
+            <argument key="$monduOperationService" type="service" id="Mondu\MonduPayment\Components\MonduApi\Service\MonduOperationService"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\Checkout\Subscriber\CheckoutSubscriber">
+            <tag name="kernel.event_subscriber" />
+            <argument key="$paymentMethodFilterService" type="service" id="Mondu\MonduPayment\Components\Checkout\Service\PaymentMethodFilterService"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\Checkout\Decorator\CheckoutGatewayRouteDecorator"
+                 decorates="Shopware\Core\Checkout\Gateway\SalesChannel\CheckoutGatewayRoute">
+            <argument type="service" id="Mondu\MonduPayment\Components\Checkout\Decorator\CheckoutGatewayRouteDecorator.inner"/>
+            <argument type="service" id="Mondu\MonduPayment\Components\Checkout\Service\PaymentMethodFilterService"/>
+            <argument type="service" id="mondu.mondu_config"/>
+            <argument type="service" id="monolog.logger.mondu"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\Checkout\Decorator\CachedPaymentMethodRouteDecorator"
+                 decorates="Shopware\Core\Checkout\Payment\SalesChannel\CachedPaymentMethodRoute">
+            <argument type="service" id="Mondu\MonduPayment\Components\Checkout\Decorator\CachedPaymentMethodRouteDecorator.inner"/>
+            <argument type="service" id="Mondu\MonduPayment\Components\Checkout\Service\PaymentMethodFilterService"/>
+            <argument type="service" id="mondu.mondu_config"/>
+            <argument type="service" id="monolog.logger.mondu"/>
+        </service>
+
+        <!--
+          ===== SW6.6-only backport: CreditNoteDocumentSubscriber =====
+          Filters previously-credited line items out of new credit-note documents
+          (SW6.7 Core already does this; not needed there).
+        -->
+        <service id="Mondu\MonduPayment\Components\Order\Subscriber\CreditNoteDocumentSubscriber">
+            <tag name="kernel.event_subscriber" />
+            <argument type="service" id="Doctrine\DBAL\Connection"/>
+            <argument type="service" id="monolog.logger.mondu"/>
+        </service>
+
+        <!--
+          ===== SW6.6-only workaround: ZUGFeRD credit-note decorator =====
+          In SW6.7 the Core ZugferdCreditNoteRenderer already filters previous
+          credit notes by document type, so this decorator is not needed there.
+          See class PHPDoc for the full explanation.
+        -->
+        <service id="Mondu\MonduPayment\SW66\Document\Decorator\ZugferdCreditNoteRendererDecorator"
+                 decorates="Shopware\Core\Checkout\Document\Renderer\ZugferdCreditNoteRenderer">
+            <argument type="service" id="Mondu\MonduPayment\SW66\Document\Decorator\ZugferdCreditNoteRendererDecorator.inner"/>
+            <argument type="service" id="Doctrine\DBAL\Connection"/>
+            <argument type="service" id="mondu.mondu_config"/>
+            <argument type="service" id="monolog.logger.mondu"/>
+        </service>
+    </services>
+</container>

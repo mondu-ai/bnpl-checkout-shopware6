@@ -1,0 +1,25 @@
+<?xml version="1.0" ?>
+<container xmlns="http://symfony.com/schema/dic/services"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="https://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+
+    <imports>
+        <!--
+          Path is resolved relative to this file AFTER build/build.sh has
+          overlaid core/src onto the plugin's src/, at which point
+          ../../Resources/config/core-services.xml is the shared DI.
+          In the source tree this file is incomplete on its own — that is
+          intentional. Run build/build.sh <version> to produce a working dist.
+        -->
+        <import resource="./core-services.xml"/>
+    </imports>
+
+    <services>
+        <!--
+          SW6.7-only service wiring goes here.
+          Currently there is none — core-services.xml alone boots the plugin
+          on Shopware 6.7.x. Add decorates="…" overrides or version-specific
+          services below if and when Shopware 6.7 API diverges further.
+        -->
+    </services>
+</container>

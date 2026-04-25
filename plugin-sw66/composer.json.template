@@ -1,0 +1,37 @@
+{
+  "name": "mondu/shopware66-payment",
+  "description": "Mondu payment for Shopware 6.6",
+  "version": "__VERSION__",
+  "type": "shopware-platform-plugin",
+  "license": "proprietary",
+  "authors": [
+    {
+      "name": "Mondu GmbH"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Mondu\\MonduPayment\\": "src/"
+    }
+  },
+  "require": {
+    "shopware/core": "^6.6",
+    "ext-json": "*"
+  },
+  "extra": {
+    "shopware-plugin-class": "Mondu\\MonduPayment\\Mond1SW6",
+    "plugin-icon": "src/Resources/public/mondu-logo.png",
+    "label": {
+      "de-DE": "Mondu Rechnungskauf",
+      "en-GB": "Mondu Payment"
+    },
+    "description": {
+      "de-DE": "Jetzt kaufen, später bezahlen",
+      "en-GB": "Buy Now, Pay Later."
+    },
+    "manufacturerLink": {
+      "de-DE": "https://mondu.ai",
+      "en-GB": "https://mondu.ai"
+    }
+  }
+}
