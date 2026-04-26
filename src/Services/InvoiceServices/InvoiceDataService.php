@@ -17,14 +17,9 @@ class InvoiceDataService extends AbstractInvoiceDataService
     {
         [ $invoiceNumber, $invoiceUrl ] = $this->getInvoiceNumberAndUrl($order, $context);
 
-        // Ensure external_reference_id is a string (Mondu API requirement)
-        if ($invoiceNumber === null || $invoiceNumber === '') {
-            throw new \RuntimeException('Invoice number is required but not found. Please create an invoice document for this order first.');
-        }
-
         return [
             'currency' => $this->orderUtilsService->getOrderCurrency($order),
-            'external_reference_id' => (string) $invoiceNumber,
+            'external_reference_id' => $invoiceNumber,
             'invoice_url' => $invoiceUrl,
             'gross_amount_cents' => $this->orderUtilsService->priceToCents($order->getPrice()->getTotalPrice()),
             'discount_cents' => $this->orderDiscountService->getOrderDiscountCents($order, $context),
@@ -37,37 +32,18 @@ class InvoiceDataService extends AbstractInvoiceDataService
     {
         $monduData = $this->orderUtilsService->getMonduDataFromOrder($order);
 
+
         $invoiceNumber = $monduData->getExternalInvoiceNumber();
         $invoiceUrl = $monduData->getExternalInvoiceUrl();
 
-        // Check if mail-attachments extension exists (may not exist when manually changing delivery state)
-        $attachedDocument = null;
-        if ($context->hasExtension('mail-attachments')) {
-            $mailAttachments = $context->getExtension('mail-attachments');
-            $documentIds = $mailAttachments->getDocumentIds();
-            if (!empty($documentIds)) {
-                $attachedDocument = $documentIds[0];
-            }
-        }
+        $attachedDocument = $context->getExtensions()['mail-attachments']->getDocumentIds()[0];
 
-        // Search for invoice document
-        if ($order->getDocuments()) {
-            foreach ($order->getDocuments() as $document) {
-                // If we have an attached document, match it; otherwise look for any invoice
-                if (($attachedDocument && $document->getId() == $attachedDocument) || !$attachedDocument) {
-                    if (
-                        $document->getDocumentType()->getTechnicalName() === 'invoice' ||
-                        $document->getDocumentType()->getTechnicalName() === 'zugferd_embedded_invoice'
-                    ) {
-                        $config = $document->getConfig();
-                        $invoiceNumber = $config['custom']['invoiceNumber'] ?? null;
-                        $invoiceUrl = $this->documentUrlHelper->generateRouteForDocument($document);
-                        
-                        // If we found a matching attached document, stop here
-                        if ($attachedDocument && $document->getId() == $attachedDocument) {
-                            break;
-                        }
-                    }
+        foreach ($order->getDocuments() as $document) {
+            if ($document->getId() == $attachedDocument) {
+                if ($document->getDocumentType()->getTechnicalName() === 'invoice') {
+                    $config = $document->getConfig();
+                    $invoiceNumber = $config['custom']['invoiceNumber'] ?? null;
+                    $invoiceUrl = $this->documentUrlHelper->generateRouteForDocument($document);
                 }
             }
         }

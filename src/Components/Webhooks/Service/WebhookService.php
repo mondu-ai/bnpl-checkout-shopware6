@@ -311,23 +311,9 @@ class WebhookService
             // IMPORTANT: Set sales channel ID before checking config
             // IMPORTANT: Only for CANCELLED, not for DECLINED
             
-            // DEBUG: Log the sales channel ID being used
-            $this->logger->info('mondu.DEBUG: WebhookService salesChannelId', [
-                'webhook_salesChannelId' => $this->salesChannelId,
-                'webhook_salesChannelId_type' => gettype($this->salesChannelId),
-                'order_number' => $externalReferenceId
-            ]);
-            
             $autoTransitionEnabled = $this->configService
                 ->setSalesChannelId($this->salesChannelId)
                 ->isAutoTransitionOrderStateEnabled();
-            
-            // DEBUG: Log what config returned
-            $this->logger->info('mondu.DEBUG: ConfigService returned', [
-                'autoTransitionEnabled' => $autoTransitionEnabled,
-                'autoTransitionEnabled_type' => gettype($autoTransitionEnabled),
-                'order_number' => $externalReferenceId
-            ]);
             
             if ($this->configService->isExtendedLogsEnabled()) {
                 $this->logger->info('mondu.INFO: Webhook handleDeclinedOrCanceled - checking autoTransitionOrderState', [
@@ -571,15 +557,25 @@ class WebhookService
 
             // Check if transition is allowed (prevents backward transitions)
             if (!$this->isTransitionAllowed($currentState, $action)) {
-                $this->log('Prevented backward state transition', [
-                    'externalReferenceId' => $externalReferenceId,
-                    'currentState' => $currentState,
-                    'attemptedState' => $state,
-                    'reason' => 'State transition not allowed - would be regression'
-                ], null, 'warning');
-                
-                // Return current state without transition
-                return new StateMachineStateCollection([$transaction->getStateMachineState()]);
+                $finalStates = ['cancelled', 'failed', 'paid', 'paid_partially', 'refunded', 'refunded_partially', 'chargeback'];
+                // For declined/cancelled webhooks on a final state: reopen first, then apply target
+                if (in_array($currentState, $finalStates) && in_array($action, ['fail', 'cancel'])) {
+                    $this->stateMachineRegistry->transition(new Transition(
+                        OrderTransactionDefinition::ENTITY_NAME,
+                        $orderTransactionId,
+                        'reopen',
+                        'stateId'
+                    ), $context);
+                } else {
+                    $this->log('Prevented backward state transition', [
+                        'externalReferenceId' => $externalReferenceId,
+                        'currentState' => $currentState,
+                        'attemptedState' => $state,
+                        'reason' => 'State transition not allowed - would be regression'
+                    ], null, 'warning');
+
+                    return new StateMachineStateCollection([$transaction->getStateMachineState()]);
+                }
             }
 
             // State transition allowed - proceed with logging

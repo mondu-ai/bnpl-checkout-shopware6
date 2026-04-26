@@ -16,107 +16,129 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 
 class PaymentMethods extends AbstractBootstrap
 {
-    public const PAYMENT_METHOD_LOGOS = [
-        MonduHandler::class => 'invoice_white_rectangle.png',
-        MonduSepaHandler::class => 'sepa_white_rectangle.png',
-        MonduInstallmentHandler::class => 'installments_white_rectangle.png',
-        MonduInstallmentByInvoiceHandler::class => 'installments_white_rectangle.png',
-        MonduPayNowHandler::class => 'instant_pay_white_rectangle.png',
-    ];
-
     public const PAYMENT_METHODS = [
         MonduHandler::class => [
             'handlerIdentifier' => MonduHandler::class,
-            'name' => 'Rechnungskauf (30 Tage)',
+            'technicalName' => 'mondu_payment',
+            'name' => 'Rechnungskauf - Später per Banküberweisung bezahlen',
+            'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/gdpr-notification-for-buyers/]hier[/url].',
             'afterOrderEnabled' => true,
             'translations' => [
                 'de-DE' => [
-                    'name' => 'Rechnungskauf (30 Tage)'
+                    'name' => 'Rechnungskauf - Später per Banküberweisung bezahlen',
+                    'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/gdpr-notification-for-buyers/]hier[/url].',
                 ],
                 'en-GB' => [
-                    'name' => 'Business net 30'
+                    'name' => 'Invoice - Pay later by bank transfer',
+                    'description' => 'Information on the processing of your personal data by Mondu GmbH can be found [url=https://www.mondu.ai/de/gdpr-notification-for-buyers/]here[/url].',
                 ],
                 'nl-NL' => [
-                    'name' => 'Factuur (30 dagen)'
+                    'name' => 'Aankoop op rekening - nu kopen, later betalen',
+                    'description' => 'Informatie over de verwerking van uw persoonsgegevens door Mondu GmbH vindt u [url=https://mondu.ai/nl/gdpr-notification-for-buyers]hier[/url].'
                 ],
                 'fr-FR' => [
-                    'name' => 'Facture (30 jours)'
+                    'name' => 'Achat sur facture - Payer plus tard par virement bancaire',
+                    'description' => "Plus d'informations sur la façon dont Mondu GmbH traite vos données personnelles peuvent être trouvées [url=https://mondu.ai/fr/gdpr-notification-for-buyers]ici[/url]."
                 ]
             ],
         ],
         MonduSepaHandler::class => [
             'handlerIdentifier' => MonduSepaHandler::class,
-            'name' => 'SEPA-Lastschrift (30 Tage)',
+            'technicalName' => 'mondu_sepa_payment',
+            'name' => 'SEPA - Später zahlen per Bankeinzug',
+            'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
             'afterOrderEnabled' => true,
             'translations' => [
                 'de-DE' => [
-                    'name' => 'SEPA-Lastschrift (30 Tage)'
+                    'name' => 'SEPA - Später zahlen per Bankeinzug',
+                    'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
                 ],
                 'en-GB' => [
-                    'name' => 'SEPA direct debit (30 days)'
+                    'name' => 'SEPA - Pay later by direct debit',
+                    'description' => 'Information on the processing of your personal data by Mondu GmbH can be found [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]here[/url].',
                 ],
                 'nl-NL' => [
-                    'name' => 'SEPA automatische incasso (30 dagen)'
+                    'name' => 'SEPA automatische incasso - nu kopen, later betalen',
+                    'description' => 'Informatie over de verwerking van uw persoonsgegevens door Mondu GmbH vindt u [url=https://www.mondu.ai/nl/gdpr-notification-for-merchants/]hier[/url].'
                 ],
                 'fr-FR' => [
-                    'name' => 'Prélèvement automatique SEPA (30 jours)'
+                    'name' => 'SEPA - Payer plus tard par prélèvement automatique SEPA',
+                    'description' => "Plus d'informations sur la façon dont Mondu GmbH traite vos données personnelles peuvent être trouvées [url=https://mondu.ai/fr/gdpr-notification-for-buyers]ici[/url]."
                 ]
             ],
         ],
         MonduInstallmentHandler::class => [
             'handlerIdentifier' => MonduInstallmentHandler::class,
+            'technicalName' => 'mondu_installment_payment',
             'name' => 'Ratenkauf - Bequem in Raten per Bankeinzug zahlen',
+            'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
             'afterOrderEnabled' => true,
             'translations' => [
                 'de-DE' => [
-                    'name' => 'Ratenkauf (3, 6, 12 Monaten)'
+                    'name' => 'Ratenkauf - Bequem in Raten per Bankeinzug zahlen',
+                    'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
                 ],
                 'en-GB' => [
-                    'name' => 'Installments (3, 6, 12 months)'
+                    'name' => 'Split payments - Pay conveniently in instalments by direct debit',
+                    'description' => 'Information on the processing of your personal data by Mondu GmbH can be found [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]here[/url].',
                 ],
                 'nl-NL' => [
-                    'name' => 'Betaling in termijnen (3, 6, 12 maanden)'
+                    'name' => 'Gespreid betalen, betaal gemakkelijk in termijnen via automatische incasso',
+                    'description' => 'Informatie over de verwerking van uw persoonsgegevens door Mondu GmbH vindt u [url=https://www.mondu.ai/nl/gdpr-notification-for-merchants/]hier[/url].'
                 ],
                 'fr-FR' => [
-                    'name' => 'Paiement échelonnés (3, 6, 12 mois)'
+                    'name' => 'Paiement échelonné - Payer confortablement en plusieurs fois par prélèvement automatique',
+                    'description' => "Plus d'informations sur la façon dont Mondu GmbH traite vos données personnelles peuvent être trouvées [url=https://mondu.ai/fr/gdpr-notification-for-buyers]ici[/url]."
                 ]
             ],
         ],
         MonduInstallmentByInvoiceHandler::class => [
             'handlerIdentifier' => MonduInstallmentByInvoiceHandler::class,
+            'technicalName' => 'mondu_installment_by_invoice_payment',
             'name' => 'Gesplittete Zahlungen - Ratenkauf per Banküberweisung',
+            'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
             'afterOrderEnabled' => true,
             'translations' => [
                 'de-DE' => [
-                    'name' => 'Ratenkauf (3, 6, 12 Monaten) UK'
+                    'name' => 'Gesplittete Zahlungen - Ratenkauf per Banküberweisung',
+                    'description' => 'Hinweise zur Verarbeitung Ihrer personenbezogenen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
                 ],
                 'en-GB' => [
-                    'name' => 'Business instalments (3, 6, 12)'
+                    'name' => 'Split payments - Pay Later in Installments by Bank Transfer',
+                    'description' => 'Information on the processing of your personal data by Mondu GmbH can be found [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]here[/url].',
                 ],
                 'nl-NL' => [
-                    'name' => 'Betaling in termijnen (3, 6, 12 maanden) UK'
+                    'name' => 'Gesplitste betalingen - Betaal later in termijnen via bankoverschrijving',
+                    'description' => 'Informatie over de verwerking van uw persoonsgegevens door Mondu GmbH vindt u [url=https://www.mondu.ai/nl/gdpr-notification-for-merchants/]hier[/url].'
                 ],
                 'fr-FR' => [
-                    'name' => 'Paiement échelonnés (3, 6, 12 mois) UK'
+                    'name' => 'Paiements fractionnés - Payer plus tard en plusieurs fois par virement bancaire',
+                    'description' => "Plus d'informations sur la façon dont Mondu GmbH traite vos données personnelles peuvent être trouvées [url=https://mondu.ai/fr/gdpr-notification-for-buyers]ici[/url]."
                 ]
             ],
         ],
         MonduPayNowHandler::class => [
             'handlerIdentifier' => MonduPayNowHandler::class,
-            'name' => 'Echtzeitüberweisung',
+            'technicalName' => 'mondu_pay_now_payment',
+            'name' => 'Echtzeitüberweisung – Direkt von Ihrem Bankkonto bezahlen',
+            'description' => 'Informationen über die Verarbeitung Ihrer persönlichen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
             'afterOrderEnabled' => true,
             'translations' => [
                 'de-DE' => [
-                    'name' => 'Echtzeitüberweisung'
+                    'name' => 'Echtzeitüberweisung – Direkt von Ihrem Bankkonto bezahlen',
+                    'description' => 'Informationen über die Verarbeitung Ihrer persönlichen Daten durch die Mondu GmbH finden Sie [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]hier[/url].',
                 ],
                 'en-GB' => [
-                    'name' => 'Instant Pay'
+                    'name' => 'Instant Pay – Pay directly from your bank account',
+                    'description' => 'Information about how Mondu GmbH processes your personal data can be found [url=https://www.mondu.ai/de/datenschutzgrundverordnung-kaeufer/]here[/url].',
                 ],
                 'nl-NL' => [
-                    'name' => 'Instant Pay'
+                    'name' => 'Instant Pay – Betaal direct vanaf uw bankrekening',
+                    'description' => 'Instant Pay – Betaal direct vanaf uw bankrekening [url=https://www.mondu.ai/nl/gdpr-notification-for-merchants/]hier[/url].'
                 ],
                 'fr-FR' => [
-                    'name' => 'Virement instantané'
+                    'name' => 'Virement Instantané – Payez directement depuis votre compte bancaire',
+                    'description' => "Des informations sur la façon dont Mondu GmbH traite vos données personnelles peuvent être trouvées [url=https://mondu.ai/fr/gdpr-notification-for-buyers]ici[/url]."
                 ]
             ],
         ],
@@ -243,16 +265,8 @@ class PaymentMethods extends AbstractBootstrap
     {
         $mediaProvider = $this->container->get(MediaProvider::class);
 
-        foreach (self::PAYMENT_METHODS as $handlerClass => $paymentMethod) {
-            // Get specific logo for this payment method
-            $logoFileName = self::PAYMENT_METHOD_LOGOS[$handlerClass] ?? null;
-            
-            if ($logoFileName) {
-                $mediaId = $mediaProvider->getPaymentMethodLogoMediaId($logoFileName, $this->context);
-            } else {
-                // Fallback to default logo
-                $mediaId = $mediaProvider->getLogoMediaId($this->context);
-            }
+        foreach (self::PAYMENT_METHODS as $paymentMethod) {
+            $mediaId = $mediaProvider->getLogoMediaId($this->context);
 
             $paymentSearchResult = $this->paymentRepository->search(
                 (
@@ -263,13 +277,11 @@ class PaymentMethods extends AbstractBootstrap
                 $this->context
             );
 
-            if ($paymentSearchResult->first()) {
-                $paymentMethodData = [
-                    'id' => $paymentSearchResult->first()->getId(),
-                    'mediaId' => $mediaId
-                ];
-                $this->paymentRepository->update([$paymentMethodData], $this->context);
-            }
+            $paymentMethodData = [
+                'id' => $paymentSearchResult->first()->getId(),
+                'mediaId' => $mediaId
+            ];
+            $this->paymentRepository->update([$paymentMethodData], $this->context);
         }
     }
 }

@@ -25,14 +25,6 @@
             <label lang="fr-FR">Clé API</label>
         </input-field>
 
-        <component name="mondu-test-api-button">
-            <name>testLiveClientCredentialsButton</name>
-            <label>Validate API Credentials</label>
-            <label lang="de-DE">API Zugangsdaten validieren</label>
-            <label lang="nl-NL">API Credentials valideren</label>
-            <label lang="fr-FR">Valider les informations d'identification de l'API</label>
-            <apiMode>live</apiMode>
-        </component>
     </card>
 
     <card>
@@ -41,42 +33,19 @@
         <title lang="nl-NL">Configuratie</title>
         <title lang="fr-FR">Configuration</title>
 
-        <input-field type="single-select">
+        <input-field type="bool">
             <name>skipOrderStateValidation</name>
-            <label>Skip order state validation</label>
-            <label lang="de-DE">Validierung des Bestellstatus überspringen</label>
-            <label lang="nl-NL">De validatie van de orderstatus overslaan</label>
-            <label lang="fr-FR">Sauter l'étape de validation de la commande</label>
+            <label>Skip order state validation?</label>
+            <label lang="de-DE">Validierung des Bestellstatus überspringen?</label>
+            <label lang="nl-NL">De validatie van de orderstatus overslaan?</label>
+            <label lang="fr-FR">Sauter l'étape de validation de la commande ?</label>
 
-            <defaultValue>no_skipping</defaultValue>
-            <options>
-                <option>
-                    <id>no_skipping</id>
-                    <name>No Skipping</name>
-                    <name lang="de-DE">Keine Überspringung</name>
-                    <name lang="nl-NL">Geen overslaan</name>
-                    <name lang="fr-FR">Pas de saut</name>
-                </option>
-                <option>
-                    <id>skipping_all</id>
-                    <name>Skipping All</name>
-                    <name lang="de-DE">Alles überspringen</name>
-                    <name lang="nl-NL">Alles overslaan</name>
-                    <name lang="fr-FR">Tout sauter</name>
-                </option>
-                <option>
-                    <id>skip_all_validation</id>
-                    <name>Skip All Validation</name>
-                    <name lang="de-DE">Alle Validierungen überspringen</name>
-                    <name lang="nl-NL">Alle validaties overslaan</name>
-                    <name lang="fr-FR">Ignorer toutes les validations</name>
-                </option>
-            </options>
-
-            <helpText>No Skipping: Normal validation. Skipping All: No validations like invoice validation. Skip All Validation: Skip all validation and send invoice call to Mondu with complete amount using Shopware order number as InvoiceID when order is delivered.</helpText>
-            <helpText lang="de-DE">Keine Überspringung: Normale Validierung. Alles überspringen: Keine Validierungen wie Rechnungsvalidierung. Alle Validierungen überspringen: Alle Validierungen überspringen und Rechnungsaufruf an Mondu mit vollständigem Betrag senden, wobei die Shopware-Bestellnummer als InvoiceID verwendet wird, wenn die Bestellung geliefert wird.</helpText>
-            <helpText lang="nl-NL">Geen overslaan: Normale validatie. Alles overslaan: Geen validaties zoals factuurvalidatie. Alle validaties overslaan: Sla alle validatie over en stuur factuuroproep naar Mondu met volledig bedrag met behulp van Shopware-bestelnummer als InvoiceID wanneer bestelling is geleverd.</helpText>
-            <helpText lang="fr-FR">Pas de saut : Validation normale. Tout sauter : Pas de validations comme la validation des factures. Ignorer toutes les validations : Ignorer toutes les validations et envoyer l'appel de facture à Mondu avec le montant complet en utilisant le numéro de commande Shopware comme InvoiceID lorsque la commande est livrée.</helpText>
+            <value>0</value>
+            <defaultValue>0</defaultValue>
+            <helpText>When this flag is enabled, there will be no validations such as invoice validation upon changing an order state.</helpText>
+            <helpText lang="de-DE">Wenn diese Option aktiviert ist, werden bei einer Änderung des Bestellstatus keine Validierungen wie z. B. die Rechnungsvalidierung durchgeführt.</helpText>
+            <helpText lang="nl-NL">Als deze feature is ingeschakeld, zijn er geen validaties zoals factuurvalidatie bij het wijzigen van een orderstatus.</helpText>
+            <helpText lang="fr-FR">Lorsque cette option est activée, il n'y aura pas de validations telles que la validation des factures lors du changement d'état d'une commande.</helpText>
         </input-field>
 
 
@@ -103,108 +72,6 @@
             <helpText lang="de-DE">Wählen Sie den Zahlungsstatus der Bestellung, der nach erfolgreicher Bestellung des Käufers festgelegt wird.</helpText>
             <helpText lang="nl-NL">Kies de betaalstatus van de bestelling die wordt ingesteld nadat de koper met succes een bestelling heeft geplaatst.</helpText>
             <helpText lang="fr-FR">Choisissez l'état du paiement de la commande qui sera défini lorsque l'acheteur aura passé sa commande avec succès.</helpText>
-        </input-field>
-
-        <input-field type="bool">
-            <name>autoTransitionOrderState</name>
-            <label>Allow Mondu transition order state</label>
-            <label lang="de-DE">Bestellstatus-Übergang durch Mondu erlauben</label>
-            <label lang="nl-NL">Mondu orderstatus overgang toestaan</label>
-            <label lang="fr-FR">Autoriser la transition d'état de commande Mondu</label>
-
-            <defaultValue>0</defaultValue>
-            <helpText>When enabled, order state will be automatically changed to 'in progress' on webhook events. When disabled, orders will remain in 'open' state.</helpText>
-            <helpText lang="de-DE">Wenn aktiviert, wird der Bestellstatus bei Webhook-Ereignissen automatisch auf 'in Bearbeitung' geändert. Wenn deaktiviert, bleiben Bestellungen im Status 'offen'.</helpText>
-            <helpText lang="nl-NL">Wanneer ingeschakeld, wordt de orderstatus automatisch gewijzigd naar 'in behandeling' bij webhook-gebeurtenissen. Wanneer uitgeschakeld, blijven orders in 'open' status.</helpText>
-            <helpText lang="fr-FR">Lorsqu'elle est activée, l'état de la commande sera automatiquement changé en 'en cours' lors des événements webhook. Lorsqu'elle est désactivée, les commandes resteront dans l'état 'ouvert'.</helpText>
-        </input-field>
-
-        <input-field type="single-select">
-            <name>handlingAddressAdditionalField1</name>
-            <label>Handling of field: Address Additional Field 1</label>
-            <label lang="de-DE">Handling des Feldes: Adresszusatz 1</label>
-            <label lang="nl-NL">Verwerking van veld: Adresaanvulling 1</label>
-            <label lang="fr-FR">Traitement du champ: complément d'adresse 1</label>
-
-            <defaultValue>ignore</defaultValue>
-            <options>
-                <option>
-                    <id>ignore</id>
-                    <name>Ignore</name>
-                    <name lang="de-DE">Ignorieren</name>
-                    <name lang="nl-NL">Negeren</name>
-                    <name lang="fr-FR">Ignorer</name>
-                </option>
-                <option>
-                    <id>addtoaddressline1</id>
-                    <name>Add to Address Line 1</name>
-                    <name lang="de-DE">Zu Mondu Adresszeile 1 hinzufügen</name>
-                    <name lang="nl-NL">Toevoegen aan Mondu Adresregel 1</name>
-                    <name lang="fr-FR">Ajouter à la ligne d'adresse Mondu 1</name>
-                </option>
-                <option>
-                    <id>addtoaddressline2</id>
-                    <name>Add to Address Line 2</name>
-                    <name lang="de-DE">Zu Mondu Adresszeile 2 hinzufügen</name>
-                    <name lang="nl-NL">Toevoegen aan Mondu Adresregel 2</name>
-                    <name lang="fr-FR">Ajouter à la ligne d'adresse Mondu 2</name>
-                </option>
-            </options>
-            <helpText>When ignore is selected, the value of the address additional field 1 will be ignored. When addtoaddressline1 is selected, the value of the address additional field 1 will be added to the address line 1. When addtoaddressline2 is selected, the value of the address additional field 1 will be added to the address line 2.</helpText>
-            <helpText lang="de-DE">Wenn 'Ignorieren' ausgewählt ist, wird der Wert des Adresszusatzes 1 ignoriert. Wenn 'Zu Mondu Adresszeile 1 hinzufügen' ausgewählt ist, wird der Wert des Adresszusatzes 1 zu der Mondu Adresszeile 1 hinzugefügt. Wenn 'Zu Mondu Adresszeile 2 hinzufügen' ausgewählt ist, wird der Wert des Adresszusatzes 2 zu der Mondu Adresszeile 2 hinzugefügt.</helpText>
-            <helpText lang="nl-NL">Wanneer 'Negeren' is geselecteerd, wordt de waarde van het adreszusatz 1 genegeerd. Wanneer 'Toevoegen aan Mondu Adresregel 1' is geselecteerd, wordt de waarde van het adreszusatz 1 toegevoegd aan de Mondu Adresregel 1. Wanneer 'Toevoegen aan Mondu Adresregel 2' is geselecteerd, wordt de waarde van het adreszusatz 2 toegevoegd aan de Mondu Adresregel 2.</helpText>
-            <helpText lang="fr-FR">Lorsque 'Ignorer' est sélectionné, la valeur du champ d'adresse supplémentaire 1 est ignorée. Lorsque 'Ajouter à la ligne d'adresse Mondu 1' est sélectionné, la valeur du champ d'adresse supplémentaire 1 est ajoutée à la Mondu Adresregel 1. Lorsque 'Ajouter à la ligne d'adresse Mondu 2' est sélectionné, la valeur du champ d'adresse supplémentaire 2 est ajoutée à la Mondu Adresregel 2.</helpText>
-        </input-field>
-
-        <input-field type="single-select">
-            <name>handlingAddressAdditionalField2</name>
-            <label>Handling of field: Address Additional Field 2</label>
-            <label lang="de-DE">Handling des Feldes: Adresszusatz 2</label>
-            <label lang="nl-NL">Verwerking van veld: Adresaanvulling 2</label>
-            <label lang="fr-FR">Traitement du champ: complément d'adresse 2</label>
-
-            <defaultValue>ignore</defaultValue>
-            <options>
-                <option>
-                    <id>ignore</id>
-                    <name>Ignore</name>
-                    <name lang="de-DE">Ignorieren</name>
-                    <name lang="nl-NL">Negeren</name>
-                    <name lang="fr-FR">Ignorer</name>
-                </option>
-                <option>
-                    <id>addtoaddressline1</id>
-                    <name>Add to Address Line 1</name>
-                    <name lang="de-DE">Zu Mondu Adresszeile 1 hinzufügen</name>
-                    <name lang="nl-NL">Toevoegen aan Mondu Adresregel 1</name>
-                    <name lang="fr-FR">Ajouter à la ligne d'adresse Mondu 1</name>
-                </option>
-                <option>
-                    <id>addtoaddressline2</id>
-                    <name>Add to Address Line 2</name>
-                    <name lang="de-DE">Zu Mondu Adresszeile 2 hinzufügen</name>
-                    <name lang="nl-NL">Toevoegen aan Mondu Adresregel 2</name>
-                    <name lang="fr-FR">Ajouter à la ligne d'adresse Mondu 2</name>
-                </option>
-            </options>
-            <helpText>When ignore is selected, the value of the address additional field 2 will be ignored. When addtoaddressline1 is selected, the value of the address additional field 2 will be added to the address line 1. When addtoaddressline2 is selected, the value of the address additional field 1 will be added to the address line 2.</helpText>
-            <helpText lang="de-DE">Wenn 'Ignorieren' ausgewählt ist, wird der Wert des Adresszusatzes 2 ignoriert. Wenn 'Zu Mondu Adresszeile 1 hinzufügen' ausgewählt ist, wird der Wert des Adresszusatzes 2 zu der Mondu Adresszeile 1 hinzugefügt. Wenn 'Zu Mondu Adresszeile 2 hinzufügen' ausgewählt ist, wird der Wert des Adresszusatzes 2 zu der Mondu Adresszeile 2 hinzugefügt.</helpText>
-            <helpText lang="nl-NL">Wanneer 'Negeren' is geselecteerd, wordt de waarde van het adreszusatz 2 genegeerd. Wanneer 'Toevoegen aan Mondu Adresregel 1' is geselecteerd, wordt de waarde van het adreszusatz 2 toegevoegd aan de Mondu Adresregel 1. Wanneer 'Toevoegen aan Mondu Adresregel 2' is geselecteerd, wordt de waarde van het adreszusatz 2 toegevoegd aan de Mondu Adresregel 2.</helpText>
-            <helpText lang="fr-FR">Lorsque 'Ignorer' est sélectionné, la valeur du champ d'adresse supplémentaire 2 est ignorée. Lorsque 'Ajouter à la ligne d'adresse Mondu 1' est sélectionné, la valeur du champ d'adresse supplémentaire 2 est ajoutée à la Mondu Adresregel 1. Lorsque 'Ajouter à la ligne d'adresse Mondu 2' est sélectionné, la valeur du champ d'adresse supplémentaire 2 est ajoutée à la Mondu Adresregel 2.</helpText>
-        </input-field>
-
-        <input-field type="bool">
-            <name>extendedLogs</name>
-            <label>Extended logs</label>
-            <label lang="de-DE">Erweiterte Protokollierung</label>
-            <label lang="nl-NL">Uitgebreide logboeken</label>
-            <label lang="fr-FR">Journaux étendus</label>
-
-            <defaultValue>0</defaultValue>
-            <helpText>When enabled, all informational logs will be recorded. When disabled, only errors will be logged.</helpText>
-            <helpText lang="de-DE">Wenn aktiviert, werden alle Informationsprotokolle aufgezeichnet. Wenn deaktiviert, werden nur Fehler protokolliert.</helpText>
-            <helpText lang="nl-NL">Wanneer ingeschakeld, worden alle informatieve logs opgenomen. Wanneer uitgeschakeld, worden alleen fouten gelogd.</helpText>
-            <helpText lang="fr-FR">Lorsqu'elle est activée, tous les journaux d'information seront enregistrés. Lorsqu'elle est désactivée, seules les erreurs seront journalisées.</helpText>
         </input-field>
     </card>
 </config>

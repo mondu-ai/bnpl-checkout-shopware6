@@ -1,57 +1,20 @@
 {% sw_extends '@Storefront/storefront/component/payment/payment-method.html.twig' %}
 
-{% block component_payment_method_image %}
-    {% if (payment.shortname == 'mondu_handler'
-        or payment.shortname == 'mondu_sepa_handler'
-        or payment.shortname == 'mondu_installment_handler'
-        or payment.shortname == 'mondu_installment_by_invoice_handler'
-        or payment.shortname == 'mondu_pay_now_handler') %}
-
-        {# get current language (e.g. 'de', 'en', 'nl') #}
-        {% set isoCode = context.languageInfo.localeCode|lower|split('-') %}
-        {% set currentLocale = isoCode[0] %}
-        {% set fallbackLocale = 'en' %}
-
-        {# Logo-Mapping #}
-        {% set logoMap = {
-            'mondu_handler': 'invoice_white_rectangle.png',
-            'mondu_sepa_handler': 'sepa_white_rectangle.png',
-            'mondu_installment_handler': 'installments_white_rectangle.png',
-            'mondu_installment_by_invoice_handler': 'installments_white_rectangle.png',
-            'mondu_pay_now_handler': 'instant_pay_white_rectangle.png'
-        } %}
-
-        {% set logoFilename = logoMap[payment.shortname] ?? 'invoice_white_rectangle.png' %}
-        {% set logoPath = 'bundles/mond1sw6/images/' ~ currentLocale ~ '/' ~ logoFilename %}
-        {% set logoPathFallback = 'bundles/mond1sw6/images/' ~ fallbackLocale ~ '/' ~ logoFilename %}
-
-        <img src="{{ asset(logoPath, 'asset') }}"
-             onerror="this.onerror=null; this.src='{{ asset(logoPathFallback, 'asset') }}';"
-             class="payment-method-image"
-             alt="{{ payment.translated.name }}"
-             title="{{ payment.translated.name }}">
-    {% else %}
-        {# use standard template for all other payment methods #}
-        {{ parent() }}
-    {% endif %}
-{% endblock %}
-
 {% block component_payment_method_description %}
-    {% if (payment.shortname == 'mondu_handler'
-        or payment.shortname == 'mondu_sepa_handler'
-        or payment.shortname == 'mondu_installment_handler'
-        or payment.shortname == 'mondu_installment_by_invoice_handler'
-        or payment.shortname == 'mondu_pay_now_handler')
-        and payment.id is same as(selectedPaymentMethodId) %}
+    {% if payment.shortname == 'mondu_handler' or payment.shortname == 'mondu_sepa_handler' or payment.shortname == 'mondu_installment_handler' or payment.shortname == 'mondu_installment_by_invoice_handler' or payment.shortname == 'mondu_pay_now_handler' %}
+      <div class="payment-method-description">
+        <strong>{{ payment.translated.name }}</strong>
+        {% if payment.translated.description %}
+            {% set paymentDescription = payment.translated.description|replace({ "[url=": "<a target=\"_blank\" href=\"", "]": "\" >", "[/url]": "</a>" }) %}
 
-        <div class="payment-method-description">
-            <strong>{{ payment.translated.name }}</strong>
-            {% if payment.translated.description %}
-                {% set paymentDescription = payment.translated.description|replace({ "[url=": "<a target=\"_blank\" href=\"", "]": "\" >", "[/url]": "</a>" }) %}
+            {% if not payment.id is same as(selectedPaymentMethodId) %}
+                {% set paymentDescription = (paymentDescription|length > 75 ? payment.translated.description[:75] ~ ' ...' : paymentDescription) %}
             {% endif %}
-        </div>
 
+            <p>{{ paymentDescription | raw }}</p>
+        {% endif %}
+      </div>
     {% else %}
-        {{ parent() }}
+      {{ parent() }}
     {% endif %}
 {% endblock %}

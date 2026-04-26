@@ -29,19 +29,4 @@ abstract class AbstractInvoiceDataService
      * @return array
      */
     abstract public function getInvoiceData(OrderEntity $order, Context $context): array;
-
-    /**
-     * Get document URL for a given document
-     *
-     * @param $document
-     * @return string|null
-     */
-    public function getDocumentUrl($document): ?string
-    {
-        try {
-            return $this->documentUrlHelper->generateRouteForDocument($document);
-        } catch (\Exception $e) {
-            return null;
-        }
-    }
 }

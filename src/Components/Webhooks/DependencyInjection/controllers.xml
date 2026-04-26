@@ -11,7 +11,6 @@
         <service id="Mondu\MonduPayment\Components\Webhooks\Controller\WebhooksController" public="true">
             <argument key="$configService" type="service" id="mondu.mondu_config"/>
             <argument key="$webhookService" type="service" id="mondu.webhook_service"/>
-            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
 
             <call method="setContainer">
                 <argument id="service_container" type="service"/>

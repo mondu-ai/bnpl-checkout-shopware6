@@ -57,8 +57,11 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
                             throw new MonduException('Order can not be shipped. Invoice required.');
                         }
 
-                        // No need to check mail-attachments - TransitionSubscriber will handle document selection
-                        // It will automatically find and use the invoice document from the order
+                        $documentIds = $context->getExtensions()['mail-attachments']->getDocumentIds();
+
+                        if (count($documentIds) != 1) {
+                            throw new MonduException('Please select one document to attach.');
+                        }
                     }
                 }
             }
@@ -100,10 +103,7 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
 
         if (!$invoiceNumber) {
             foreach ($order->getDocuments() as $document) {
-                if (
-                    $document->getDocumentType()->getTechnicalName() === 'invoice' ||
-                    $document->getDocumentType()->getTechnicalName() === 'zugferd_embedded_invoice'
-                ) {
+                if ($document->getDocumentType()->getTechnicalName() === 'invoice') {
                     $config = $document->getConfig();
 
                     return isset($config['custom']['invoiceNumber']);

@@ -33,4 +33,9 @@ class OrderExtension extends EntityExtension
     {
         return OrderDefinition::class;
     }
+
+    public function getEntityName(): string
+    {
+        return 'order';
+    }
 }
