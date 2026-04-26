@@ -5,11 +5,16 @@
     <services>
         <defaults autowire="true"/>
 
+        <service id="Mondu\MonduPayment\Components\Webhooks\Service\ShopUrlService">
+            <argument type="service" id="sales_channel.repository"/>
+        </service>
+
         <service id="mondu.webhook_service" class="Mondu\MonduPayment\Components\Webhooks\Service\WebhookService">
           <argument key="$logger" type="service" id="monolog.logger.mondu"/>
           <argument key="$monduClient" type="service" id="mondu.mondu_api"/>
           <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
           <argument key="$configService" type="service" id="mondu.mondu_config"/>
+          <argument key="$shopUrlService" type="service" id="Mondu\MonduPayment\Components\Webhooks\Service\ShopUrlService"/>
         </service>
 
         <service id="Mondu\MonduPayment\Components\Webhooks\Subscriber\ConfigSubscriber">

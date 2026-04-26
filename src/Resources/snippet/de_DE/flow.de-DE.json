@@ -1,0 +1,7 @@
+{
+    "Confirmed": "Bestätigt",
+    "Cancelled": "Abgebrochen",
+    "Pending": "Ausstehend",
+    "Declined": "Fehlgeschlagen",
+    "Approved": "Genehmigt"
+}
