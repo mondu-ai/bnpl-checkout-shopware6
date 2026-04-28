@@ -143,6 +143,16 @@ class CreditNoteSubscriber implements EventSubscriberInterface
                                 InvoiceDataEntity::FIELD_EXTERNAL_INVOICE_UUID => $response['credit_note']['uuid'],
                             ]
                         ], $event->getContext());
+
+                        if ($this->configService->isExtendedLogsEnabled()) {
+                            $this->logger->info('mondu.INFO: Credit note created successfully', [
+                                'order_id' => $orderId,
+                                'credit_note_number' => $creditNoteNumber,
+                                'credit_note_uuid' => $response['credit_note']['uuid'],
+                                'parent_invoice_number' => $invoiceNumber,
+                                'gross_amount_cents' => $grossAmountCents,
+                            ]);
+                        }
                     }
                 }
             }

@@ -117,7 +117,18 @@ class MonduClient
 
     public function cancelInvoice($orderUuid, $invoiceUuid): ?array
     {
-        return $this->sendRequest('orders/'. $orderUuid.'/invoices/' . $invoiceUuid . '/cancel', 'POST');
+        $url = 'orders/' . $orderUuid . '/invoices/' . $invoiceUuid . '/cancel';
+        $result = $this->sendRequest($url, 'POST');
+
+        if ($this->configService->isExtendedLogsEnabled()) {
+            $this->logger->info("mondu.INFO: MonduClient [POST {$url}]: Cancel invoice", [
+                'order_uuid' => $orderUuid,
+                'invoice_uuid' => $invoiceUuid,
+                'response' => $result,
+            ]);
+        }
+
+        return $result;
     }
 
     public function cancelCreditNote($invoiceUuid, $creditNoteUuid): ?array
@@ -197,6 +208,14 @@ class MonduClient
         try {
             $response = $this->restClient->send($request);
             $decoded = json_decode($response->getBody()->getContents(), true);
+
+            if ($this->configService->isExtendedLogsEnabled()) {
+                $this->logger->info("mondu.INFO: MonduClient [POST {$url}]: Credit note created", [
+                    'invoice_uuid' => $invoiceUuid,
+                    'request_body' => $body,
+                    'response' => $decoded,
+                ]);
+            }
 
             return is_array($decoded) ? $decoded : null;
         } catch (GuzzleException $e) {
