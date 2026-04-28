@@ -44,6 +44,11 @@ class OrderExceptionSubscriber implements EventSubscriberInterface
             return;
         }
 
+        // Skip webhook route-not-found noise (Mondu sends to all registered URLs including inactive sales channels)
+        if (str_contains($request->getRequestUri(), '/mondu/webhooks')) {
+            return;
+        }
+
         // LOG ALL EXCEPTIONS to debug
         if ($this->configService->isExtendedLogsEnabled()) {
             $this->logger->info('mondu.DEBUG: Exception caught in subscriber', [

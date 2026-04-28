@@ -26,6 +26,8 @@
       "labelCancelCreditNote": "Gutschrift stornieren",
       "cancelSuccessTitle": "Erfolg!",
       "cancelSuccessMessage": "Erfolgreich gelöscht.",
+      "cancelAlreadyCancelledTitle": "Bereits storniert",
+      "cancelAlreadyCancelledMessage": "Diese Rechnung wurde bei Mondu bereits storniert.",
       "cancelErrorMessage": "Es ist ein Fehler aufgetreten. Dokument konnte nicht storniert werden.",
       "cancelErrorAlreadyCancelled": "Diese Gutschrift wurde bei Mondu bereits storniert.",
       "cancelErrorNotFound": "Diese Gutschrift konnte bei Mondu nicht gefunden werden.",

@@ -9,10 +9,17 @@ Shopware.Component.override('sw-order-document-card', {
   methods: {
     onCancelInvoice(invoiceId, orderId) {
       this.invoiceApiService.cancel(orderId, invoiceId).then((response) => {
-        this.createNotificationSuccess({
-          title: this.$tc('sw-order-mondu.documentCard.cancelSuccessTitle'),
-          message: this.$tc('sw-order-mondu.documentCard.cancelSuccessMessage')
-        });
+        if (response.status === 'already_cancelled') {
+          this.createNotificationInfo({
+            title: this.$tc('sw-order-mondu.documentCard.cancelAlreadyCancelledTitle'),
+            message: this.$tc('sw-order-mondu.documentCard.cancelAlreadyCancelledMessage')
+          });
+        } else {
+          this.createNotificationSuccess({
+            title: this.$tc('sw-order-mondu.documentCard.cancelSuccessTitle'),
+            message: this.$tc('sw-order-mondu.documentCard.cancelSuccessMessage')
+          });
+        }
       }).catch((error) => {
         if (error['error'] != '0') {
           this.createNotificationError({

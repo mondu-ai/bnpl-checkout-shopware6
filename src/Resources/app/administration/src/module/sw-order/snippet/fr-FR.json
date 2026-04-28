@@ -23,6 +23,8 @@
       "labelCancelCreditNote": "Annuler la note de crédit",
       "cancelSuccessTitle": "Bravo! Opération réussie.",
       "cancelSuccessMessage": "Annulation réussie.",
+      "cancelAlreadyCancelledTitle": "Déjà annulée",
+      "cancelAlreadyCancelledMessage": "Cette facture a déjà été annulée chez Mondu.",
       "cancelErrorMessage": "Une erreur s'est produite. Le document n'a pas pu être annulé.",
       "cancelErrorAlreadyCancelled": "Cette note de crédit a déjà été annulée chez Mondu.",
       "cancelErrorNotFound": "Cette note de crédit est introuvable chez Mondu.",

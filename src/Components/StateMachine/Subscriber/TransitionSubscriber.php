@@ -154,6 +154,16 @@ class TransitionSubscriber implements EventSubscriberInterface
         $this->orderDataRepository->update([
             $updateData
         ], $context);
+
+        $liveContext = Context::createDefaultContext();
+        $criteria = new Criteria();
+        $criteria->addFilter(new EqualsFilter('orderId', $monduData->getOrderId()));
+        $liveRecords = $this->orderDataRepository->search($criteria, $liveContext);
+        foreach ($liveRecords as $record) {
+            $liveUpdate = $data;
+            $liveUpdate[OrderDataEntity::FIELD_ID] = $record->getId();
+            $this->orderDataRepository->update([$liveUpdate], $liveContext);
+        }
     }
 
     private function shipOrder(OrderEntity $order, Context $context, OrderDataEntity $monduData, ?string $deliveryId = null): void
@@ -176,8 +186,9 @@ class TransitionSubscriber implements EventSubscriberInterface
 
         $invoiceCriteria = new Criteria();
         $invoiceCriteria->addFilter(new EqualsFilter('orderId', $order->getId()));
-        $existingInvoice = $this->invoiceDataRepository->search($invoiceCriteria, $context)->first();
-        
+        $liveCtx = Context::createDefaultContext();
+        $existingInvoice = $this->invoiceDataRepository->search($invoiceCriteria, $liveCtx)->first();
+
         if ($existingInvoice) {
             if ($this->configService->isExtendedLogsEnabled()) {
                 $this->logger->info('mondu.INFO: Invoice already exists in DB, updating order state to shipped', [
@@ -300,7 +311,7 @@ class TransitionSubscriber implements EventSubscriberInterface
                 
                 $invoiceData = [
                     'currency' => $orderUtilsService->getOrderCurrency($order),
-                    'external_reference_id' => (string) $invoiceNumber,
+                    'external_reference_id' => (string) $invoiceNumber . '-' . time(),
                     'invoice_url' => $invoiceUrl,
                     'gross_amount_cents' => $orderUtilsService->priceToCents($order->getPrice()->getTotalPrice()),
                     'discount_cents' => $orderDiscountService->getOrderDiscountCents($order, $context),
@@ -418,6 +429,8 @@ class TransitionSubscriber implements EventSubscriberInterface
             $deliveryId
         );
 
+        $invoiceData['external_reference_id'] = ($invoiceData['external_reference_id'] ?? '') . '-' . time();
+
         try {
             $invoice = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->invoiceOrder(
                 $monduData->getReferenceId(),
@@ -448,6 +461,29 @@ class TransitionSubscriber implements EventSubscriberInterface
                 $documentIds = $mailAttachments->getDocumentIds();
                 if (!empty($documentIds)) {
                     $attachedDocument = $documentIds[0];
+                }
+            }
+
+            if ($attachedDocument === null && $order->getDocuments() && $order->getDocuments()->count() > 0) {
+                $cancelledByStornoIds = [];
+                foreach ($order->getDocuments() as $document) {
+                    if ($document->getReferencedDocumentId() !== null) {
+                        $cancelledByStornoIds[] = $document->getReferencedDocumentId();
+                    }
+                }
+                $invoiceDocs = [];
+                foreach ($order->getDocuments() as $document) {
+                    if (
+                        ($document->getDocumentType()->getTechnicalName() === 'invoice' ||
+                         $document->getDocumentType()->getTechnicalName() === 'zugferd_embedded_invoice') &&
+                        !in_array($document->getId(), $cancelledByStornoIds)
+                    ) {
+                        $invoiceDocs[] = $document;
+                    }
+                }
+                usort($invoiceDocs, fn($a, $b) => $b->getCreatedAt() <=> $a->getCreatedAt());
+                if (!empty($invoiceDocs)) {
+                    $attachedDocument = $invoiceDocs[0]->getId();
                 }
             }
 

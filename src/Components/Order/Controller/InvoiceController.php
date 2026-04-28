@@ -30,6 +30,8 @@ class InvoiceController extends AbstractController
     public function cancel(Request $request, string $orderId, string $invoiceId, Context $context): Response
     {
         try {
+            $liveContext = Context::createDefaultContext();
+
             $criteria = new Criteria();
             $criteria->addFilter(new EqualsFilter('orderId', $orderId));
 
@@ -38,7 +40,11 @@ class InvoiceController extends AbstractController
             $invoiceCriteria->addFilter(new EqualsFilter('documentId', $invoiceId));
 
             $orderEntity = $this->orderDataRepository->search($criteria, $context)->first();
+            // Search in both versioned and live context to find the invoice
             $invoiceEntity = $this->invoiceDataRepository->search($invoiceCriteria, $context)->first();
+            if ($invoiceEntity === null) {
+                $invoiceEntity = $this->invoiceDataRepository->search($invoiceCriteria, $liveContext)->first();
+            }
 
             if ($orderEntity != null && $invoiceEntity === null) {
                 return new Response(json_encode(['status' => 'already_cancelled', 'error' => '0']), Response::HTTP_OK);
@@ -51,7 +57,7 @@ class InvoiceController extends AbstractController
                 );
 
                 if ($cancellation != null) {
-                    $this->invoiceDataRepository->delete([['id' => $invoiceEntity->getId()]], $context);
+                    $this->deleteAllInvoiceData($orderId, $context);
                     $this->resetOrderStateToAuthorized($orderId, $context);
                     return new Response(json_encode(['status' => 'ok', 'error' => '0']), Response::HTTP_OK);
                 }
@@ -62,6 +68,23 @@ class InvoiceController extends AbstractController
             return new Response(json_encode(['status' => 'not_found', 'error' => '2' ]), Response::HTTP_BAD_REQUEST);
         } catch (\Exception) {
             return new Response(json_encode(['status' => 'error', 'error' => '3' ]), Response::HTTP_BAD_REQUEST);
+        }
+    }
+
+    private function deleteAllInvoiceData(string $orderId, Context $context): void
+    {
+        $liveContext = Context::createDefaultContext();
+        $criteria = new Criteria();
+        $criteria->addFilter(new EqualsFilter('orderId', $orderId));
+
+        $liveInvoices = $this->invoiceDataRepository->search($criteria, $liveContext);
+        foreach ($liveInvoices as $invoice) {
+            $this->invoiceDataRepository->delete([['id' => $invoice->getId()]], $liveContext);
+        }
+
+        $versionedInvoices = $this->invoiceDataRepository->search($criteria, $context);
+        foreach ($versionedInvoices as $invoice) {
+            $this->invoiceDataRepository->delete([['id' => $invoice->getId()]], $context);
         }
     }
 

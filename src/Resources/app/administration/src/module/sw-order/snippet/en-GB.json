@@ -26,6 +26,8 @@
       "labelCancelCreditNote": "Cancel credit note",
       "cancelSuccessTitle": "Success!",
       "cancelSuccessMessage": "Successfully deleted.",
+      "cancelAlreadyCancelledTitle": "Already cancelled",
+      "cancelAlreadyCancelledMessage": "This invoice has already been cancelled at Mondu.",
       "cancelErrorMessage": "An error occurred. Document could not be cancelled.",
       "cancelErrorAlreadyCancelled": "This credit note has already been cancelled at Mondu.",
       "cancelErrorNotFound": "This credit note could not be found at Mondu.",

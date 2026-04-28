@@ -23,6 +23,8 @@
       "labelCancelCreditNote": "Kredietnota annuleren",
       "cancelSuccessTitle": "Gelukt!",
       "cancelSuccessMessage": "Succesvol geannuleerd.",
+      "cancelAlreadyCancelledTitle": "Al geannuleerd",
+      "cancelAlreadyCancelledMessage": "Deze factuur is al geannuleerd bij Mondu.",
       "cancelErrorMessage": "Er is een fout opgetreden. Document kon niet worden geannuleerd.",
       "cancelErrorAlreadyCancelled": "Deze kredietnota is al geannuleerd bij Mondu.",
       "cancelErrorNotFound": "Deze kredietnota kon niet worden gevonden bij Mondu.",
