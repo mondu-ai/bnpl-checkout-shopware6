@@ -181,12 +181,14 @@ class MonduClient
                     return ['status' => 'already_registered', 'message' => $responseBody['errors'][0]['details']];
                 }
                 
-                if ($e->getCode() == 422 && 
-                    isset($responseBody['errors'][0]['details']) && 
+                if ($e->getCode() == 422 &&
+                    isset($responseBody['errors'][0]['details']) &&
                     strpos($responseBody['errors'][0]['details'], 'must be unique') !== false) {
-                    
-                    $this->logger->warning("mondu.WARNING: MonduClient [{$method} {$url}]: Invoice already exists, returning special status - " . $responseBody['errors'][0]['details']);
-                    
+
+                    if ($this->configService->isExtendedLogsEnabled()) {
+                        $this->logger->warning("mondu.WARNING: MonduClient [{$method} {$url}]: Invoice already exists, returning special status - " . $responseBody['errors'][0]['details']);
+                    }
+
                     return ['status' => 'already_exists', 'message' => $responseBody['errors'][0]['details']];
                 }
             }

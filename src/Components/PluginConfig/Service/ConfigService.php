@@ -34,7 +34,8 @@ class ConfigService
      */
     public function __construct(
         private readonly SystemConfigService $systemConfigService,
-        private readonly EntityRepository $pluginRepository
+        private readonly EntityRepository $pluginRepository,
+        private readonly EntityRepository $salesChannelRepository
     ) {}
 
     /**
@@ -135,6 +136,50 @@ class ConfigService
         $config = $this->getPluginCustomConfiguration();
 
         return $config['webhooksSecret'] ?? null;
+    }
+
+    /**
+     * Collect every known webhook secret — default scope + each sales channel scope.
+     *
+     * Needed because one Mondu account may have several registered webhook URLs
+     * (one per sales-channel domain) with distinct secrets. The incoming webhook only
+     * carries an HMAC signature, so we have to try each candidate secret until one
+     * matches.
+     *
+     * @return list<string>
+     */
+    public function getAllWebhooksSecrets(): array
+    {
+        $secrets = [];
+
+        $prev = $this->salesChannelId;
+
+        $collect = function (?string $salesChannelId) use (&$secrets): void {
+            $this->salesChannelId = $salesChannelId;
+            $s = $this->getWebhooksSecret();
+            if (is_string($s) && $s !== '') {
+                $secrets[$s] = true;
+            }
+        };
+
+        // default (global) scope
+        $collect(null);
+
+        // every sales channel — including inactive, in case a channel was toggled off
+        // but still has live webhooks registered at Mondu.
+        $channels = $this->salesChannelRepository
+            ->searchIds(new Criteria(), new Context(new SystemSource()))
+            ->getIds();
+
+        foreach ($channels as $scId) {
+            if (is_string($scId)) {
+                $collect($scId);
+            }
+        }
+
+        $this->salesChannelId = $prev;
+
+        return array_keys($secrets);
     }
 
     /**
