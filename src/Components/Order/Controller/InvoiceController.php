@@ -7,6 +7,7 @@ namespace Mondu\MonduPayment\Components\Order\Controller;
 use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
 use Shopware\Core\Framework\Context;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -14,6 +15,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Mondu\MonduPayment\Components\Order\Model\OrderDataEntity;
+use Mondu\MonduPayment\Components\Invoice\InvoiceDataEntity;
 use Mondu\MonduPayment\Util\CriteriaHelper;
 
 #[Route(defaults: ['_routeScope' => ['api']])]
@@ -47,31 +49,35 @@ class InvoiceController extends AbstractController
             }
 
             if ($orderEntity != null && $invoiceEntity === null) {
-                return new Response(json_encode(['status' => 'already_cancelled', 'error' => '0']), Response::HTTP_OK);
+                return new JsonResponse(['status' => 'ok', 'error' => '0']);
             }
 
             if ($orderEntity != null && $invoiceEntity != null) {
+                if ($invoiceEntity->getInvoiceState() === 'cancelled') {
+                    return new JsonResponse(['status' => 'already_cancelled', 'error' => '0']);
+                }
+
                 $cancellation = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->cancelInvoice(
                     $orderEntity->getReferenceId(),
                     $invoiceEntity->getExternalInvoiceUuid()
                 );
 
                 if ($cancellation != null) {
-                    $this->deleteAllInvoiceData($orderId, $context);
+                    $this->markInvoiceDataAsCancelled($orderId, $context);
                     $this->resetOrderStateToAuthorized($orderId, $context);
-                    return new Response(json_encode(['status' => 'ok', 'error' => '0']), Response::HTTP_OK);
+                    return new JsonResponse(['status' => 'ok', 'error' => '0']);
                 }
 
-                return new Response(json_encode(['status' => 'request_failed', 'error' => '1' ]), Response::HTTP_BAD_REQUEST);
+                return new JsonResponse(['status' => 'request_failed', 'error' => '1'], Response::HTTP_BAD_REQUEST);
             }
 
-            return new Response(json_encode(['status' => 'not_found', 'error' => '2' ]), Response::HTTP_BAD_REQUEST);
+            return new JsonResponse(['status' => 'not_found', 'error' => '2'], Response::HTTP_BAD_REQUEST);
         } catch (\Exception) {
-            return new Response(json_encode(['status' => 'error', 'error' => '3' ]), Response::HTTP_BAD_REQUEST);
+            return new JsonResponse(['status' => 'error', 'error' => '3'], Response::HTTP_BAD_REQUEST);
         }
     }
 
-    private function deleteAllInvoiceData(string $orderId, Context $context): void
+    private function markInvoiceDataAsCancelled(string $orderId, Context $context): void
     {
         $liveContext = Context::createDefaultContext();
         $criteria = new Criteria();
@@ -79,12 +85,18 @@ class InvoiceController extends AbstractController
 
         $liveInvoices = $this->invoiceDataRepository->search($criteria, $liveContext);
         foreach ($liveInvoices as $invoice) {
-            $this->invoiceDataRepository->delete([['id' => $invoice->getId()]], $liveContext);
+            $this->invoiceDataRepository->update([[
+                'id' => $invoice->getId(),
+                InvoiceDataEntity::FIELD_INVOICE_STATE => 'cancelled',
+            ]], $liveContext);
         }
 
         $versionedInvoices = $this->invoiceDataRepository->search($criteria, $context);
         foreach ($versionedInvoices as $invoice) {
-            $this->invoiceDataRepository->delete([['id' => $invoice->getId()]], $context);
+            $this->invoiceDataRepository->update([[
+                'id' => $invoice->getId(),
+                InvoiceDataEntity::FIELD_INVOICE_STATE => 'cancelled',
+            ]], $context);
         }
     }
 

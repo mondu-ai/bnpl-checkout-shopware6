@@ -7,6 +7,26 @@ Shopware.Component.override('sw-order-document-card', {
     'notification'
   ],
   methods: {
+    onCreateDocument(params, additionalAction, referencedDocumentId) {
+      return this.$super('onCreateDocument', params, additionalAction, referencedDocumentId)
+        ?.catch?.((error) => {
+          const errorDetail = error?.response?.data?.errors?.[0]?.detail || error?.message || '';
+          const isCreditNote = params?.type === 'credit_note'
+            || params?.type === 'zugferd_credit_note'
+            || params?.type === 'zugferd_embedded_credit_note';
+
+          if (isCreditNote && errorDetail.includes('violation')) {
+            this.createNotificationError({
+              title: this.$tc('sw-order-mondu.documentCard.creditNoteViolationTitle'),
+              message: this.$tc('sw-order-mondu.documentCard.creditNoteViolationMessage')
+            });
+            return;
+          }
+
+          throw error;
+        });
+    },
+
     onCancelInvoice(invoiceId, orderId) {
       this.invoiceApiService.cancel(orderId, invoiceId).then((response) => {
         if (response.status === 'already_cancelled') {

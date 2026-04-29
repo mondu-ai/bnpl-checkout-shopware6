@@ -29,9 +29,14 @@ class CreditNoteController extends AbstractController
     public function cancel(Request $request, string $orderId, string $creditNoteId, Context $context): Response
     {
         try {
+            $liveContext = Context::createDefaultContext();
+
             $creditNoteCriteria = new Criteria();
             $creditNoteCriteria->addFilter(new EqualsFilter('documentId', $creditNoteId));
             $creditNoteEntity = $this->invoiceDataRepository->search($creditNoteCriteria, $context)->first();
+            if ($creditNoteEntity === null) {
+                $creditNoteEntity = $this->invoiceDataRepository->search($creditNoteCriteria, $liveContext)->first();
+            }
 
             if ($creditNoteEntity === null) {
                 return new Response(json_encode(['status' => 'credit_note_not_registered_in_mondu', 'error' => '2']), Response::HTTP_BAD_REQUEST);
@@ -41,6 +46,9 @@ class CreditNoteController extends AbstractController
             $documentCriteria->addFilter(new EqualsFilter('id', $creditNoteId));
             $documentCriteria->addAssociation('order');
             $document = $this->documentRepository->search($documentCriteria, $context)->first();
+            if ($document === null) {
+                $document = $this->documentRepository->search($documentCriteria, $liveContext)->first();
+            }
 
             if ($document === null) {
                 return new Response(json_encode(['status' => 'document_not_found', 'error' => '2']), Response::HTTP_BAD_REQUEST);
@@ -52,16 +60,13 @@ class CreditNoteController extends AbstractController
                 return new Response(json_encode(['status' => 'invoice_number_missing', 'error' => '2']), Response::HTTP_BAD_REQUEST);
             }
 
-            // Parent invoice must be scoped by orderId — invoice numbers are NOT globally
-            // unique across orders (and the same row table also stores credit-note entries
-            // whose invoiceNumber field holds the credit-note number). Without the orderId
-            // filter, first() may return a credit-note row from a different order whose
-            // invoiceNumber happens to equal the number we are looking up, which is then
-            // sent to Mondu as an invoice UUID and yields a 404.
             $invoiceCriteria = new Criteria();
             $invoiceCriteria->addFilter(new EqualsFilter('invoiceNumber', $documentInvoiceNumber));
             $invoiceCriteria->addFilter(new EqualsFilter('orderId', $orderId));
             $invoiceEntity = $this->invoiceDataRepository->search($invoiceCriteria, $context)->first();
+            if ($invoiceEntity === null) {
+                $invoiceEntity = $this->invoiceDataRepository->search($invoiceCriteria, $liveContext)->first();
+            }
 
             if ($invoiceEntity === null) {
                 return new Response(json_encode(['status' => 'invoice_not_registered_in_mondu', 'error' => '2']), Response::HTTP_BAD_REQUEST);

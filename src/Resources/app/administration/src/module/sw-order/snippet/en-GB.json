@@ -25,13 +25,17 @@
       "labelCancelInvoice": "Cancel invoice",
       "labelCancelCreditNote": "Cancel credit note",
       "cancelSuccessTitle": "Success!",
-      "cancelSuccessMessage": "Successfully deleted.",
+      "cancelSuccessMessage": "Successfully cancelled.",
       "cancelAlreadyCancelledTitle": "Already cancelled",
       "cancelAlreadyCancelledMessage": "This invoice has already been cancelled at Mondu.",
+      "cancelNotSubmittedTitle": "Not submitted to Mondu",
+      "cancelNotSubmittedMessage": "This invoice has not been submitted to Mondu yet. Ship the order first to submit the invoice.",
       "cancelErrorMessage": "An error occurred. Document could not be cancelled.",
       "cancelErrorAlreadyCancelled": "This credit note has already been cancelled at Mondu.",
       "cancelErrorNotFound": "This credit note could not be found at Mondu.",
-      "cancelErrorNotRegistered": "This credit note is not registered with Mondu and cannot be cancelled through this integration."
+      "cancelErrorNotRegistered": "This credit note is not registered with Mondu and cannot be cancelled through this integration.",
+      "creditNoteViolationTitle": "Credit note cannot be created",
+      "creditNoteViolationMessage": "The credit note amount exceeds the remaining open amount on the invoice. There is nothing left to refund."
     }
   },
   "sw-mondu-config": {
