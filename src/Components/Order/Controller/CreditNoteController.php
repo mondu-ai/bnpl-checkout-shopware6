@@ -39,7 +39,8 @@ class CreditNoteController extends AbstractController
             }
 
             if ($creditNoteEntity === null) {
-                return new Response(json_encode(['status' => 'credit_note_not_registered_in_mondu', 'error' => '2']), Response::HTTP_BAD_REQUEST);
+                $this->unlinkCancelledCreditNote($creditNoteId, $context);
+                return new Response(json_encode(['status' => 'ok', 'error' => '0']), Response::HTTP_OK);
             }
 
             $documentCriteria = new Criteria();

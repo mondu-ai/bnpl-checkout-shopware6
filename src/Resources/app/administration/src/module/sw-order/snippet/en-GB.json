@@ -35,7 +35,15 @@
       "cancelErrorNotFound": "This credit note could not be found at Mondu.",
       "cancelErrorNotRegistered": "This credit note is not registered with Mondu and cannot be cancelled through this integration.",
       "creditNoteViolationTitle": "Credit note cannot be created",
-      "creditNoteViolationMessage": "The credit note amount exceeds the remaining open amount on the invoice. There is nothing left to refund."
+      "creditNoteViolationMessage": "The credit note amount exceeds the remaining open amount on the invoice. There is nothing left to refund.",
+      "columnShopwareStatus": "Status",
+      "shopwareStatusActive": "Active",
+      "shopwareStatusCancelled": "Cancelled",
+      "shopwareStatusStorno": "Storno",
+      "columnMonduStatus": "Mondu",
+      "monduStatusNotSent": "Not sent",
+      "monduStatusSent": "Sent",
+      "monduStatusCancelled": "Cancelled"
     }
   },
   "sw-mondu-config": {

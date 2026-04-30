@@ -35,7 +35,15 @@
       "cancelErrorNotFound": "Diese Gutschrift konnte bei Mondu nicht gefunden werden.",
       "cancelErrorNotRegistered": "Diese Gutschrift ist bei Mondu nicht registriert und kann über diese Integration nicht storniert werden.",
       "creditNoteViolationTitle": "Gutschrift kann nicht erstellt werden",
-      "creditNoteViolationMessage": "Der Gutschriftsbetrag übersteigt den verbleibenden offenen Betrag der Rechnung. Es gibt nichts mehr zu erstatten."
+      "creditNoteViolationMessage": "Der Gutschriftsbetrag übersteigt den verbleibenden offenen Betrag der Rechnung. Es gibt nichts mehr zu erstatten.",
+      "columnShopwareStatus": "Status",
+      "shopwareStatusActive": "Aktiv",
+      "shopwareStatusCancelled": "Storniert",
+      "shopwareStatusStorno": "Storno",
+      "columnMonduStatus": "Mondu",
+      "monduStatusNotSent": "Nicht gesendet",
+      "monduStatusSent": "Gesendet",
+      "monduStatusCancelled": "Storniert"
     }
   },
   "sw-mondu-config": {

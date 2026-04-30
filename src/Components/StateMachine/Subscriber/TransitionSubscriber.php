@@ -184,19 +184,46 @@ class TransitionSubscriber implements EventSubscriberInterface
             return;
         }
 
-        $invoiceCriteria = new Criteria();
-        $invoiceCriteria->addFilter(new EqualsFilter('orderId', $order->getId()));
         $liveCtx = Context::createDefaultContext();
-        $existingInvoice = $this->invoiceDataRepository->search($invoiceCriteria, $liveCtx)->first();
+
+        $allInvoiceCriteria = new Criteria();
+        $allInvoiceCriteria->addFilter(new EqualsFilter('orderId', $order->getId()));
+        $allInvoices = $this->invoiceDataRepository->search($allInvoiceCriteria, $liveCtx);
+
+        $existingInvoice = null;
+        foreach ($allInvoices as $inv) {
+            if ($inv->getInvoiceState() !== 'cancelled') {
+                $existingInvoice = $inv;
+                break;
+            }
+        }
+
+        if ($this->configService->isExtendedLogsEnabled()) {
+            $debugData = [];
+            foreach ($allInvoices as $inv) {
+                $debugData[] = [
+                    'id' => $inv->getId(),
+                    'invoiceNumber' => $inv->getInvoiceNumber(),
+                    'invoiceState' => $inv->getInvoiceState(),
+                ];
+            }
+            $this->logger->info('mondu.INFO: shipOrder invoice check', [
+                'order' => $order->getId(),
+                'total_invoices' => $allInvoices->count(),
+                'active_invoice_found' => $existingInvoice !== null,
+                'invoices' => $debugData,
+            ]);
+        }
 
         if ($existingInvoice) {
             if ($this->configService->isExtendedLogsEnabled()) {
-                $this->logger->info('mondu.INFO: Invoice already exists in DB, updating order state to shipped', [
+                $this->logger->info('mondu.INFO: Active invoice already exists in DB, updating order state to shipped', [
                     'order' => $order->getId(),
-                    'existing_invoice_id' => $existingInvoice->getId()
+                    'existing_invoice_id' => $existingInvoice->getId(),
+                    'existing_invoice_state' => $existingInvoice->getInvoiceState(),
                 ]);
             }
-            
+
             try {
                 $this->updateOrder($context, $monduData, [
                     OrderDataEntity::FIELD_ORDER_STATE => 'shipped'

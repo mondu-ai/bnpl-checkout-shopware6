@@ -32,7 +32,15 @@
       "cancelErrorNotFound": "Deze kredietnota kon niet worden gevonden bij Mondu.",
       "cancelErrorNotRegistered": "Deze kredietnota is niet geregistreerd bij Mondu en kan niet via deze integratie worden geannuleerd.",
       "creditNoteViolationTitle": "Kredietnota kan niet worden aangemaakt",
-      "creditNoteViolationMessage": "Het bedrag van de kredietnota overschrijdt het resterende openstaande bedrag op de factuur. Er is niets meer om terug te betalen."
+      "creditNoteViolationMessage": "Het bedrag van de kredietnota overschrijdt het resterende openstaande bedrag op de factuur. Er is niets meer om terug te betalen.",
+      "columnShopwareStatus": "Status",
+      "shopwareStatusActive": "Actief",
+      "shopwareStatusCancelled": "Geannuleerd",
+      "shopwareStatusStorno": "Storno",
+      "columnMonduStatus": "Mondu",
+      "monduStatusNotSent": "Niet verzonden",
+      "monduStatusSent": "Verzonden",
+      "monduStatusCancelled": "Geannuleerd"
     }
   },
   "sw-mondu-config": {

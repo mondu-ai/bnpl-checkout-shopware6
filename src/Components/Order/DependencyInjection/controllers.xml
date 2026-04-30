@@ -18,6 +18,7 @@
             <argument key="$monduClient" type="service" id="mondu.mondu_api" />
             <argument key="$invoiceDataRepository" type="service" id="mondu_invoice_data.repository"/>
             <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
+            <argument key="$documentRepository" type="service" id="document.repository"/>
             <call method="setContainer">
                 <argument id="service_container" type="service"/>
             </call>

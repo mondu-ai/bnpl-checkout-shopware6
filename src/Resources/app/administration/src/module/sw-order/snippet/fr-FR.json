@@ -32,7 +32,15 @@
       "cancelErrorNotFound": "Cette note de crédit est introuvable chez Mondu.",
       "cancelErrorNotRegistered": "Cette note de crédit n'est pas enregistrée chez Mondu et ne peut pas être annulée via cette intégration.",
       "creditNoteViolationTitle": "La note de crédit ne peut pas être créée",
-      "creditNoteViolationMessage": "Le montant de la note de crédit dépasse le montant ouvert restant de la facture. Il n'y a plus rien à rembourser."
+      "creditNoteViolationMessage": "Le montant de la note de crédit dépasse le montant ouvert restant de la facture. Il n'y a plus rien à rembourser.",
+      "columnShopwareStatus": "Statut",
+      "shopwareStatusActive": "Actif",
+      "shopwareStatusCancelled": "Annulé",
+      "shopwareStatusStorno": "Storno",
+      "columnMonduStatus": "Mondu",
+      "monduStatusNotSent": "Non envoyé",
+      "monduStatusSent": "Envoyé",
+      "monduStatusCancelled": "Annulé"
     }
   },
   "sw-mondu-config": {

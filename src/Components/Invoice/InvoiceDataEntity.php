@@ -69,6 +69,11 @@ class InvoiceDataEntity extends Entity
         return $this->orderId;
     }
 
+    public function getDocumentId(): string
+    {
+        return $this->documentId;
+    }
+
     public function getOrder(): OrderEntity
     {
         return $this->order;

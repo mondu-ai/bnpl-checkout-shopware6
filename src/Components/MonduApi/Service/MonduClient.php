@@ -237,6 +237,10 @@ class MonduClient
                         }
                         return ['status' => 'invoice_cancelled', 'message' => $details];
                     }
+                    if (stripos($details, 'credit_notes_exceed_invoice_value') !== false) {
+                        $this->logger->warning("mondu.WARNING: MonduClient [POST {$url}]: credit notes exceed invoice value");
+                        return ['status' => 'amount_exceeded', 'message' => $details];
+                    }
                 }
             }
 

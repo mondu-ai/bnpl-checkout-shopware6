@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Mondu\MonduPayment\Components\Order\Controller;
 
 use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
+use Shopware\Core\Checkout\Document\Service\DocumentGenerator;
+use Shopware\Core\Checkout\Document\Struct\DocumentGenerateOperation;
 use Shopware\Core\Framework\Context;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -25,7 +27,9 @@ class InvoiceController extends AbstractController
         private readonly MonduClient $monduClient,
         private readonly EntityRepository $orderRepository,
         private readonly EntityRepository $invoiceDataRepository,
-        private readonly EntityRepository $orderDataRepository
+        private readonly EntityRepository $orderDataRepository,
+        private readonly EntityRepository $documentRepository,
+        private readonly DocumentGenerator $documentGenerator
     ) {}
 
     #[Route(path: '/api/mondu/orders/{orderId}/{invoiceId}/cancel', name: 'mondu-payment.invoice.cancel', methods: ['POST'])]
@@ -63,8 +67,10 @@ class InvoiceController extends AbstractController
                 );
 
                 if ($cancellation != null) {
-                    $this->markInvoiceDataAsCancelled($orderId, $context);
+                    $this->markInvoiceDataAsCancelled($invoiceId, $context);
+                    $this->syncCreditNoteStatesFromResponse($cancellation, $orderId, $liveContext);
                     $this->resetOrderStateToAuthorized($orderId, $context);
+                    $this->createStornoDocument($orderId, $invoiceId, $liveContext);
                     return new JsonResponse(['status' => 'ok', 'error' => '0']);
                 }
 
@@ -77,26 +83,71 @@ class InvoiceController extends AbstractController
         }
     }
 
-    private function markInvoiceDataAsCancelled(string $orderId, Context $context): void
+    private function markInvoiceDataAsCancelled(string $documentId, Context $context): void
     {
         $liveContext = Context::createDefaultContext();
         $criteria = new Criteria();
-        $criteria->addFilter(new EqualsFilter('orderId', $orderId));
+        $criteria->addFilter(new EqualsFilter('documentId', $documentId));
 
-        $liveInvoices = $this->invoiceDataRepository->search($criteria, $liveContext);
-        foreach ($liveInvoices as $invoice) {
+        $invoice = $this->invoiceDataRepository->search($criteria, $liveContext)->first();
+        if ($invoice !== null) {
             $this->invoiceDataRepository->update([[
                 'id' => $invoice->getId(),
                 InvoiceDataEntity::FIELD_INVOICE_STATE => 'cancelled',
             ]], $liveContext);
         }
 
-        $versionedInvoices = $this->invoiceDataRepository->search($criteria, $context);
-        foreach ($versionedInvoices as $invoice) {
+        $versionedInvoice = $this->invoiceDataRepository->search($criteria, $context)->first();
+        if ($versionedInvoice !== null && $versionedInvoice->getInvoiceState() !== 'cancelled') {
             $this->invoiceDataRepository->update([[
-                'id' => $invoice->getId(),
+                'id' => $versionedInvoice->getId(),
                 InvoiceDataEntity::FIELD_INVOICE_STATE => 'cancelled',
             ]], $context);
+        }
+    }
+
+    private function syncCreditNoteStatesFromResponse(array $response, string $orderId, Context $context): void
+    {
+        $creditNotes = $response['invoice']['credit_notes'] ?? [];
+
+        foreach ($creditNotes as $cn) {
+            if (($cn['state'] ?? '') !== 'canceled') {
+                continue;
+            }
+
+            $uuid = $cn['uuid'] ?? null;
+            if ($uuid === null) {
+                continue;
+            }
+
+            $criteria = new Criteria();
+            $criteria->addFilter(new EqualsFilter('externalInvoiceUuid', $uuid));
+            $criteria->addFilter(new EqualsFilter('orderId', $orderId));
+            $entity = $this->invoiceDataRepository->search($criteria, $context)->first();
+
+            if ($entity === null) {
+                continue;
+            }
+
+            if ($entity->getInvoiceState() !== 'cancelled') {
+                $this->invoiceDataRepository->update([[
+                    'id' => $entity->getId(),
+                    InvoiceDataEntity::FIELD_INVOICE_STATE => 'cancelled',
+                ]], $context);
+            }
+
+            $this->unlinkDocument($entity->getDocumentId(), $context);
+        }
+    }
+
+    private function unlinkDocument(string $documentId, Context $context): void
+    {
+        try {
+            $this->documentRepository->update([[
+                'id' => $documentId,
+                'referencedDocumentId' => null,
+            ]], $context);
+        } catch (\Throwable) {
         }
     }
 
@@ -126,6 +177,40 @@ class InvoiceController extends AbstractController
                 ]], $context);
             }
         }
+    }
+
+    private function createStornoDocument(string $orderId, string $invoiceDocumentId, Context $context): void
+    {
+        try {
+            $operation = new DocumentGenerateOperation(
+                $orderId,
+                'pdf',
+                [],
+                $invoiceDocumentId
+            );
+
+            $this->documentGenerator->generate('storno', [$orderId => $operation], $context);
+        } catch (\Throwable) {
+        }
+    }
+
+    #[Route(path: '/api/mondu/orders/{orderId}/document-statuses', name: 'mondu-payment.order.document-statuses', methods: ['GET'])]
+    public function documentStatuses(string $orderId, Context $context): JsonResponse
+    {
+        $liveContext = Context::createDefaultContext();
+
+        $criteria = new Criteria();
+        $criteria->addFilter(new EqualsFilter('orderId', $orderId));
+
+        $invoices = $this->invoiceDataRepository->search($criteria, $liveContext);
+
+        $statuses = [];
+        foreach ($invoices as $invoice) {
+            $state = $invoice->getInvoiceState();
+            $statuses[$invoice->getDocumentId()] = $state === 'cancelled' ? 'cancelled' : 'sent';
+        }
+
+        return new JsonResponse($statuses);
     }
 
     protected function getOrder(string $orderId, Context $context)

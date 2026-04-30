@@ -131,6 +131,10 @@ class CreditNoteSubscriber implements EventSubscriberInterface
                         throw new MonduException('Credit note cannot be created because the parent invoice has been cancelled at Mondu. Please cancel the Shopware credit note document and use a different invoice.');
                     }
 
+                    if (is_array($response) && ($response['status'] ?? null) === 'amount_exceeded') {
+                        throw new MonduException('Credit note violation: the credit note amount exceeds the remaining open amount on the invoice at Mondu.');
+                    }
+
                     if ($response == null || !isset($response['credit_note']['uuid'])) {
                         $this->log('Credit Credit Note Response Failed', [$event]);
                     } else {
