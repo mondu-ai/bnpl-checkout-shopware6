@@ -68,7 +68,7 @@ class InvoiceController extends AbstractController
 
                 if ($cancellation != null) {
                     $this->markInvoiceDataAsCancelled($invoiceId, $context);
-                    $this->syncCreditNoteStatesFromResponse($cancellation, $orderId, $liveContext);
+                    $this->markAllCreditNotesAsCancelled($orderId, $invoiceId, $liveContext);
                     $this->resetOrderStateToAuthorized($orderId, $context);
                     $this->createStornoDocument($orderId, $invoiceId, $liveContext);
                     return new JsonResponse(['status' => 'ok', 'error' => '0']);
@@ -106,37 +106,34 @@ class InvoiceController extends AbstractController
         }
     }
 
-    private function syncCreditNoteStatesFromResponse(array $response, string $orderId, Context $context): void
+    private function markAllCreditNotesAsCancelled(string $orderId, string $invoiceDocumentId, Context $context): void
     {
-        $creditNotes = $response['invoice']['credit_notes'] ?? [];
+        $criteria = new Criteria();
+        $criteria->addAssociation('document.documentType');
+        $criteria->addFilter(new EqualsFilter('orderId', $orderId));
+        $entries = $this->invoiceDataRepository->search($criteria, $context);
 
-        foreach ($creditNotes as $cn) {
-            if (($cn['state'] ?? '') !== 'canceled') {
+        $creditNoteTypes = ['credit_note', 'zugferd_credit_note', 'zugferd_embedded_credit_note'];
+
+        foreach ($entries as $entry) {
+            if ($entry->getDocumentId() === $invoiceDocumentId) {
+                continue;
+            }
+            if ($entry->getInvoiceState() === 'cancelled') {
                 continue;
             }
 
-            $uuid = $cn['uuid'] ?? null;
-            if ($uuid === null) {
+            $doc = $entry->getDocument();
+            if ($doc === null || !in_array($doc->getDocumentType()?->getTechnicalName(), $creditNoteTypes, true)) {
                 continue;
             }
 
-            $criteria = new Criteria();
-            $criteria->addFilter(new EqualsFilter('externalInvoiceUuid', $uuid));
-            $criteria->addFilter(new EqualsFilter('orderId', $orderId));
-            $entity = $this->invoiceDataRepository->search($criteria, $context)->first();
+            $this->invoiceDataRepository->update([[
+                'id' => $entry->getId(),
+                InvoiceDataEntity::FIELD_INVOICE_STATE => 'cancelled',
+            ]], $context);
 
-            if ($entity === null) {
-                continue;
-            }
-
-            if ($entity->getInvoiceState() !== 'cancelled') {
-                $this->invoiceDataRepository->update([[
-                    'id' => $entity->getId(),
-                    InvoiceDataEntity::FIELD_INVOICE_STATE => 'cancelled',
-                ]], $context);
-            }
-
-            $this->unlinkDocument($entity->getDocumentId(), $context);
+            $this->unlinkDocument($entry->getDocumentId(), $context);
         }
     }
 

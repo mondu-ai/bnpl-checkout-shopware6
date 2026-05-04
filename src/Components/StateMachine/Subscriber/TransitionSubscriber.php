@@ -187,15 +187,22 @@ class TransitionSubscriber implements EventSubscriberInterface
         $liveCtx = Context::createDefaultContext();
 
         $allInvoiceCriteria = new Criteria();
+        $allInvoiceCriteria->addAssociation('document.documentType');
         $allInvoiceCriteria->addFilter(new EqualsFilter('orderId', $order->getId()));
         $allInvoices = $this->invoiceDataRepository->search($allInvoiceCriteria, $liveCtx);
 
+        $creditNoteTypes = ['credit_note', 'zugferd_credit_note', 'zugferd_embedded_credit_note'];
         $existingInvoice = null;
         foreach ($allInvoices as $inv) {
-            if ($inv->getInvoiceState() !== 'cancelled') {
-                $existingInvoice = $inv;
-                break;
+            if ($inv->getInvoiceState() === 'cancelled') {
+                continue;
             }
+            $doc = $inv->getDocument();
+            if ($doc !== null && in_array($doc->getDocumentType()?->getTechnicalName(), $creditNoteTypes, true)) {
+                continue;
+            }
+            $existingInvoice = $inv;
+            break;
         }
 
         if ($this->configService->isExtendedLogsEnabled()) {
@@ -276,10 +283,13 @@ class TransitionSubscriber implements EventSubscriberInterface
 
                 // Fallback: take the newest active (non-cancelled) invoice document
                 if ($chosenDoc === null) {
-                    // Collect IDs of documents that have been cancelled (referenced by a storno doc)
+                    $stornoTypes = ['storno', 'cancellation_invoice', 'zugferd_cancellation_invoice', 'zugferd_embedded_cancellation_invoice'];
                     $cancelledByStornoIds = [];
                     foreach ($order->getDocuments() as $document) {
-                        if ($document->getReferencedDocumentId() !== null) {
+                        if (
+                            in_array($document->getDocumentType()->getTechnicalName(), $stornoTypes, true) &&
+                            $document->getReferencedDocumentId() !== null
+                        ) {
                             $cancelledByStornoIds[] = $document->getReferencedDocumentId();
                         }
                     }
@@ -490,9 +500,13 @@ class TransitionSubscriber implements EventSubscriberInterface
             }
 
             if ($attachedDocument === null && $order->getDocuments() && $order->getDocuments()->count() > 0) {
+                $stornoTypes = ['storno', 'cancellation_invoice', 'zugferd_cancellation_invoice', 'zugferd_embedded_cancellation_invoice'];
                 $cancelledByStornoIds = [];
                 foreach ($order->getDocuments() as $document) {
-                    if ($document->getReferencedDocumentId() !== null) {
+                    if (
+                        in_array($document->getDocumentType()->getTechnicalName(), $stornoTypes, true) &&
+                        $document->getReferencedDocumentId() !== null
+                    ) {
                         $cancelledByStornoIds[] = $document->getReferencedDocumentId();
                     }
                 }
