@@ -195,53 +195,90 @@ class InvoiceController extends AbstractController
     #[Route(path: '/api/mondu/orders/{orderId}/mondu-amount', name: 'mondu-payment.order.mondu-amount', methods: ['GET'])]
     public function monduAmount(string $orderId, Context $context): JsonResponse
     {
-        $criteria = new Criteria([$orderId]);
-        $criteria->addAssociation('documents.documentType');
-        $criteria->addAssociation('lineItems');
-        $criteria->addAssociation('currency');
+        $liveContext = Context::createDefaultContext();
 
-        $order = $this->orderRepository->search($criteria, $context)->first();
+        $invoiceCriteria = new Criteria();
+        $invoiceCriteria->addFilter(new EqualsFilter('orderId', $orderId));
+        $entries = $this->invoiceDataRepository->search($invoiceCriteria, $liveContext);
 
-        if ($order === null) {
-            return new JsonResponse(['error' => 'Order not found'], Response::HTTP_NOT_FOUND);
+        $activeDocumentIds = [];
+        foreach ($entries as $entry) {
+            if ($entry->getInvoiceState() !== 'cancelled') {
+                $activeDocumentIds[] = $entry->getDocumentId();
+            }
         }
 
-        $stornoTypes = [
-            'storno',
-            'cancellation_invoice',
-            'zugferd_cancellation_invoice',
-            'zugferd_embedded_cancellation_invoice',
-        ];
+        $orderCriteria = new Criteria([$orderId]);
+        $orderCriteria->addAssociation('lineItems');
+        $orderCriteria->addAssociation('currency');
+        $order = $this->orderRepository->search($orderCriteria, $context)->first();
+        $currency = $order?->getCurrency()?->getIsoCode() ?? 'EUR';
 
+        $allDocCriteria = new Criteria();
+        $allDocCriteria->addAssociation('documentType');
+        $allDocCriteria->addFilter(new EqualsFilter('orderId', $orderId));
+        $allDocuments = $this->documentRepository->search($allDocCriteria, $liveContext);
+
+        $invoiceTypes = ['invoice', 'zugferd_embedded_invoice'];
+        $creditNoteTypes = ['credit_note', 'zugferd_credit_note', 'zugferd_embedded_credit_note'];
+        $stornoTypes = ['storno', 'cancellation_invoice', 'zugferd_cancellation_invoice', 'zugferd_embedded_cancellation_invoice'];
+
+        $hasActiveInvoice = false;
         $latestStornoTime = null;
-        if ($order->getDocuments()) {
-            foreach ($order->getDocuments() as $document) {
-                if (in_array($document->getDocumentType()->getTechnicalName(), $stornoTypes, true)) {
-                    $docTime = $document->getCreatedAt();
-                    if ($latestStornoTime === null || $docTime > $latestStornoTime) {
-                        $latestStornoTime = $docTime;
-                    }
+        $latestActiveCreditNoteTime = null;
+
+        foreach ($allDocuments as $document) {
+            $type = $document->getDocumentType()->getTechnicalName();
+            $isActive = in_array($document->getId(), $activeDocumentIds, true);
+
+            if ($isActive && in_array($type, $invoiceTypes, true)) {
+                $hasActiveInvoice = true;
+            }
+            if (in_array($type, $stornoTypes, true)) {
+                $t = $document->getCreatedAt();
+                if ($latestStornoTime === null || $t > $latestStornoTime) {
+                    $latestStornoTime = $t;
+                }
+            }
+            if ($isActive && in_array($type, $creditNoteTypes, true)) {
+                $t = $document->getCreatedAt();
+                if ($latestActiveCreditNoteTime === null || $t > $latestActiveCreditNoteTime) {
+                    $latestActiveCreditNoteTime = $t;
                 }
             }
         }
 
-        $cancelledCreditCents = 0;
-        if ($latestStornoTime !== null && $order->getLineItems()) {
+        if (!$hasActiveInvoice) {
+            return new JsonResponse([
+                'gross_amount_cents' => 0,
+                'currency' => $currency,
+            ]);
+        }
+
+        $adjustmentCents = 0;
+        if ($order->getLineItems()) {
             foreach ($order->getLineItems() as $lineItem) {
                 if ($lineItem->getType() !== LineItem::CREDIT_LINE_ITEM_TYPE) {
                     continue;
                 }
-                if ($lineItem->getCreatedAt() <= $latestStornoTime) {
-                    $cancelledCreditCents += (int) round(abs($lineItem->getPrice()->getTotalPrice()) * 100);
+                $createdAt = $lineItem->getCreatedAt();
+
+                if ($latestStornoTime !== null && $createdAt <= $latestStornoTime) {
+                    $adjustmentCents += (int) round(abs($lineItem->getPrice()->getTotalPrice()) * 100);
+                    continue;
+                }
+
+                if ($latestActiveCreditNoteTime === null || $createdAt > $latestActiveCreditNoteTime) {
+                    $adjustmentCents += (int) round(abs($lineItem->getPrice()->getTotalPrice()) * 100);
                 }
             }
         }
 
-        $grossAmountCents = (int) round($order->getPrice()->getTotalPrice() * 100) + $cancelledCreditCents;
+        $grossAmountCents = (int) round($order->getPrice()->getTotalPrice() * 100) + $adjustmentCents;
 
         return new JsonResponse([
             'gross_amount_cents' => $grossAmountCents,
-            'currency' => $order->getCurrency()?->getIsoCode() ?? 'EUR',
+            'currency' => $currency,
         ]);
     }
 
