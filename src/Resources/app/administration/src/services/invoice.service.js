@@ -14,4 +14,10 @@ export default class InvoiceService extends Shopware.Classes.ApiService {
       .get(`/mondu/orders/${orderId}/document-statuses`, { headers: this.getBasicHeaders() })
       .then(response => response.data)
   }
+
+  getMonduAmount(orderId) {
+    return this.httpClient
+      .get(`/mondu/orders/${orderId}/mondu-amount`, { headers: this.getBasicHeaders() })
+      .then(response => response.data)
+  }
 }

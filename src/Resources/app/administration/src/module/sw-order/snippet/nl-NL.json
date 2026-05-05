@@ -41,6 +41,9 @@
       "monduStatusNotSent": "Niet verzonden",
       "monduStatusSent": "Verzonden",
       "monduStatusCancelled": "Geannuleerd"
+    },
+    "summary": {
+      "monduAmountLabel": "Bedrag bij Mondu"
     }
   },
   "sw-mondu-config": {

@@ -44,6 +44,9 @@
       "monduStatusNotSent": "Nicht gesendet",
       "monduStatusSent": "Gesendet",
       "monduStatusCancelled": "Storniert"
+    },
+    "summary": {
+      "monduAmountLabel": "Betrag bei Mondu"
     }
   },
   "sw-mondu-config": {

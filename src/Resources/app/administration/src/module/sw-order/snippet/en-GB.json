@@ -44,6 +44,9 @@
       "monduStatusNotSent": "Not sent",
       "monduStatusSent": "Sent",
       "monduStatusCancelled": "Cancelled"
+    },
+    "summary": {
+      "monduAmountLabel": "Amount in Mondu"
     }
   },
   "sw-mondu-config": {

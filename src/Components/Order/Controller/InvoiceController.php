@@ -19,6 +19,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Mondu\MonduPayment\Components\Order\Model\OrderDataEntity;
 use Mondu\MonduPayment\Components\Invoice\InvoiceDataEntity;
 use Mondu\MonduPayment\Util\CriteriaHelper;
+use Shopware\Core\Checkout\Cart\LineItem\LineItem;
 
 #[Route(defaults: ['_routeScope' => ['api']])]
 class InvoiceController extends AbstractController
@@ -189,6 +190,59 @@ class InvoiceController extends AbstractController
             $this->documentGenerator->generate('storno', [$orderId => $operation], $context);
         } catch (\Throwable) {
         }
+    }
+
+    #[Route(path: '/api/mondu/orders/{orderId}/mondu-amount', name: 'mondu-payment.order.mondu-amount', methods: ['GET'])]
+    public function monduAmount(string $orderId, Context $context): JsonResponse
+    {
+        $criteria = new Criteria([$orderId]);
+        $criteria->addAssociation('documents.documentType');
+        $criteria->addAssociation('lineItems');
+        $criteria->addAssociation('currency');
+
+        $order = $this->orderRepository->search($criteria, $context)->first();
+
+        if ($order === null) {
+            return new JsonResponse(['error' => 'Order not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $stornoTypes = [
+            'storno',
+            'cancellation_invoice',
+            'zugferd_cancellation_invoice',
+            'zugferd_embedded_cancellation_invoice',
+        ];
+
+        $latestStornoTime = null;
+        if ($order->getDocuments()) {
+            foreach ($order->getDocuments() as $document) {
+                if (in_array($document->getDocumentType()->getTechnicalName(), $stornoTypes, true)) {
+                    $docTime = $document->getCreatedAt();
+                    if ($latestStornoTime === null || $docTime > $latestStornoTime) {
+                        $latestStornoTime = $docTime;
+                    }
+                }
+            }
+        }
+
+        $cancelledCreditCents = 0;
+        if ($latestStornoTime !== null && $order->getLineItems()) {
+            foreach ($order->getLineItems() as $lineItem) {
+                if ($lineItem->getType() !== LineItem::CREDIT_LINE_ITEM_TYPE) {
+                    continue;
+                }
+                if ($lineItem->getCreatedAt() <= $latestStornoTime) {
+                    $cancelledCreditCents += (int) round(abs($lineItem->getPrice()->getTotalPrice()) * 100);
+                }
+            }
+        }
+
+        $grossAmountCents = (int) round($order->getPrice()->getTotalPrice() * 100) + $cancelledCreditCents;
+
+        return new JsonResponse([
+            'gross_amount_cents' => $grossAmountCents,
+            'currency' => $order->getCurrency()?->getIsoCode() ?? 'EUR',
+        ]);
     }
 
     #[Route(path: '/api/mondu/orders/{orderId}/document-statuses', name: 'mondu-payment.order.document-statuses', methods: ['GET'])]

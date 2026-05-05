@@ -41,6 +41,9 @@
       "monduStatusNotSent": "Non envoyé",
       "monduStatusSent": "Envoyé",
       "monduStatusCancelled": "Annulé"
+    },
+    "summary": {
+      "monduAmountLabel": "Montant chez Mondu"
     }
   },
   "sw-mondu-config": {
