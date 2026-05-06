@@ -46,7 +46,7 @@
       "monduStatusCancelled": "Storniert"
     },
     "summary": {
-      "monduAmountLabel": "Forderung bei Mondu"
+      "monduAmountLabel": "Forderungsbetrag bei Mondu"
     }
   },
   "sw-mondu-config": {

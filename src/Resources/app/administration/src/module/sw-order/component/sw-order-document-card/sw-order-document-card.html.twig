@@ -2,13 +2,13 @@
     {% parent %}
 
     <template #column-shopwareStatus="{ item }">
-        <sw-label :variant="getShopwareStatusVariant(item)" :small="true">
+        <sw-label :variant="getShopwareStatusVariant(item)" :small="true" :style="{ borderRadius: '999px' }">
             {{ getShopwareStatusLabel(item) }}
         </sw-label>
     </template>
 
     <template #column-monduStatus="{ item }">
-        <sw-label :variant="getMonduStatusVariant(item.id)" :small="true">
+        <sw-label :variant="getMonduStatusVariant(item.id)" :small="true" :style="{ borderRadius: '999px' }">
             {{ getMonduStatusLabel(item.id) }}
         </sw-label>
     </template>
