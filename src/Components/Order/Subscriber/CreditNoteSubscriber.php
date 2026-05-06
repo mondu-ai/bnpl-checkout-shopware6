@@ -56,9 +56,15 @@ class CreditNoteSubscriber implements EventSubscriberInterface
                     $orderId = $payload['orderId'];
                     $invoiceNumber = $payload['config']['custom']['invoiceNumber'];
 
+                    $referencedDocumentId = $payload['referencedDocumentId'] ?? null;
+
                     $invoiceCriteria = new Criteria();
-                    $invoiceCriteria->addFilter(new EqualsFilter('invoiceNumber', $invoiceNumber));
                     $invoiceCriteria->addFilter(new EqualsFilter('orderId', $orderId));
+                    if ($referencedDocumentId !== null) {
+                        $invoiceCriteria->addFilter(new EqualsFilter('documentId', $referencedDocumentId));
+                    } else {
+                        $invoiceCriteria->addFilter(new EqualsFilter('invoiceNumber', $invoiceNumber));
+                    }
                     $invoiceEntity = $this->invoiceDataRepository->search($invoiceCriteria, $event->getContext())->first();
 
                     if ($invoiceEntity === null) {

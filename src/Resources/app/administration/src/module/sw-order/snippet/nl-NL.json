@@ -26,10 +26,27 @@
       "labelCancelCreditNote": "Kredietnota annuleren",
       "cancelSuccessTitle": "Gelukt!",
       "cancelSuccessMessage": "Succesvol geannuleerd.",
+      "cancelAlreadyCancelledTitle": "Al geannuleerd",
+      "cancelAlreadyCancelledMessage": "Deze factuur is al geannuleerd bij Mondu.",
+      "cancelNotSubmittedTitle": "Niet ingediend bij Mondu",
+      "cancelNotSubmittedMessage": "Deze factuur is nog niet ingediend bij Mondu. Verzend eerst de bestelling om de factuur in te dienen.",
       "cancelErrorMessage": "Er is een fout opgetreden. Document kon niet worden geannuleerd.",
       "cancelErrorAlreadyCancelled": "Deze kredietnota is al geannuleerd bij Mondu.",
       "cancelErrorNotFound": "Deze kredietnota kon niet worden gevonden bij Mondu.",
-      "cancelErrorNotRegistered": "Deze kredietnota is niet geregistreerd bij Mondu en kan niet via deze integratie worden geannuleerd."
+      "cancelErrorNotRegistered": "Deze kredietnota is niet geregistreerd bij Mondu en kan niet via deze integratie worden geannuleerd.",
+      "creditNoteViolationTitle": "Kredietnota kan niet worden aangemaakt",
+      "creditNoteViolationMessage": "Het bedrag van de kredietnota overschrijdt het resterende openstaande bedrag op de factuur. Er is niets meer om terug te betalen.",
+      "columnShopwareStatus": "Status",
+      "shopwareStatusActive": "Actief",
+      "shopwareStatusCancelled": "Geannuleerd",
+      "shopwareStatusStorno": "Storno",
+      "columnMonduStatus": "Mondu",
+      "monduStatusNotSent": "Niet verzonden",
+      "monduStatusSent": "Verzonden",
+      "monduStatusCancelled": "Geannuleerd"
+    },
+    "summary": {
+      "monduAmountLabel": "Vorderingsbedrag bij Mondu"
     }
   },
   "sw-mondu-config": {

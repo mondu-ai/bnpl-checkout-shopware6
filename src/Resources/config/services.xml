@@ -171,6 +171,16 @@
             <argument key="$configService" type="service" id="mondu.mondu_config"/>
         </service>
 
+        <service id="Mondu\MonduPayment\Components\Order\Subscriber\StornoSubscriber" >
+            <tag name="kernel.event_subscriber" />
+            <argument key="$orderRepository" id="order.repository" type="service" />
+            <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
+            <argument key="$invoiceDataRepository" type="service" id="mondu_invoice_data.repository"/>
+            <argument key="$documentRepository" type="service" id="document.repository"/>
+            <argument key="$monduClient" type="service" id="mondu.mondu_api"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+        </service>
+
         <service id="Mondu\MonduPayment\Components\Logger\MonduLogHandler" public="true">
             <argument type="service" id="mondu.mondu_config"/>
             <argument key="$filename">%kernel.logs_dir%/mondu_%kernel.environment%.log</argument>

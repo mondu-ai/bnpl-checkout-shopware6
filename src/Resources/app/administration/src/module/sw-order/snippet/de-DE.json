@@ -35,11 +35,28 @@
       "labelCancelInvoice": "Rechnung stornieren",
       "labelCancelCreditNote": "Gutschrift stornieren",
       "cancelSuccessTitle": "Erfolg!",
-      "cancelSuccessMessage": "Erfolgreich gelöscht.",
+      "cancelSuccessMessage": "Erfolgreich storniert.",
+      "cancelAlreadyCancelledTitle": "Bereits storniert",
+      "cancelAlreadyCancelledMessage": "Diese Rechnung wurde bei Mondu bereits storniert.",
+      "cancelNotSubmittedTitle": "Nicht an Mondu übermittelt",
+      "cancelNotSubmittedMessage": "Diese Rechnung wurde noch nicht an Mondu übermittelt. Versenden Sie die Bestellung zuerst, um die Rechnung zu übermitteln.",
       "cancelErrorMessage": "Es ist ein Fehler aufgetreten. Dokument konnte nicht storniert werden.",
       "cancelErrorAlreadyCancelled": "Diese Gutschrift wurde bei Mondu bereits storniert.",
       "cancelErrorNotFound": "Diese Gutschrift konnte bei Mondu nicht gefunden werden.",
-      "cancelErrorNotRegistered": "Diese Gutschrift ist bei Mondu nicht registriert und kann über diese Integration nicht storniert werden."
+      "cancelErrorNotRegistered": "Diese Gutschrift ist bei Mondu nicht registriert und kann über diese Integration nicht storniert werden.",
+      "creditNoteViolationTitle": "Gutschrift kann nicht erstellt werden",
+      "creditNoteViolationMessage": "Der Gutschriftsbetrag übersteigt den verbleibenden offenen Betrag der Rechnung. Es gibt nichts mehr zu erstatten.",
+      "columnShopwareStatus": "Status",
+      "shopwareStatusActive": "Aktiv",
+      "shopwareStatusCancelled": "Storniert",
+      "shopwareStatusStorno": "Storno",
+      "columnMonduStatus": "Mondu",
+      "monduStatusNotSent": "Nicht gesendet",
+      "monduStatusSent": "Gesendet",
+      "monduStatusCancelled": "Storniert"
+    },
+    "summary": {
+      "monduAmountLabel": "Forderungsbetrag bei Mondu"
     }
   },
   "sw-mondu-config": {

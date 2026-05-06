@@ -154,6 +154,16 @@ class TransitionSubscriber implements EventSubscriberInterface
         $this->orderDataRepository->update([
             $updateData
         ], $context);
+
+        $liveContext = Context::createDefaultContext();
+        $criteria = new Criteria();
+        $criteria->addFilter(new EqualsFilter('orderId', $monduData->getOrderId()));
+        $liveRecords = $this->orderDataRepository->search($criteria, $liveContext);
+        foreach ($liveRecords as $record) {
+            $liveUpdate = $data;
+            $liveUpdate[OrderDataEntity::FIELD_ID] = $record->getId();
+            $this->orderDataRepository->update([$liveUpdate], $liveContext);
+        }
     }
 
     private function shipOrder(OrderEntity $order, Context $context, OrderDataEntity $monduData, ?string $deliveryId = null): void
@@ -175,9 +185,24 @@ class TransitionSubscriber implements EventSubscriberInterface
         }
 
         // Check if invoice already exists in DB
-        $invoiceCriteria = new Criteria();
-        $invoiceCriteria->addFilter(new EqualsFilter('orderId', $order->getId()));
-        $existingInvoice = $this->invoiceDataRepository->search($invoiceCriteria, $context)->first();
+        $allInvoiceCriteria = new Criteria();
+        $allInvoiceCriteria->addAssociation('document.documentType');
+        $allInvoiceCriteria->addFilter(new EqualsFilter('orderId', $order->getId()));
+        $allInvoices = $this->invoiceDataRepository->search($allInvoiceCriteria, $context);
+
+        $creditNoteTypes = ['credit_note', 'zugferd_credit_note', 'zugferd_embedded_credit_note'];
+        $existingInvoice = null;
+        foreach ($allInvoices as $inv) {
+            if ($inv->getInvoiceState() === 'cancelled') {
+                continue;
+            }
+            $doc = $inv->getDocument();
+            if ($doc !== null && in_array($doc->getDocumentType()?->getTechnicalName(), $creditNoteTypes, true)) {
+                continue;
+            }
+            $existingInvoice = $inv;
+            break;
+        }
 
         if ($existingInvoice) {
             if ($this->configService->isExtendedLogsEnabled()) {
@@ -241,9 +266,13 @@ class TransitionSubscriber implements EventSubscriberInterface
 
                 // Fallback: take the newest active (non-cancelled) invoice document
                 if ($chosenDoc === null) {
+                    $stornoTypes = ['storno', 'cancellation_invoice', 'zugferd_cancellation_invoice', 'zugferd_embedded_cancellation_invoice'];
                     $cancelledByStornoIds = [];
                     foreach ($order->getDocuments() as $document) {
-                        if ($document->getReferencedDocumentId() !== null) {
+                        if (
+                            in_array($document->getDocumentType()->getTechnicalName(), $stornoTypes, true) &&
+                            $document->getReferencedDocumentId() !== null
+                        ) {
                             $cancelledByStornoIds[] = $document->getReferencedDocumentId();
                         }
                     }
@@ -304,7 +333,7 @@ class TransitionSubscriber implements EventSubscriberInterface
 
                 $invoiceData = [
                     'currency' => $orderUtilsService->getOrderCurrency($order),
-                    'external_reference_id' => (string) $invoiceNumber,
+                    'external_reference_id' => (string) $invoiceNumber . '-' . time(),
                     'invoice_url' => $invoiceUrl,
                     'gross_amount_cents' => $orderUtilsService->priceToCents($order->getPrice()->getTotalPrice()),
                     'discount_cents' => $orderDiscountService->getOrderDiscountCents($order, $context),
@@ -394,6 +423,8 @@ class TransitionSubscriber implements EventSubscriberInterface
             $deliveryId
         );
 
+        $invoiceData['external_reference_id'] = ($invoiceData['external_reference_id'] ?? '') . '-' . time();
+
         if ($this->configService->isExtendedLogsEnabled()) {
             $this->logger->info('mondu.INFO: Invoice data before API call', [
                 'order' => $order->getId(),
@@ -421,6 +452,33 @@ class TransitionSubscriber implements EventSubscriberInterface
                 $documentIds = $mailAttachments->getDocumentIds();
                 if (!empty($documentIds)) {
                     $attachedDocument = $documentIds[0];
+                }
+            }
+
+            if ($attachedDocument === null && $order->getDocuments() && $order->getDocuments()->count() > 0) {
+                $stornoTypes = ['storno', 'cancellation_invoice', 'zugferd_cancellation_invoice', 'zugferd_embedded_cancellation_invoice'];
+                $cancelledByStornoIds = [];
+                foreach ($order->getDocuments() as $document) {
+                    if (
+                        in_array($document->getDocumentType()->getTechnicalName(), $stornoTypes, true) &&
+                        $document->getReferencedDocumentId() !== null
+                    ) {
+                        $cancelledByStornoIds[] = $document->getReferencedDocumentId();
+                    }
+                }
+                $invoiceDocs = [];
+                foreach ($order->getDocuments() as $document) {
+                    if (
+                        ($document->getDocumentType()->getTechnicalName() === 'invoice' ||
+                         $document->getDocumentType()->getTechnicalName() === 'zugferd_embedded_invoice') &&
+                        !in_array($document->getId(), $cancelledByStornoIds)
+                    ) {
+                        $invoiceDocs[] = $document;
+                    }
+                }
+                usort($invoiceDocs, fn($a, $b) => $b->getCreatedAt() <=> $a->getCreatedAt());
+                if (!empty($invoiceDocs)) {
+                    $attachedDocument = $invoiceDocs[0]->getId();
                 }
             }
 

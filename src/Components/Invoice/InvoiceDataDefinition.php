@@ -83,6 +83,11 @@ class InvoiceDataDefinition extends EntityDefinition
                 InvoiceDataEntity::FIELD_EXTERNAL_INVOICE_UUID
             )),
 
+            (new StringField(
+                'invoice_state',
+                InvoiceDataEntity::FIELD_INVOICE_STATE
+            )),
+
             new OneToOneAssociationField('order', 'order_id', 'id', OrderDefinition::class, false),
             new OneToOneAssociationField('document', 'document_id', 'id', DocumentDefinition::class, false),
         ]);

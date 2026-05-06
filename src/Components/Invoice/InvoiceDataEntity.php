@@ -25,6 +25,8 @@ class InvoiceDataEntity extends Entity
 
     public const FIELD_EXTERNAL_INVOICE_UUID = 'externalInvoiceUuid';
 
+    public const FIELD_INVOICE_STATE = 'invoiceState';
+
     /**
      * @var string
      */
@@ -60,9 +62,16 @@ class InvoiceDataEntity extends Entity
      */
     protected ?string $externalInvoiceUuid;
 
+    protected ?string $invoiceState = null;
+
     public function getOrderId(): ?string
     {
         return $this->orderId;
+    }
+
+    public function getDocumentId(): string
+    {
+        return $this->documentId;
     }
 
     public function getOrder(): OrderEntity
@@ -70,7 +79,7 @@ class InvoiceDataEntity extends Entity
         return $this->order;
     }
 
-    public function getDocument(): DocumentEntity
+    public function getDocument(): ?DocumentEntity
     {
         return $this->document;
     }
@@ -83,5 +92,10 @@ class InvoiceDataEntity extends Entity
     public function getExternalInvoiceUuid(): ?string
     {
         return $this->externalInvoiceUuid;
+    }
+
+    public function getInvoiceState(): ?string
+    {
+        return $this->invoiceState;
     }
 }

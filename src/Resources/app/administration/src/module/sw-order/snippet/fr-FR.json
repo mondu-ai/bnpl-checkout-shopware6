@@ -25,11 +25,28 @@
       "labelCancelInvoice": "Annuler la facture",
       "labelCancelCreditNote": "Annuler la note de crédit",
       "cancelSuccessTitle": "Bravo! Opération réussie.",
-      "cancelSuccessMessage": "Annulation réussie.",
+      "cancelSuccessMessage": "Annulée avec succès.",
+      "cancelAlreadyCancelledTitle": "Déjà annulée",
+      "cancelAlreadyCancelledMessage": "Cette facture a déjà été annulée chez Mondu.",
+      "cancelNotSubmittedTitle": "Non soumise à Mondu",
+      "cancelNotSubmittedMessage": "Cette facture n'a pas encore été soumise à Mondu. Expédiez d'abord la commande pour soumettre la facture.",
       "cancelErrorMessage": "Une erreur s'est produite. Le document n'a pas pu être annulé.",
       "cancelErrorAlreadyCancelled": "Cette note de crédit a déjà été annulée chez Mondu.",
       "cancelErrorNotFound": "Cette note de crédit est introuvable chez Mondu.",
-      "cancelErrorNotRegistered": "Cette note de crédit n'est pas enregistrée chez Mondu et ne peut pas être annulée via cette intégration."
+      "cancelErrorNotRegistered": "Cette note de crédit n'est pas enregistrée chez Mondu et ne peut pas être annulée via cette intégration.",
+      "creditNoteViolationTitle": "La note de crédit ne peut pas être créée",
+      "creditNoteViolationMessage": "Le montant de la note de crédit dépasse le montant ouvert restant de la facture. Il n'y a plus rien à rembourser.",
+      "columnShopwareStatus": "Statut",
+      "shopwareStatusActive": "Actif",
+      "shopwareStatusCancelled": "Annulé",
+      "shopwareStatusStorno": "Storno",
+      "columnMonduStatus": "Mondu",
+      "monduStatusNotSent": "Non envoyé",
+      "monduStatusSent": "Envoyé",
+      "monduStatusCancelled": "Annulé"
+    },
+    "summary": {
+      "monduAmountLabel": "Montant de la créance chez Mondu"
     }
   },
   "sw-mondu-config": {
