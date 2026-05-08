@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mondu\MonduPayment\Components\Order\Controller;
 
 use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
+use Mondu\MonduPayment\Components\Invoice\InvoiceDataEntity;
 use Shopware\Core\Framework\Context;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -61,9 +62,15 @@ class CreditNoteController extends AbstractController
                 return new Response(json_encode(['status' => 'invoice_number_missing', 'error' => '2']), Response::HTTP_BAD_REQUEST);
             }
 
+            $referencedDocumentId = $document->getReferencedDocumentId();
+
             $invoiceCriteria = new Criteria();
-            $invoiceCriteria->addFilter(new EqualsFilter('invoiceNumber', $documentInvoiceNumber));
             $invoiceCriteria->addFilter(new EqualsFilter('orderId', $orderId));
+            if ($referencedDocumentId !== null) {
+                $invoiceCriteria->addFilter(new EqualsFilter('documentId', $referencedDocumentId));
+            } else {
+                $invoiceCriteria->addFilter(new EqualsFilter('invoiceNumber', $documentInvoiceNumber));
+            }
             $invoiceEntity = $this->invoiceDataRepository->search($invoiceCriteria, $context)->first();
             if ($invoiceEntity === null) {
                 $invoiceEntity = $this->invoiceDataRepository->search($invoiceCriteria, $liveContext)->first();
@@ -81,16 +88,19 @@ class CreditNoteController extends AbstractController
             $status = is_array($cancellation) ? ($cancellation['status'] ?? null) : null;
 
             if ($status === 'already_cancelled') {
+                $this->markCreditNoteAsCancelled($creditNoteId, $context);
                 $this->unlinkCancelledCreditNote($creditNoteId, $context);
                 return new Response(json_encode(['status' => 'already_cancelled', 'error' => '4']), Response::HTTP_BAD_REQUEST);
             }
 
             if ($status === 'not_found') {
+                $this->markCreditNoteAsCancelled($creditNoteId, $context);
                 $this->unlinkCancelledCreditNote($creditNoteId, $context);
                 return new Response(json_encode(['status' => 'not_found_in_mondu', 'error' => '2']), Response::HTTP_BAD_REQUEST);
             }
 
             if ($cancellation !== null) {
+                $this->markCreditNoteAsCancelled($creditNoteId, $context);
                 $this->unlinkCancelledCreditNote($creditNoteId, $context);
                 return new Response(json_encode(['status' => 'ok', 'error' => '0']), Response::HTTP_OK);
             }
@@ -98,6 +108,23 @@ class CreditNoteController extends AbstractController
             return new Response(json_encode(['status' => 'request_failed', 'error' => '1' ]), Response::HTTP_BAD_REQUEST);
         } catch (\Exception) {
             return new Response(json_encode(['status' => 'error', 'error' => '3' ]), Response::HTTP_BAD_REQUEST);
+        }
+    }
+
+    private function markCreditNoteAsCancelled(string $creditNoteDocumentId, Context $context): void
+    {
+        $liveContext = Context::createDefaultContext();
+        $criteria = new Criteria();
+        $criteria->addFilter(new EqualsFilter('documentId', $creditNoteDocumentId));
+
+        foreach ([$liveContext, $context] as $ctx) {
+            $entry = $this->invoiceDataRepository->search($criteria, $ctx)->first();
+            if ($entry !== null && $entry->getInvoiceState() !== 'cancelled') {
+                $this->invoiceDataRepository->update([[
+                    'id' => $entry->getId(),
+                    InvoiceDataEntity::FIELD_INVOICE_STATE => 'cancelled',
+                ]], $ctx);
+            }
         }
     }
 

@@ -14,8 +14,13 @@ use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Event\EntityWrittenEvent;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsAnyFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\NotFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
+use Shopware\Core\Framework\DataAbstractionLayer\Write\Command\DeleteCommand;
+use Shopware\Core\Framework\DataAbstractionLayer\Write\Validation\PreWriteValidationEvent;
+use Shopware\Core\Checkout\Document\DocumentDefinition;
+use Mondu\MonduPayment\Components\Order\Model\OrderDataEntity;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Mondu\MonduPayment\Components\StateMachine\Exception\MonduException;
 use Mondu\MonduPayment\Components\Invoice\InvoiceDataEntity;
@@ -35,7 +40,65 @@ class CreditNoteSubscriber implements EventSubscriberInterface
     {
         return [
             'document.written' => 'onDocumentWritten',
+            PreWriteValidationEvent::class => 'onPreDelete',
         ];
+    }
+
+    public function onPreDelete(PreWriteValidationEvent $event): void
+    {
+        $documentIds = [];
+        foreach ($event->getCommands() as $command) {
+            if ($command instanceof DeleteCommand && $command->getEntityName() === DocumentDefinition::ENTITY_NAME) {
+                $documentIds[] = bin2hex($command->getPrimaryKey()['id']);
+            }
+        }
+
+        if (empty($documentIds)) {
+            return;
+        }
+
+        try {
+            $liveContext = Context::createDefaultContext();
+
+            $criteria = new Criteria();
+            $criteria->addFilter(new EqualsAnyFilter('documentId', $documentIds));
+            $entries = $this->invoiceDataRepository->search($criteria, $liveContext);
+
+            if ($entries->getTotal() === 0) {
+                return;
+            }
+
+            foreach ($entries as $entry) {
+                if ($entry->getExternalInvoiceUuid() === null) {
+                    continue;
+                }
+
+                $parentCriteria = new Criteria();
+                $parentCriteria->addFilter(new EqualsFilter('orderId', $entry->getOrderId()));
+                $parentCriteria->addFilter(
+                    new NotFilter(NotFilter::CONNECTION_AND, [
+                        new EqualsAnyFilter('documentId', $documentIds)
+                    ])
+                );
+                $parentInvoice = $this->invoiceDataRepository->search($parentCriteria, $liveContext)->first();
+
+                if ($parentInvoice === null) {
+                    continue;
+                }
+
+                $order = $this->getOrder($entry->getOrderId(), $liveContext);
+                if ($order === null) {
+                    continue;
+                }
+
+                $this->monduClient->setSalesChannelId($order->getSalesChannelId())->cancelCreditNote(
+                    $parentInvoice->getExternalInvoiceUuid(),
+                    $entry->getExternalInvoiceUuid()
+                );
+            }
+        } catch (\Throwable $e) {
+            $this->logger->error('mondu.ERROR: Failed to cancel credit note on document delete: ' . $e->getMessage());
+        }
     }
 
     public function onDocumentWritten(EntityWrittenEvent $event): void
@@ -108,6 +171,10 @@ class CreditNoteSubscriber implements EventSubscriberInterface
 
                         $grossAmountCents += round(abs($lineItem->getPrice()->getTotalPrice()) * 100);
                         $taxCents += round(abs($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity()) * 100);
+                    }
+
+                    if ($grossAmountCents <= 0) {
+                        return;
                     }
 
                     $response = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->createCreditNote(

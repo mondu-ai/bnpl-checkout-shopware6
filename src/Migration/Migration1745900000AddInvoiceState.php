@@ -17,7 +17,7 @@ class Migration1745900000AddInvoiceState extends MigrationStep
     public function update(Connection $connection): void
     {
         $columnExists = $connection->fetchOne(
-            "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_NAME = 'mondu_invoice_data' AND COLUMN_NAME = 'invoice_state'"
+            "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'mondu_invoice_data' AND COLUMN_NAME = 'invoice_state'"
         );
 
         if ((int) $columnExists === 0) {

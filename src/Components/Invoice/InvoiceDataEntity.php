@@ -79,7 +79,7 @@ class InvoiceDataEntity extends Entity
         return $this->order;
     }
 
-    public function getDocument(): DocumentEntity
+    public function getDocument(): ?DocumentEntity
     {
         return $this->document;
     }
