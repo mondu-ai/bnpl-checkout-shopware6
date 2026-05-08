@@ -103,12 +103,14 @@ class WebhookService
 
             $orderDataId = $this->orderDataRepository->searchIds($criteria, $context)->firstId();
 
-            $this->orderDataRepository->update([
-                [
-                    'id' => $orderDataId,
-                    'viban' => $viban
-                ]
-            ], $context);
+            if ($orderDataId !== null) {
+                $this->orderDataRepository->update([
+                    [
+                        'id' => $orderDataId,
+                        'viban' => $viban
+                    ]
+                ], $context);
+            }
 
             // Only transition order state if autoTransitionOrderState is enabled
             if ($this->configService->setSalesChannelId($this->salesChannelId)->isAutoTransitionOrderStateEnabled()) {
@@ -125,7 +127,7 @@ class WebhookService
             $targetTransactionState = 'paid';
 
             if ($order) {
-                $transaction = $order->getTransactions()->first();
+                $transaction = $order->getTransactions()->last();
                 $paymentMethod = $transaction ? $transaction->getPaymentMethod() : null;
                 $paymentHandlerIdentifier = $paymentMethod ? $paymentMethod->getHandlerIdentifier() : null;
 
@@ -248,7 +250,7 @@ class WebhookService
             $orderEntity = $this->orderRepository->search($criteria, $context)->first();
 
             // Check current transaction state to determine if this is a checkout decline or webhook decline
-            $transaction = $orderEntity->getTransactions()->first();
+            $transaction = $orderEntity->getTransactions()->last();
             $currentTransactionState = $transaction ? $transaction->getStateMachineState()->getTechnicalName() : null;
 
             $isCheckoutDecline = ($isDeclined && $currentTransactionState === 'open');
@@ -377,7 +379,7 @@ class WebhookService
 
             /** @var OrderEntity $orderEntity */
             $orderEntity = $this->orderRepository->search($criteria, $context)->first();
-            $transaction = $orderEntity->getTransactions()->first();
+            $transaction = $orderEntity->getTransactions()->last();
             $orderTransactionId = $transaction->getId();
             $currentState = $transaction->getStateMachineState()->getTechnicalName();
 
