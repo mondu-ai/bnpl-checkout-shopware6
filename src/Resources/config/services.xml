@@ -178,6 +178,7 @@
             <tag name="kernel.event_subscriber" />
             <argument key="$connection" type="service" id="Doctrine\DBAL\Connection"/>
             <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <argument key="$configService" type="service" id="Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService"/>
         </service>
 
         <service id="Mondu\MonduPayment\Components\Order\Subscriber\StornoSubscriber">

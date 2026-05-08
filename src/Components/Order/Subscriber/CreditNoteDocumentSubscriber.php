@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mondu\MonduPayment\Components\Order\Subscriber;
 
 use Doctrine\DBAL\Connection;
+use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 use Psr\Log\LoggerInterface;
 use Shopware\Core\Checkout\Cart\LineItem\LineItem;
 use Shopware\Core\Checkout\Document\Event\CreditNoteOrdersEvent;
@@ -20,7 +21,8 @@ class CreditNoteDocumentSubscriber implements EventSubscriberInterface
 {
     public function __construct(
         private readonly Connection $connection,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        private readonly ConfigService $configService
     ) {}
 
     public static function getSubscribedEvents(): array
@@ -80,12 +82,14 @@ class CreditNoteDocumentSubscriber implements EventSubscriberInterface
                     $lineItems->remove($id);
                 }
 
-                $this->logger->info('mondu.INFO: CreditNoteDocumentSubscriber: filtered previous credit items', [
-                    'order_id' => $order->getId(),
-                    'removed' => count($toRemove),
-                    'remaining' => $remaining,
-                    'cutoff' => $latestCNCreatedAt->format('Y-m-d H:i:s'),
-                ]);
+                if ($this->configService->isExtendedLogsEnabled()) {
+                    $this->logger->info('mondu.INFO: CreditNoteDocumentSubscriber: filtered previous credit items', [
+                        'order_id' => $order->getId(),
+                        'removed' => count($toRemove),
+                        'remaining' => $remaining,
+                        'cutoff' => $latestCNCreatedAt->format('Y-m-d H:i:s'),
+                    ]);
+                }
             } catch (\Throwable $e) {
                 $this->logger->warning('mondu.WARNING: CreditNoteDocumentSubscriber failed, using default behavior', [
                     'order_id' => $order->getId(),
