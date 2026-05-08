@@ -333,7 +333,7 @@ class TransitionSubscriber implements EventSubscriberInterface
 
                 $invoiceData = [
                     'currency' => $orderUtilsService->getOrderCurrency($order),
-                    'external_reference_id' => (string) $invoiceNumber . '-' . time(),
+                    'external_reference_id' => (string) $invoiceNumber,
                     'invoice_url' => $invoiceUrl,
                     'gross_amount_cents' => $orderUtilsService->priceToCents($order->getPrice()->getTotalPrice()),
                     'discount_cents' => $orderDiscountService->getOrderDiscountCents($order, $context),
@@ -423,7 +423,7 @@ class TransitionSubscriber implements EventSubscriberInterface
             $deliveryId
         );
 
-        $invoiceData['external_reference_id'] = ($invoiceData['external_reference_id'] ?? '') . '-' . time();
+        $invoiceData['external_reference_id'] = $invoiceData['external_reference_id'] ?? '';
 
         if ($this->configService->isExtendedLogsEnabled()) {
             $this->logger->info('mondu.INFO: Invoice data before API call', [
