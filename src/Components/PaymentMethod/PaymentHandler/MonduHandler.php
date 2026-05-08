@@ -19,6 +19,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\NotFilter;
 use Mondu\MonduPayment\Components\PaymentMethod\Util\MethodHelper;
 use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 use Psr\Log\LoggerInterface;
@@ -458,6 +460,8 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
             throw new AsyncPaymentProcessException($transaction->getOrderTransaction()->getId(), 'Could not fetch Mondu Order.');
         }
 
+        $context = $salesChannelContext->getContext();
+
         $this->orderDataRepository->upsert([
             [
                 OrderDataEntity::FIELD_ORDER_ID => $order->getId(),
@@ -469,7 +473,42 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
                 OrderDataEntity::FIELD_EXTERNAL_REFERENCE_ID => $monduOrder['external_reference_id'] ?? null,
                 OrderDataEntity::FIELD_IS_SUCCESSFUL => true,
             ]
-        ], $salesChannelContext->getContext());
+        ], $context);
+
+        $this->deleteStaleOrderData($order->getId(), $monduOrder['uuid'], $context);
+    }
+
+    private function deleteStaleOrderData(string $orderId, string $activeReferenceId, \Shopware\Core\Framework\Context $context): void
+    {
+        try {
+            $criteria = new Criteria();
+            $criteria->addFilter(new EqualsFilter('orderId', $orderId));
+            $criteria->addFilter(new NotFilter(NotFilter::CONNECTION_AND, [
+                new EqualsFilter('referenceId', $activeReferenceId),
+            ]));
+
+            $ids = $this->orderDataRepository->searchIds($criteria, $context)->getIds();
+
+            if (empty($ids)) {
+                return;
+            }
+
+            $deletePayload = array_map(fn($id) => ['id' => $id], $ids);
+            $this->orderDataRepository->delete($deletePayload, $context);
+
+            if ($this->configService->isExtendedLogsEnabled()) {
+                $this->logger->info('mondu.INFO: Deleted stale order data entries', [
+                    'order_id' => $orderId,
+                    'active_reference_id' => $activeReferenceId,
+                    'deleted_count' => count($ids),
+                ]);
+            }
+        } catch (\Throwable $e) {
+            $this->logger->warning('mondu.WARNING: Failed to delete stale order data', [
+                'order_id' => $orderId,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     protected function isOrderConfirmed($confirmResponseState)
