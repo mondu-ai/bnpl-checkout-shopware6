@@ -345,6 +345,7 @@ class WebhookService
                 'stateId'
             ), $context);
         } catch (\Exception $e) {
+            $this->log('transitionOrderState Failed', [$externalReferenceId, $state], $e);
             return null;
         }
     }
@@ -398,14 +399,26 @@ class WebhookService
             // Check if transition is allowed (prevents backward transitions)
             if (!$this->isTransitionAllowed($currentState, $action)) {
                 $finalStates = ['cancelled', 'failed', 'paid', 'paid_partially', 'refunded', 'refunded_partially', 'chargeback'];
-                // For declined/cancelled webhooks on a final state: reopen first, then apply target
+                // For declined/cancelled webhooks on a final state: reopen first, then apply target.
+                // Note: reopen + target is not atomic — if a concurrent webhook changes the state
+                // between the two calls, the second transition will throw IllegalTransitionException,
+                // which we catch gracefully below.
                 if (in_array($currentState, $finalStates) && in_array($action, ['fail', 'cancel'])) {
-                    $this->stateMachineRegistry->transition(new Transition(
-                        OrderTransactionDefinition::ENTITY_NAME,
-                        $orderTransactionId,
-                        'reopen',
-                        'stateId'
-                    ), $context);
+                    try {
+                        $this->stateMachineRegistry->transition(new Transition(
+                            OrderTransactionDefinition::ENTITY_NAME,
+                            $orderTransactionId,
+                            'reopen',
+                            'stateId'
+                        ), $context);
+                    } catch (\Exception $e) {
+                        $this->logger->warning('mondu.WARNING: reopen before ' . $action . ' failed (concurrent modification?)', [
+                            'externalReferenceId' => $externalReferenceId,
+                            'currentState' => $currentState,
+                            'error' => $e->getMessage()
+                        ]);
+                        return new StateMachineStateCollection([$transaction->getStateMachineState()]);
+                    }
                 } else {
                     return new StateMachineStateCollection([$transaction->getStateMachineState()]);
                 }
@@ -419,8 +432,18 @@ class WebhookService
             ), $context);
 
             return $result;
+        } catch (MonduException $e) {
+            throw $e;
         } catch (\Exception $e) {
-            return new StateMachineStateCollection();
+            $this->logger->error('mondu.ERROR: transitionTransactionState Failed', [
+                'externalReferenceId' => $externalReferenceId,
+                'targetAction' => $action ?? $state,
+                'originalState' => $state,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            $this->log('transitionTransactionState Failed', [$externalReferenceId, $action ?? $state], $e);
+            throw new MonduException($e->getMessage());
         }
     }
 
@@ -521,8 +544,7 @@ class WebhookService
 
     protected function log($message, $data, $exception = null, $level = 'critical'): void
     {
-        // Skip info and warning logs if extended logs are disabled
-        if (($level === 'info' || $level === 'warning') && !$this->configService->isExtendedLogsEnabled()) {
+        if ($level === 'info' && !$this->configService->isExtendedLogsEnabled()) {
             return;
         }
 

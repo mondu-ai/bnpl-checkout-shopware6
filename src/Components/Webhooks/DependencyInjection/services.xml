@@ -7,6 +7,7 @@
 
         <service id="Mondu\MonduPayment\Components\Webhooks\Service\ShopUrlService">
             <argument key="$salesChannelRepository" type="service" id="sales_channel.repository"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
         </service>
 
         <service id="mondu.webhook_service" class="Mondu\MonduPayment\Components\Webhooks\Service\WebhookService">

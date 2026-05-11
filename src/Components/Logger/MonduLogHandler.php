@@ -21,7 +21,7 @@ class MonduLogHandler extends RotatingFileHandler
 
     public function isHandling(LogRecord $record): bool
     {
-        if ($record->level->value >= Level::Error->value) {
+        if ($record->level->value >= Level::Warning->value) {
             return true;
         }
 

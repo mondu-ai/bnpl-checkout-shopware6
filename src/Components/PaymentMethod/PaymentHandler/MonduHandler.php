@@ -164,7 +164,11 @@ class MonduHandler extends AbstractPaymentHandler
                 } catch (\Throwable $e) {
                     if (strpos($e->getMessage(), 'cannot be edited') !== false ||
                         strpos($e->getMessage(), 'was cancelled') !== false) {
-                        // Order was already cancelled, this is expected
+                        $this->logger->warning('mondu.WARNING: Order was cancelled during transaction state change, this should not affect the customer', [
+                            'order_id' => $order->getId(),
+                            'order_number' => $order->getOrderNumber(),
+                            'error' => $e->getMessage()
+                        ]);
                     } else {
                         throw $e;
                     }
@@ -379,20 +383,22 @@ class MonduHandler extends AbstractPaymentHandler
         // Use billing address as fallback if shipping address is not available
         $addressForShipping = $shippingAddress ?? $billingAddress;
 
-        $this->logger->info('mondu.INFO: Shipping address resolved', [
-            'order_id'              => $order->getId(),
-            'order_number'          => $order->getOrderNumber(),
-            'using_fallback'        => $shippingAddress === null,
-            'shipping_street'       => $addressForShipping->getStreet(),
-            'shipping_city'         => $addressForShipping->getCity(),
-            'shipping_zip'          => $addressForShipping->getZipCode(),
-            'shipping_country'      => $addressForShipping->getCountry()?->getIso(),
-            'billing_street'        => $billingAddress->getStreet(),
-            'billing_city'          => $billingAddress->getCity(),
-            'billing_zip'           => $billingAddress->getZipCode(),
-            'addresses_match'       => $addressForShipping->getStreet() === $billingAddress->getStreet()
-                && $addressForShipping->getZipCode() === $billingAddress->getZipCode(),
-        ]);
+        if ($this->configService->isExtendedLogsEnabled()) {
+            $this->logger->info('mondu.INFO: Shipping address resolved', [
+                'order_id'              => $order->getId(),
+                'order_number'          => $order->getOrderNumber(),
+                'using_fallback'        => $shippingAddress === null,
+                'shipping_street'       => $addressForShipping->getStreet(),
+                'shipping_city'         => $addressForShipping->getCity(),
+                'shipping_zip'          => $addressForShipping->getZipCode(),
+                'shipping_country'      => $addressForShipping->getCountry()?->getIso(),
+                'billing_street'        => $billingAddress->getStreet(),
+                'billing_city'          => $billingAddress->getCity(),
+                'billing_zip'           => $billingAddress->getZipCode(),
+                'addresses_match'       => $addressForShipping->getStreet() === $billingAddress->getStreet()
+                    && $addressForShipping->getZipCode() === $billingAddress->getZipCode(),
+            ]);
+        }
         $shippingAddressLine1 = $addressForShipping->getStreet();
         $shippingAddressAddition1 = $addressForShipping->getAdditionalAddressLine1();
         $shippingAddressAddition2 = $addressForShipping->getAdditionalAddressLine2();
@@ -504,6 +510,7 @@ class MonduHandler extends AbstractPaymentHandler
         try {
             $criteria = new Criteria();
             $criteria->addFilter(new EqualsFilter('orderId', $orderId));
+            $criteria->addFilter(new EqualsFilter('successful', false));
             $criteria->addFilter(new NotFilter(NotFilter::CONNECTION_AND, [
                 new EqualsFilter('referenceId', $activeReferenceId),
             ]));

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mondu\MonduPayment\Components\Webhooks\Service;
 
+use Psr\Log\LoggerInterface;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
@@ -13,7 +14,8 @@ use Shopware\Core\System\SalesChannel\SalesChannelEntity;
 class ShopUrlService
 {
     public function __construct(
-        private readonly EntityRepository $salesChannelRepository
+        private readonly EntityRepository $salesChannelRepository,
+        private readonly LoggerInterface $logger
     ) {}
 
     /**
@@ -93,7 +95,7 @@ class ShopUrlService
             return $url;
         }
 
-        // Ultimate fallback
-        return 'https://localhost';
+        $this->logger->error('mondu.ERROR: ShopUrlService could not determine shop URL — no sales channel domain found, no HTTP_HOST available');
+        return '';
     }
 }

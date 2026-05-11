@@ -20,7 +20,10 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\NotFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
 use Shopware\Core\Framework\DataAbstractionLayer\Write\Command\DeleteCommand;
 use Shopware\Core\Framework\DataAbstractionLayer\Write\Validation\PreWriteValidationEvent;
+use Shopware\Core\Framework\Validation\WriteConstraintViolationException;
 use Shopware\Core\Checkout\Document\DocumentDefinition;
+use Symfony\Component\Validator\ConstraintViolation;
+use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Mondu\MonduPayment\Components\StateMachine\Exception\MonduException;
 use Mondu\MonduPayment\Components\Invoice\InvoiceDataEntity;
@@ -98,6 +101,18 @@ class CreditNoteSubscriber implements EventSubscriberInterface
             }
         } catch (\Throwable $e) {
             $this->logger->error('mondu.ERROR: Failed to cancel credit note on document delete: ' . $e->getMessage());
+
+            $violations = new ConstraintViolationList([
+                new ConstraintViolation(
+                    'Cannot delete document: failed to cancel credit note at Mondu (' . $e->getMessage() . ')',
+                    '',
+                    [],
+                    null,
+                    '/documentId',
+                    null
+                ),
+            ]);
+            $event->getExceptions()->add(new WriteConstraintViolationException($violations));
         }
     }
 
