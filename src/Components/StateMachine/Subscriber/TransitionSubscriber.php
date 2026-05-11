@@ -93,15 +93,13 @@ class TransitionSubscriber implements EventSubscriberInterface
                             ]);
                         }
                     } catch (\Exception $e) {
-                        if ($this->configService->isExtendedLogsEnabled()) {
-                            $this->logger->warning(
-                                "mondu.INFO: Order cannot be cancelled in Mondu API: " . $e->getMessage(),
-                                [
-                                    "order_id" => $order->getId(),
-                                    "mondu_reference_id" => $monduOrder->getReferenceId()
-                                ]
-                            );
-                        }
+                        $this->logger->warning(
+                            "mondu.WARNING: Order cannot be cancelled in Mondu API: " . $e->getMessage(),
+                            [
+                                "order_id" => $order->getId(),
+                                "mondu_reference_id" => $monduOrder->getReferenceId()
+                            ]
+                        );
                     }
                     break;
                 case 'shipped':
@@ -541,17 +539,15 @@ class TransitionSubscriber implements EventSubscriberInterface
             ]);
 
         } catch (\Exception $e) {
-            if ($this->configService->isExtendedLogsEnabled()) {
-                $this->logger->warning(
-                    'mondu.WARNING: Exception during shipment. (Exception: '. $e->getMessage().')',
-                    [
-                        'order' => $order->getId(),
-                        'mondu-reference-id' => $monduData->getReferenceId(),
-                        'delivery_id' => $deliveryId
-                    ]
-                );
-            }
-            
+            $this->logger->warning(
+                'mondu.WARNING: Exception during shipment. (Exception: '. $e->getMessage().')',
+                [
+                    'order' => $order->getId(),
+                    'mondu-reference-id' => $monduData->getReferenceId(),
+                    'delivery_id' => $deliveryId
+                ]
+            );
+
             if ($deliveryId !== null) {
                 try {
                     $this->stateMachineRegistry->transition(new Transition(

@@ -396,24 +396,20 @@ class WebhookService
                     $event = new MonduOrderCancelledEvent($order, $monduId, 'cancelled', $context);
                     $this->eventDispatcher->dispatch($event, $event->getName());
                 } else {
-                    if ($this->configService->isExtendedLogsEnabled()) {
-                        $this->logger->warning('mondu.WARNING: handleDeclinedOrCanceled called but neither declined nor canceled detected', [
-                            'order_id' => $order->getId(),
-                            'order_number' => $order->getOrderNumber(),
-                            'order_state' => $orderState,
-                            'topic' => $topic,
-                        ]);
-                    }
-                }
-            } else {
-                if ($this->configService->isExtendedLogsEnabled()) {
-                    $this->logger->warning('mondu.WARNING: Order not found for cancelled/declined webhook', [
-                        'mondu_id' => $monduId,
-                        'external_reference_id' => $externalReferenceId,
+                    $this->logger->warning('mondu.WARNING: handleDeclinedOrCanceled called but neither declined nor canceled detected', [
+                        'order_id' => $order->getId(),
+                        'order_number' => $order->getOrderNumber(),
                         'order_state' => $orderState,
-                        'topic' => $topic
+                        'topic' => $topic,
                     ]);
                 }
+            } else {
+                $this->logger->warning('mondu.WARNING: Order not found for cancelled/declined webhook', [
+                    'mondu_id' => $monduId,
+                    'external_reference_id' => $externalReferenceId,
+                    'order_state' => $orderState,
+                    'topic' => $topic
+                ]);
             }
 
             return [[ 'message' => $transitionResult->last()->getTechnicalName(), 'code' => Response::HTTP_OK ], Response::HTTP_OK];
@@ -671,8 +667,7 @@ class WebhookService
 
     protected function log($message, $data, $exception = null, $level = 'critical'): void
     {
-        // Skip info and warning logs if extended logs are disabled
-        if (($level === 'info' || $level === 'warning') && !$this->configService->isExtendedLogsEnabled()) {
+        if ($level === 'info' && !$this->configService->isExtendedLogsEnabled()) {
             return;
         }
         

@@ -148,16 +148,14 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
                     $this->transactionStateHandler->paid($transaction->getOrderTransaction()->getId(), $salesChannelContext->getContext());
                 }
             } catch (\Throwable $e) {
-                if (strpos($e->getMessage(), 'cannot be edited') !== false || 
+                if (strpos($e->getMessage(), 'cannot be edited') !== false ||
                     strpos($e->getMessage(), 'was cancelled') !== false) {
-                    if ($this->configService->isExtendedLogsEnabled()) {
-                        $this->logger->warning('mondu.INFO: Order was cancelled during transaction state change, this should not affect the customer', [
-                            'order_id' => $transaction->getOrder()->getId(),
-                            'order_number' => $transaction->getOrder()->getOrderNumber(),
-                            'intended_state' => $orderTransactionState,
-                            'error' => $e->getMessage()
-                        ]);
-                    }
+                    $this->logger->warning('mondu.WARNING: Order was cancelled during transaction state change, this should not affect the customer', [
+                        'order_id' => $transaction->getOrder()->getId(),
+                        'order_number' => $transaction->getOrder()->getOrderNumber(),
+                        'intended_state' => $orderTransactionState,
+                        'error' => $e->getMessage()
+                    ]);
                 } else {
                     throw $e;
                 }
@@ -483,6 +481,7 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         try {
             $criteria = new Criteria();
             $criteria->addFilter(new EqualsFilter('orderId', $orderId));
+            $criteria->addFilter(new EqualsFilter('successful', false));
             $criteria->addFilter(new NotFilter(NotFilter::CONNECTION_AND, [
                 new EqualsFilter('referenceId', $activeReferenceId),
             ]));
