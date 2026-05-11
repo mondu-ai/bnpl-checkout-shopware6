@@ -174,7 +174,7 @@ class TransitionSubscriber implements EventSubscriberInterface
                 'delivery_id' => $deliveryId
             ]);
         }
-        
+
         $monduData = $this->getMonduDataFromOrder($order);
 
         if ($monduData->getOrderState() === 'shipped') {

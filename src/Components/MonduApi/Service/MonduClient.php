@@ -327,7 +327,7 @@ class MonduClient
                     strpos($responseBody['errors'][0]['details'], 'must be unique') !== false) {
 
                     if ($this->configService->isExtendedLogsEnabled()) {
-                        $this->logger->info("mondu.INFO: MonduClient [{$method} {$url}]: Invoice already exists, returning special status - " . $responseBody['errors'][0]['details']);
+                        $this->logger->warning("mondu.WARNING: MonduClient [{$method} {$url}]: Invoice already exists, returning special status - " . $responseBody['errors'][0]['details']);
                     }
 
                     return ['status' => 'already_exists', 'message' => $responseBody['errors'][0]['details']];

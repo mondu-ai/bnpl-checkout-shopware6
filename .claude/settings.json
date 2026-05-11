@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(composer install)",
+      "Bash(composer update)",
+      "Bash(composer dump-autoload)",
+      "Bash(docker-compose *)",
+      "Bash(docker compose *)",
+      "Bash(bin/console *)",
+      "Bash(./releaser.sh *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git branch *)",
+      "Bash(git checkout *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(git pull *)",
+      "Bash(gh pr *)",
+      "Bash(gh issue *)",
+      "Bash(ls *)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(mv *)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(git reset --hard *)",
+      "Bash(git push --force *)",
+      "Bash(git clean -f *)"
+    ]
+  },
+  "model": "sonnet",
+  "contextPaths": [
+    "src/Resources/config/services.xml",
+    "src/Resources/config/config.xml",
+    "composer.json"
+  ]
+}
