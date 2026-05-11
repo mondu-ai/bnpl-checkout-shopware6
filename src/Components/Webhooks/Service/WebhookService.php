@@ -488,14 +488,26 @@ class WebhookService
             // Check if transition is allowed (prevents backward transitions)
             if (!$this->isTransitionAllowed($currentState, $action)) {
                 $finalStates = ['cancelled', 'failed', 'paid', 'paid_partially', 'refunded', 'refunded_partially', 'chargeback'];
-                // For declined/cancelled webhooks on a final state: reopen first, then apply target
+                // For declined/cancelled webhooks on a final state: reopen first, then apply target.
+                // Note: reopen + target is not atomic — if a concurrent webhook changes the state
+                // between the two calls, the second transition will throw IllegalTransitionException,
+                // which we catch gracefully below.
                 if (in_array($currentState, $finalStates) && in_array($action, ['fail', 'cancel'])) {
-                    $this->stateMachineRegistry->transition(new Transition(
-                        OrderTransactionDefinition::ENTITY_NAME,
-                        $orderTransactionId,
-                        'reopen',
-                        'stateId'
-                    ), $context);
+                    try {
+                        $this->stateMachineRegistry->transition(new Transition(
+                            OrderTransactionDefinition::ENTITY_NAME,
+                            $orderTransactionId,
+                            'reopen',
+                            'stateId'
+                        ), $context);
+                    } catch (\Exception $e) {
+                        $this->logger->warning('mondu.WARNING: reopen before ' . $action . ' failed (concurrent modification?)', [
+                            'externalReferenceId' => $externalReferenceId,
+                            'currentState' => $currentState,
+                            'error' => $e->getMessage()
+                        ]);
+                        return new StateMachineStateCollection([$transaction->getStateMachineState()]);
+                    }
                 } else {
                     $this->log('Prevented backward state transition', [
                         'externalReferenceId' => $externalReferenceId,
