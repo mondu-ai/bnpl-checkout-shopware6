@@ -95,7 +95,6 @@ class ShopUrlService
             return $url;
         }
 
-        $this->logger->error('mondu.ERROR: ShopUrlService could not determine shop URL — no sales channel domain found, no HTTP_HOST available');
-        return '';
+        throw new \RuntimeException('Mondu: ShopUrlService could not determine shop URL — no sales channel domain found, no HTTP_HOST available');
     }
 }

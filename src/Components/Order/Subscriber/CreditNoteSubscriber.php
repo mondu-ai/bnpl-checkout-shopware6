@@ -146,13 +146,11 @@ class CreditNoteSubscriber implements EventSubscriberInterface
                     $invoiceEntity = $this->invoiceDataRepository->search($invoiceCriteria, $event->getContext())->first();
 
                     if ($invoiceEntity === null) {
-                        if ($this->configService->isExtendedLogsEnabled()) {
-                            $this->logger->warning('mondu.WARNING: Parent invoice not found for credit note, skipping Mondu API call', [
-                                'order_id' => $orderId,
-                                'invoice_number' => $invoiceNumber,
-                                'credit_note_number' => $creditNoteNumber,
-                            ]);
-                        }
+                        $this->logger->warning('mondu.WARNING: Parent invoice not found for credit note, skipping Mondu API call', [
+                            'order_id' => $orderId,
+                            'invoice_number' => $invoiceNumber,
+                            'credit_note_number' => $creditNoteNumber,
+                        ]);
                         return;
                     }
 
@@ -208,14 +206,12 @@ class CreditNoteSubscriber implements EventSubscriberInterface
                     );
 
                     if (is_array($response) && ($response['status'] ?? null) === 'invoice_cancelled') {
-                        if ($this->configService->isExtendedLogsEnabled()) {
-                            $this->logger->warning('mondu.WARNING: Cannot create credit note — parent invoice is cancelled at Mondu', [
-                                'order_id' => $orderId,
-                                'invoice_number' => $invoiceNumber,
-                                'credit_note_number' => $creditNoteNumber,
-                                'message' => $response['message'] ?? '',
-                            ]);
-                        }
+                        $this->logger->warning('mondu.WARNING: Cannot create credit note — parent invoice is cancelled at Mondu', [
+                            'order_id' => $orderId,
+                            'invoice_number' => $invoiceNumber,
+                            'credit_note_number' => $creditNoteNumber,
+                            'message' => $response['message'] ?? '',
+                        ]);
                         throw new MonduException('Credit note cannot be created because the parent invoice has been cancelled at Mondu. Please cancel the Shopware credit note document and use a different invoice.');
                     }
 
