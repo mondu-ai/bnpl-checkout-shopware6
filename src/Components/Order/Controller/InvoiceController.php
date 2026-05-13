@@ -19,6 +19,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Mondu\MonduPayment\Components\Order\Model\OrderDataEntity;
 use Mondu\MonduPayment\Components\Invoice\InvoiceDataEntity;
 use Mondu\MonduPayment\Util\CriteriaHelper;
+use Psr\Log\LoggerInterface;
 use Shopware\Core\Checkout\Cart\LineItem\LineItem;
 
 #[Route(defaults: ['_routeScope' => ['api']])]
@@ -30,7 +31,8 @@ class InvoiceController extends AbstractController
         private readonly EntityRepository $invoiceDataRepository,
         private readonly EntityRepository $orderDataRepository,
         private readonly EntityRepository $documentRepository,
-        private readonly DocumentGenerator $documentGenerator
+        private readonly DocumentGenerator $documentGenerator,
+        private readonly LoggerInterface $logger
     ) {}
 
     #[Route(path: '/api/mondu/orders/{orderId}/{invoiceId}/cancel', name: 'mondu-payment.invoice.cancel', methods: ['POST'])]
@@ -79,7 +81,11 @@ class InvoiceController extends AbstractController
             }
 
             return new JsonResponse(['status' => 'not_found', 'error' => '2'], Response::HTTP_BAD_REQUEST);
-        } catch (\Exception) {
+        } catch (\Exception $e) {
+            $this->logger->error('mondu.ERROR: Invoice cancellation failed', [
+                'orderId' => $orderId,
+                'exception' => $e->getMessage(),
+            ]);
             return new JsonResponse(['status' => 'error', 'error' => '3'], Response::HTTP_BAD_REQUEST);
         }
     }
@@ -228,7 +234,7 @@ class InvoiceController extends AbstractController
         $latestActiveCreditNoteTime = null;
 
         foreach ($allDocuments as $document) {
-            $type = $document->getDocumentType()->getTechnicalName();
+            $type = $document->getDocumentType()?->getTechnicalName();
             $isActive = in_array($document->getId(), $activeDocumentIds, true);
 
             if ($isActive && in_array($type, $invoiceTypes, true)) {

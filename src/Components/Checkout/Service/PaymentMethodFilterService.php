@@ -39,7 +39,7 @@ class PaymentMethodFilterService
         $allPaymentMethods = MethodHelper::MONDU_PAYMENT_METHODS;
 
         foreach ($allPaymentMethods as $value) {
-            if (!in_array($value, $allowedPaymentMethods)) {
+            if (!in_array($value, $allowedPaymentMethods, true)) {
                 $disallowedPaymentMethods[] = $value;
             }
         }

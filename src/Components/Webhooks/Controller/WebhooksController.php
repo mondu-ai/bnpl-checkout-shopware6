@@ -46,13 +46,23 @@ class WebhooksController extends StorefrontController
             ]);
         }
 
-        $signature = hash_hmac('sha256', $content, $this->configService->getWebhooksSecret());
-        if ($signature !== $headers->get('X-Mondu-Signature')) {
+        $receivedSignature = (string) $headers->get('X-Mondu-Signature');
+
+        $secrets = $this->configService->getAllWebhooksSecrets();
+        $matched = false;
+        foreach ($secrets as $secret) {
+            $expected = hash_hmac('sha256', $content, $secret);
+            if (hash_equals($expected, $receivedSignature)) {
+                $matched = true;
+                break;
+            }
+        }
+
+        if (!$matched) {
             if ($this->configService->isExtendedLogsEnabled()) {
                 $this->logger->info('mondu.INFO: Webhook signature mismatch', [
                     'topic' => $params['topic'] ?? 'unknown',
-                    'expected_signature' => $signature,
-                    'received_signature' => $headers->get('X-Mondu-Signature')
+                    'candidate_secrets_tried' => count($secrets),
                 ]);
             }
 

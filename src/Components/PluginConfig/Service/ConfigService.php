@@ -34,7 +34,8 @@ class ConfigService
      */
     public function __construct(
         private readonly SystemConfigService $systemConfigService,
-        private readonly EntityRepository $pluginRepository
+        private readonly EntityRepository $pluginRepository,
+        private readonly EntityRepository $salesChannelRepository
     ) {}
 
     /**
@@ -135,6 +136,36 @@ class ConfigService
         $config = $this->getPluginCustomConfiguration();
 
         return $config['webhooksSecret'] ?? null;
+    }
+
+    public function getAllWebhooksSecrets(): array
+    {
+        $secrets = [];
+        $prev = $this->salesChannelId;
+
+        $collect = function (?string $salesChannelId) use (&$secrets): void {
+            $this->salesChannelId = $salesChannelId;
+            $s = $this->getWebhooksSecret();
+            if (is_string($s) && $s !== '') {
+                $secrets[$s] = true;
+            }
+        };
+
+        $collect(null);
+
+        $channels = $this->salesChannelRepository
+            ->searchIds(new Criteria(), new Context(new SystemSource()))
+            ->getIds();
+
+        foreach ($channels as $scId) {
+            if (is_string($scId)) {
+                $collect($scId);
+            }
+        }
+
+        $this->salesChannelId = $prev;
+
+        return array_keys($secrets);
     }
 
     /**

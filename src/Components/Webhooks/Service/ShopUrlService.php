@@ -23,7 +23,13 @@ class ShopUrlService
      */
     public function getShopUrl(?string $salesChannelId = null): string
     {
-        // If we're in a web context, try to get URL from $_SERVER first
+        if ($salesChannelId) {
+            $scUrl = $this->getSalesChannelUrl($salesChannelId);
+            if ($scUrl !== '') {
+                return $scUrl;
+            }
+        }
+
         if (isset($_SERVER['HTTP_ORIGIN'])) {
             return $_SERVER['HTTP_ORIGIN'];
         }
@@ -33,12 +39,6 @@ class ShopUrlService
             return $protocol . '://' . $_SERVER['HTTP_HOST'];
         }
 
-        // Fallback: get URL from sales channel configuration
-        if ($salesChannelId) {
-            return $this->getSalesChannelUrl($salesChannelId);
-        }
-
-        // Final fallback: get URL from default sales channel
         return $this->getDefaultSalesChannelUrl();
     }
 
@@ -58,7 +58,6 @@ class ShopUrlService
             $domain = $salesChannel->getDomains()->first();
             $url = $domain->getUrl();
 
-            // Ensure URL has protocol
             if (!preg_match('/^https?:\/\//', $url)) {
                 $url = 'https://' . $url;
             }
@@ -66,7 +65,7 @@ class ShopUrlService
             return $url;
         }
 
-        return $this->getDefaultSalesChannelUrl();
+        return '';
     }
 
     /**
