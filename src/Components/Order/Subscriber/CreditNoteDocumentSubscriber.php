@@ -109,14 +109,16 @@ class CreditNoteDocumentSubscriber implements EventSubscriberInterface
             FROM document AS d
             INNER JOIN document_type AS dt ON dt.id = d.document_type_id
             WHERE d.referenced_document_id = :referencedDocumentId
-              AND dt.technical_name = :technicalName
+              AND dt.technical_name IN (:technicalNames)
             ORDER BY d.created_at DESC
             LIMIT 1
         ';
 
         $result = $this->connection->fetchOne($sql, [
             'referencedDocumentId' => Uuid::fromHexToBytes($referencedDocumentId),
-            'technicalName' => 'credit_note',
+            'technicalNames' => ['credit_note', 'zugferd_credit_note', 'zugferd_embedded_credit_note'],
+        ], [
+            'technicalNames' => Connection::PARAM_STR_ARRAY,
         ]);
 
         if ($result === false || $result === null) {

@@ -184,8 +184,8 @@ class CreditNoteSubscriber implements EventSubscriberInterface
                             continue;
                         }
 
-                        $grossAmountCents += round(abs($lineItem->getPrice()->getTotalPrice()) * 100);
-                        $taxCents += round(abs($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity()) * 100);
+                        $grossAmountCents += (int) round(abs($lineItem->getPrice()->getTotalPrice()) * 100);
+                        $taxCents += (int) round(abs($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity()) * 100);
                     }
 
                     if ($grossAmountCents <= 0) {
