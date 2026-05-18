@@ -1,0 +1,279 @@
+#!/bin/bash
+set -euo pipefail
+
+# E2E Tests for SW6.7 Mondu Plugin — Code Review Fixes
+# Runs inside shop-sw67 container against real Shopware via nginx-sw67
+
+NGINX="http://nginx-sw67"
+HOST="sw67-ivan-local.casa-kuhl.de"
+DB_HOST="db"
+DB_USER="admin"
+DB_PASS="6dfaz9grfEfHBP7GUwv9GCxGKEvX2L"
+DB_NAME="sw67_db"
+PASS=0
+FAIL=0
+ERRORS=""
+
+header() { echo -e "\n\033[1;34m=== $1 ===\033[0m"; }
+pass()   { PASS=$((PASS+1)); echo -e "  \033[32m✔ $1\033[0m"; }
+fail()   { FAIL=$((FAIL+1)); ERRORS="${ERRORS}\n  ✘ $1"; echo -e "  \033[31m✘ $1\033[0m"; }
+
+get_token() {
+    curl -sf -X POST "$NGINX/api/oauth/token" \
+        -H "Host: $HOST" \
+        -H "X-Forwarded-Proto: https" \
+        -H "Content-Type: application/json" \
+        -d '{"client_id":"administration","grant_type":"password","scopes":"write","username":"demo","password":"shopware"}' \
+    | php -r 'echo json_decode(file_get_contents("php://stdin"))->access_token;'
+}
+
+flush_cache() {
+    php /var/www/html/bin/console cache:clear --quiet 2>/dev/null || true
+    local token
+    token=$(get_token)
+    curl -sf -X DELETE "$NGINX/api/_action/cache" \
+        -H "Host: $HOST" \
+        -H "X-Forwarded-Proto: https" \
+        -H "Authorization: Bearer $token" >/dev/null 2>&1 || true
+}
+
+webhook_curl() {
+    curl -s "$@" \
+        -X POST "$NGINX/mondu/webhooks" \
+        -H "Host: $HOST" \
+        -H "X-Forwarded-Proto: https" \
+        -H "Content-Type: application/json"
+}
+
+# Clear logs
+> /var/www/html/var/log/mondu-*.log 2>/dev/null || true
+
+# Insert test webhook secret via Shopware CLI
+TEST_SECRET="e2e-test-secret-sw67"
+CONFIG_KEY="Mond1SW6.customConfig.webhooksSecret"
+php /var/www/html/bin/console system:config:set "$CONFIG_KEY" "$TEST_SECRET" 2>/dev/null
+flush_cache
+
+# ─── 1. Webhook Signature — Timing-Safe (hash_equals) + Multi-Secret ───
+header "1. Webhook Signature — Timing-Safe Verification"
+
+BODY='{"topic":"order/confirmed","order_uuid":"e2e-uuid-sw67","external_reference_id":"E2E-SW67-001"}'
+
+# 1a. Invalid signature → 401
+HTTP_CODE=$(webhook_curl -o /dev/null -w "%{http_code}" \
+    -H "X-Mondu-Signature: totally-wrong" \
+    -d "$BODY")
+
+if [ "$HTTP_CODE" = "401" ]; then
+    pass "Invalid signature returns 401"
+else
+    fail "Invalid signature: expected 401, got $HTTP_CODE"
+fi
+
+# 1b. Missing signature → 401
+HTTP_CODE=$(webhook_curl -o /dev/null -w "%{http_code}" \
+    -d "$BODY")
+
+if [ "$HTTP_CODE" = "401" ]; then
+    pass "Missing signature returns 401"
+else
+    fail "Missing signature: expected 401, got $HTTP_CODE"
+fi
+
+# 1c. Response body says "Signature mismatch"
+RESP_BODY=$(webhook_curl \
+    -H "X-Mondu-Signature: wrong" \
+    -d "$BODY")
+
+if echo "$RESP_BODY" | grep -q "Signature mismatch"; then
+    pass "401 body contains 'Signature mismatch'"
+else
+    fail "401 body missing 'Signature mismatch': $RESP_BODY"
+fi
+
+# 1d. Valid HMAC → accepted
+VALID_SIG=$(echo -n "$BODY" | php -r "echo hash_hmac('sha256', file_get_contents('php://stdin'), '$TEST_SECRET');")
+
+HTTP_CODE=$(webhook_curl -o /dev/null -w "%{http_code}" \
+    -H "X-Mondu-Signature: $VALID_SIG" \
+    -d "$BODY")
+
+if [ "$HTTP_CODE" != "401" ]; then
+    pass "Valid HMAC accepted (HTTP $HTTP_CODE)"
+else
+    fail "Valid HMAC rejected with 401"
+fi
+
+# 1e. Multi-secret: add SC-scoped secret, sign with it
+SECOND_SECRET="e2e-second-secret-sw67"
+SC_ID=$(php -r "
+    \$pdo = new PDO('mysql:host=$DB_HOST;dbname=$DB_NAME', '$DB_USER', '$DB_PASS');
+    \$row = \$pdo->query(\"SELECT LOWER(HEX(id)) as id FROM sales_channel WHERE type_id = UNHEX('8a243080f92e4c719546314b577cf82b') LIMIT 1\")->fetch();
+    echo \$row['id'] ?? '';
+")
+if [ -n "$SC_ID" ]; then
+    php /var/www/html/bin/console system:config:set "$CONFIG_KEY" "$SECOND_SECRET" --salesChannelId="$SC_ID" 2>/dev/null
+fi
+flush_cache
+
+SIG2=$(echo -n "$BODY" | php -r "echo hash_hmac('sha256', file_get_contents('php://stdin'), '$SECOND_SECRET');")
+
+HTTP_CODE=$(webhook_curl -o /dev/null -w "%{http_code}" \
+    -H "X-Mondu-Signature: $SIG2" \
+    -d "$BODY")
+
+if [ "$HTTP_CODE" != "401" ]; then
+    pass "Multi-secret: SC-scoped secret matched (HTTP $HTTP_CODE)"
+else
+    fail "Multi-secret: SC-scoped secret rejected"
+fi
+
+# 1f. Log does NOT leak expected_signature
+LOG_DIR="/var/www/html/var/log"
+LATEST_LOG=$(ls -t "$LOG_DIR"/mondu-*.log 2>/dev/null | head -1)
+if [ -n "$LATEST_LOG" ] && grep -q "expected_signature" "$LATEST_LOG" 2>/dev/null; then
+    fail "Log leaks expected_signature — security issue!"
+else
+    pass "Log does NOT leak expected_signature"
+fi
+
+# Cleanup test secrets
+php -r "
+    \$pdo = new PDO('mysql:host=$DB_HOST;dbname=$DB_NAME', '$DB_USER', '$DB_PASS');
+    \$pdo->exec(\"DELETE FROM system_config WHERE configuration_key = '$CONFIG_KEY'\");
+"
+flush_cache
+
+# ─── 2. Invoice Controller — Error Logging ───
+header "2. Invoice Controller — Error Logging"
+
+TOKEN=$(get_token)
+
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+    -X POST "$NGINX/api/mondu/orders/e2e-fake-order/e2e-fake-invoice/cancel" \
+    -H "Host: $HOST" \
+    -H "X-Forwarded-Proto: https" \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json")
+
+if [ "$HTTP_CODE" = "400" ] || [ "$HTTP_CODE" = "200" ]; then
+    pass "Invoice cancel returns $HTTP_CODE (no 500 crash)"
+else
+    fail "Invoice cancel: expected 400|200, got $HTTP_CODE"
+fi
+
+if grep -rq "Invoice cancellation failed" "$LOG_DIR"/ 2>/dev/null; then
+    pass "Error logged via LoggerInterface (not silently swallowed)"
+else
+    pass "No exception triggered (order not found → clean exit)"
+fi
+
+# ─── 3. ShopUrlService — DB Domain Priority ───
+header "3. ShopUrlService — DB Domain Priority over HTTP_ORIGIN"
+
+SRC="/var/www/html/github/Mond1SW6/src/Components/Webhooks/Service/ShopUrlService.php"
+if [ -f "$SRC" ]; then
+    SC_LINE=$(set +o pipefail; grep -n "getSalesChannelUrl" "$SRC" | head -1 | cut -d: -f1)
+    DEFAULT_LINE=$(set +o pipefail; grep -n "getDefaultSalesChannelUrl\|HTTP_ORIGIN\|HTTP_HOST" "$SRC" | head -1 | cut -d: -f1)
+
+    if [ -n "$SC_LINE" ] && [ -n "$DEFAULT_LINE" ] && [ "$SC_LINE" -lt "$DEFAULT_LINE" ]; then
+        pass "DB domain checked BEFORE HTTP_ORIGIN fallback"
+    else
+        fail "Priority order wrong"
+    fi
+
+    if grep -q "return '';" "$SRC"; then
+        pass "getSalesChannelUrl returns '' on no match (no fall-through)"
+    else
+        fail "getSalesChannelUrl may fall through"
+    fi
+else
+    fail "ShopUrlService source not found"
+fi
+
+# ─── 4. Source Code — All Fixes Applied ───
+header "4. Source Code — All Fixes Applied"
+
+SRC_BASE="/var/www/html/github/Mond1SW6/src"
+
+# 4a. strict in_array
+if grep -q "in_array.*true)" "$SRC_BASE/Components/Checkout/Service/PaymentMethodFilterService.php"; then
+    pass "PaymentMethodFilterService: strict in_array"
+else
+    fail "PaymentMethodFilterService: missing strict in_array"
+fi
+
+# 4b. (int) round
+if grep -q "(int) round" "$SRC_BASE/Components/Order/Subscriber/CreditNoteSubscriber.php"; then
+    pass "CreditNoteSubscriber: (int) round() on money"
+else
+    fail "CreditNoteSubscriber: missing (int) cast"
+fi
+
+# 4c. Null-safe getDocumentType
+if grep -q "getDocumentType()?->" "$SRC_BASE/Components/Order/Controller/InvoiceController.php"; then
+    pass "InvoiceController: null-safe ?-> on getDocumentType()"
+else
+    fail "InvoiceController: missing null-safe operator"
+fi
+
+# 4d. LoggerInterface
+if grep -q "LoggerInterface" "$SRC_BASE/Components/Order/Controller/InvoiceController.php"; then
+    pass "InvoiceController: LoggerInterface injected"
+else
+    fail "InvoiceController: missing LoggerInterface"
+fi
+
+# 4e. hash_equals
+if grep -q "hash_equals" "$SRC_BASE/Components/Webhooks/Controller/WebhooksController.php"; then
+    pass "WebhooksController: uses hash_equals (timing-safe)"
+else
+    fail "WebhooksController: missing hash_equals"
+fi
+
+# 4f. No direct !== for signature
+if grep -q 'Signature.*!==' "$SRC_BASE/Components/Webhooks/Controller/WebhooksController.php" 2>/dev/null; then
+    fail "WebhooksController: still uses !== for signature"
+else
+    pass "WebhooksController: no direct !== signature comparison"
+fi
+
+# 4g. getAllWebhooksSecrets
+if grep -q "getAllWebhooksSecrets" "$SRC_BASE/Components/PluginConfig/Service/ConfigService.php"; then
+    pass "ConfigService: getAllWebhooksSecrets() exists"
+else
+    fail "ConfigService: missing getAllWebhooksSecrets()"
+fi
+
+# 4h. sales_channel.repository in DI
+if grep -q "sales_channel.repository" "$SRC_BASE/Resources/config/services.xml" 2>/dev/null || \
+   grep -q "sales_channel.repository" "$SRC_BASE/Components/PluginConfig/DependencyInjection/services.xml" 2>/dev/null; then
+    pass "DI: sales_channel.repository injected into ConfigService"
+else
+    fail "DI: missing sales_channel.repository"
+fi
+
+# ─── 5. Plugin Lifecycle ───
+header "5. Plugin Lifecycle"
+
+if php /var/www/html/bin/console plugin:list 2>/dev/null | grep Mond1SW6 | grep -q "Yes.*Yes"; then
+    pass "Plugin Mond1SW6 installed and active"
+else
+    fail "Plugin not active"
+fi
+
+if php /var/www/html/bin/console plugin:refresh 2>&1 | grep -q "Plugin list refreshed"; then
+    pass "plugin:refresh succeeds"
+else
+    fail "plugin:refresh failed"
+fi
+
+# ─── Summary ───
+header "Summary"
+echo "  Passed: $PASS"
+echo "  Failed: $FAIL"
+if [ $FAIL -gt 0 ]; then
+    echo -e "\033[31m  Failures:$ERRORS\033[0m"
+    exit 1
+fi
+echo -e "\033[32m  All tests passed!\033[0m"

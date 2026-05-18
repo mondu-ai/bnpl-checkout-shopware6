@@ -155,16 +155,16 @@ class CreditNoteSubscriber implements EventSubscriberInterface
                     }
 
                     // Find the most recently processed credit note for this order.
-                    // Credit note entries have invoiceNumber = their own CN number (≠ parent invoice number).
-                    // We use its createdAt as a cutoff so that only credit items added AFTER
-                    // that point are counted — i.e. only the items belonging to THIS credit note.
+                    // Exclude the parent invoice record itself (by documentId) so that
+                    // CN entries remain — even when a CN number coincidentally matches
+                    // the invoice number (e.g. both are "10022-1").
                     // Exclude credit notes whose Shopware document has been detached from the
                     // parent invoice (referencedDocumentId=NULL) — those are cancelled-at-Mondu
                     // entries, and their items must be re-counted for the new CN.
                     $prevCNCriteria = new Criteria();
                     $prevCNCriteria->addAssociation('document');
                     $prevCNCriteria->addFilter(new EqualsFilter('orderId', $orderId));
-                    $prevCNCriteria->addFilter(new NotFilter(NotFilter::CONNECTION_AND, [new EqualsFilter('invoiceNumber', $invoiceNumber)]));
+                    $prevCNCriteria->addFilter(new NotFilter(NotFilter::CONNECTION_AND, [new EqualsFilter('documentId', $invoiceEntity->getDocumentId())]));
                     $prevCNCriteria->addSorting(new FieldSorting('createdAt', FieldSorting::DESCENDING));
                     $latestPrevCN = null;
                     foreach ($this->invoiceDataRepository->search($prevCNCriteria, $event->getContext())->getEntities() as $candidate) {
