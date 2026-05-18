@@ -1,0 +1,11 @@
+{
+  "private": true,
+  "scripts": {
+    "test:sw66": "SHOP_URL=https://sw66-ivan-local.casa-kuhl.de npx playwright test",
+    "test:sw67": "SHOP_URL=https://sw67-ivan-local.casa-kuhl.de SHOP_CONTAINER=shop-sw67 npx playwright test",
+    "test": "npm run test:sw66"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  }
+}

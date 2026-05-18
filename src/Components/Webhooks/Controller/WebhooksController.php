@@ -38,8 +38,7 @@ class WebhooksController extends StorefrontController
         $content = $request->getContent();
         $headers = $request->headers;
         $params = json_decode($content, true);
-        
-        // Log incoming webhook (only if extended logs enabled)
+
         if ($this->configService->isExtendedLogsEnabled()) {
             $this->logger->info('mondu.INFO: Incoming webhook received', [
                 'topic' => $params['topic'] ?? 'unknown',
@@ -104,10 +103,11 @@ class WebhooksController extends StorefrontController
                 [$resBody, $resStatus] = $this->webhookService->handlePending($params, $context);
                 break;
             case 'order/declined':
+            case 'order/canceled':
+            case 'order/cancelled':
                 [$resBody, $resStatus] = $this->webhookService->handleDeclinedOrCanceled($params, $context);
                 break;
             case 'order':
-                // Generic 'order' topic - dispatch based on order_state
                 $orderState = $params['order_state'] ?? null;
                 
                 switch ($orderState) {
@@ -134,7 +134,6 @@ class WebhooksController extends StorefrontController
                 }
                 break;
             default:
-                // Log unregistered webhook topics only if extended logs enabled
                 if ($this->configService->isExtendedLogsEnabled()) {
                     $this->logger->info('mondu.INFO: Unregistered webhook topic', [
                         'topic' => $topic,
@@ -145,7 +144,6 @@ class WebhooksController extends StorefrontController
                 $resStatus = 200;
         }
 
-        // Log webhook processing result (only if extended logs enabled)
         if ($this->configService->isExtendedLogsEnabled()) {
             $this->logger->info('mondu.INFO: Webhook processed', [
                 'topic' => $topic,

@@ -20,16 +20,21 @@ class MediaProvider
 
     public function __construct(
         private readonly MediaService $mediaService,
-        private readonly EntityRepository $mediaRepository
+        private readonly EntityRepository $mediaRepository,
+        string $pluginPath = ''
     ) {
-        // Resolve the plugin root from this file's location so the path works
-        // regardless of how the plugin is installed: composer (vendor/mondu/…),
-        // manual upload (custom/plugins/Mond1SW6/), symlink, etc. Hard-coding
-        // %kernel.project_dir%/custom/plugins/Mond1SW6 would fail for every
-        // non-custom-plugins install.
-        $pluginRoot = \dirname(__DIR__, 2);
+        $pluginRoot = $this->resolvePluginRoot($pluginPath);
         $this->resourcesPath = $pluginRoot . '/src/Resources/public';
         $this->paymentLogosPath = $this->resourcesPath . '/images/de';
+    }
+
+    private function resolvePluginRoot(string $configuredPath): string
+    {
+        $candidate = rtrim($configuredPath, '/');
+        if ($candidate !== '' && file_exists($candidate . '/src/Resources/public/plugin.png')) {
+            return $candidate;
+        }
+        return dirname(__DIR__, 2);
     }
 
     /**
@@ -45,14 +50,21 @@ class MediaProvider
             return $existingMedia->getId();
         }
 
-        $file = file_get_contents($this->resourcesPath . '/plugin.png');
-        $mediaId = '';
-
-        if ($file) {
-            $mediaId = $this->mediaService->saveFile($file, 'png', 'image/png', 'mondu-payment-logo-v2', $context, 'payment_method', null, false);
+        $logoPath = $this->resourcesPath . '/plugin.png';
+        
+        if (!file_exists($logoPath)) {
+            return '';
         }
 
-        return $mediaId;
+        $file = file_get_contents($logoPath);
+
+        if ($file === false || empty($file)) {
+            return '';
+        }
+
+        $mediaId = $this->mediaService->saveFile($file, 'png', 'image/png', 'mondu-payment-logo-v2', $context, 'payment_method', null, false);
+
+        return $mediaId ?? '';
     }
 
     /**
@@ -75,7 +87,6 @@ class MediaProvider
         $logoPath = $this->paymentLogosPath . '/' . $logoFileName;
         
         if (!file_exists($logoPath)) {
-            // Fallback to default logo if specific logo not found
             return $this->getLogoMediaId($context);
         }
 

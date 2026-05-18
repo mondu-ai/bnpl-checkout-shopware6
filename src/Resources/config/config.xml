@@ -194,6 +194,20 @@
         </input-field>
 
         <input-field type="bool">
+            <name>hideMonduForB2C</name>
+            <label>Hide Mondu for B2C</label>
+            <label lang="de-DE">Mondu für B2C ausblenden</label>
+            <label lang="nl-NL">Mondu verbergen voor B2C</label>
+            <label lang="fr-FR">Masquer Mondu pour B2C</label>
+
+            <defaultValue>1</defaultValue>
+            <helpText>When enabled and the buyer can choose account type (private vs business), Mondu payment methods are hidden for private customers (B2C). If account type selection is not available, Mondu is always shown.</helpText>
+            <helpText lang="de-DE">Wenn aktiviert und der Käufer den Kontotyp (Privat vs. Geschäftlich) wählen kann, werden Mondu-Zahlungsmethoden für Privatkunden (B2C) ausgeblendet. Wenn die Kontotypauswahl nicht verfügbar ist, wird Mondu immer angezeigt.</helpText>
+            <helpText lang="nl-NL">Wanneer ingeschakeld en de koper het accounttype (privé vs zakelijk) kan kiezen, worden Mondu-betalingsmethoden verborgen voor particuliere klanten (B2C). Als de accounttype-selectie niet beschikbaar is, wordt Mondu altijd getoond.</helpText>
+            <helpText lang="fr-FR">Lorsqu'elle est activée et que l'acheteur peut choisir le type de compte (particulier vs professionnel), les méthodes de paiement Mondu sont masquées pour les clients particuliers (B2C). Si la sélection du type de compte n'est pas disponible, Mondu est toujours affiché.</helpText>
+        </input-field>
+
+        <input-field type="bool">
             <name>extendedLogs</name>
             <label>Extended logs</label>
             <label lang="de-DE">Erweiterte Protokollierung</label>

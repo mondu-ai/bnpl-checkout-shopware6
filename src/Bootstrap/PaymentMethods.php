@@ -244,14 +244,16 @@ class PaymentMethods extends AbstractBootstrap
         $mediaProvider = $this->container->get(MediaProvider::class);
 
         foreach (self::PAYMENT_METHODS as $handlerClass => $paymentMethod) {
-            // Get specific logo for this payment method
             $logoFileName = self::PAYMENT_METHOD_LOGOS[$handlerClass] ?? null;
-            
+
             if ($logoFileName) {
                 $mediaId = $mediaProvider->getPaymentMethodLogoMediaId($logoFileName, $this->context);
             } else {
-                // Fallback to default logo
                 $mediaId = $mediaProvider->getLogoMediaId($this->context);
+            }
+
+            if (empty($mediaId)) {
+                continue;
             }
 
             $paymentSearchResult = $this->paymentRepository->search(

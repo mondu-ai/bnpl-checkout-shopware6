@@ -58,6 +58,10 @@ class MonduClient
     {
         $response = $this->sendRequest('orders/'.$orderUid.'/invoices', 'POST', $body);
 
+        if (is_array($response) && isset($response['status'])) {
+            return $response;
+        }
+
         return $response['invoice'] ?? null;
     }
 
@@ -113,17 +117,154 @@ class MonduClient
 
     public function cancelInvoice($orderUuid, $invoiceUuid): ?array
     {
-        return $this->sendRequest('orders/'. $orderUuid.'/invoices/' . $invoiceUuid . '/cancel', 'POST');
+        $url = 'orders/' . $orderUuid . '/invoices/' . $invoiceUuid . '/cancel';
+        $result = $this->sendRequest($url, 'POST');
+
+        if ($this->configService->isExtendedLogsEnabled()) {
+            $this->logger->info("mondu.INFO: MonduClient [POST {$url}]: Cancel invoice", [
+                'order_uuid' => $orderUuid,
+                'invoice_uuid' => $invoiceUuid,
+                'response' => $result,
+            ]);
+        }
+
+        return $result;
     }
 
     public function cancelCreditNote($invoiceUuid, $creditNoteUuid): ?array
     {
-        return $this->sendRequest('invoices/' . $invoiceUuid . '/credit_notes/' . $creditNoteUuid . '/cancel', 'POST');
+        $url = 'invoices/' . $invoiceUuid . '/credit_notes/' . $creditNoteUuid . '/cancel';
+        $request = $this->getRequestObject($url, 'POST');
+
+        try {
+            $response = $this->restClient->send($request);
+            $decoded = json_decode($response->getBody()->getContents(), true);
+
+            return is_array($decoded) ? $decoded : ['status' => 'ok'];
+        } catch (GuzzleException $e) {
+            $responseBody = null;
+
+            if (method_exists($e, 'getResponse') && $e->getResponse()) {
+                $responseBody = json_decode($e->getResponse()->getBody()->getContents(), true);
+            }
+
+            if ($e->getCode() == 422 && isset($responseBody['errors'])) {
+                foreach ($responseBody['errors'] as $error) {
+                    $details = $error['details'] ?? '';
+                    $code = $error['code'] ?? '';
+                    // Mondu phrasings observed in the wild:
+                    //   "already cancelled" / "already_cancelled"
+                    //   "can not be canceled" / "cannot be cancelled"
+                    //      (returned e.g. when the parent invoice itself is cancelled,
+                    //       so the credit note is effectively no longer cancellable)
+                    if (stripos($details, 'already cancel') !== false
+                        || stripos($code, 'already_cancel') !== false
+                        || stripos($details, 'already_cancel') !== false
+                        || stripos($details, 'can not be cancel') !== false
+                        || stripos($details, 'cannot be cancel') !== false) {
+                        if ($this->configService->isExtendedLogsEnabled()) {
+                            $this->logger->info("mondu.INFO: MonduClient [POST {$url}]: credit note already cancelled - {$details}");
+                        }
+                        return ['status' => 'already_cancelled', 'message' => $details];
+                    }
+                }
+            }
+
+            if ($e->getCode() == 404) {
+                if ($this->configService->isExtendedLogsEnabled()) {
+                    $this->logger->info("mondu.INFO: MonduClient [POST {$url}]: 404 not found at Mondu");
+                }
+                return ['status' => 'not_found', 'message' => $responseBody['message'] ?? 'not_found'];
+            }
+
+            if ($this->configService->isExtendedLogsEnabled()) {
+                $this->logger->warning("mondu.WARNING: MonduClient [POST {$url}]: Failed with an exception message: {$e->getMessage()}");
+            }
+
+            $eventLog = [
+                'response_status' => strval($e->getCode()),
+                'origin_event' => $e->getRequest()->getUri()->getPath()
+            ];
+
+            if (method_exists($e, 'getRequest')) {
+                $eventLog['request_body'] = json_decode($e->getRequest()->getBody()->getContents());
+            }
+
+            if ($responseBody) {
+                $eventLog['response_body'] = $responseBody;
+            }
+
+            $this->logEvent($eventLog);
+
+            return null;
+        }
     }
 
     public function createCreditNote($invoiceUuid, $body = []): ?array
     {
-        return $this->sendRequest('invoices/' . $invoiceUuid . '/credit_notes', 'POST', $body);
+        $url = 'invoices/' . $invoiceUuid . '/credit_notes';
+        $request = $this->getRequestObject($url, 'POST', $body);
+
+        try {
+            $response = $this->restClient->send($request);
+            $decoded = json_decode($response->getBody()->getContents(), true);
+
+            if ($this->configService->isExtendedLogsEnabled()) {
+                $this->logger->info("mondu.INFO: MonduClient [POST {$url}]: Credit note created", [
+                    'invoice_uuid' => $invoiceUuid,
+                    'request_body' => $body,
+                    'response' => $decoded,
+                ]);
+            }
+
+            return is_array($decoded) ? $decoded : null;
+        } catch (GuzzleException $e) {
+            $responseBody = null;
+
+            if (method_exists($e, 'getResponse') && $e->getResponse()) {
+                $responseBody = json_decode($e->getResponse()->getBody()->getContents(), true);
+            }
+
+            // Mondu refuses credit notes on an invoice that is already cancelled:
+            //   details: "can not create credit note for canceled invoice that has not been paid"
+            if ($e->getCode() == 422 && isset($responseBody['errors'])) {
+                foreach ($responseBody['errors'] as $error) {
+                    $details = $error['details'] ?? '';
+                    if (stripos($details, 'canceled invoice') !== false
+                        || stripos($details, 'cancelled invoice') !== false) {
+                        if ($this->configService->isExtendedLogsEnabled()) {
+                            $this->logger->info("mondu.INFO: MonduClient [POST {$url}]: parent invoice cancelled - {$details}");
+                        }
+                        return ['status' => 'invoice_cancelled', 'message' => $details];
+                    }
+                    if (stripos($details, 'credit_notes_exceed_invoice_value') !== false) {
+                        $this->logger->warning("mondu.WARNING: MonduClient [POST {$url}]: credit notes exceed invoice value");
+                        return ['status' => 'amount_exceeded', 'message' => $details];
+                    }
+                }
+            }
+
+            if ($this->configService->isExtendedLogsEnabled()) {
+                $this->logger->warning("mondu.WARNING: MonduClient [POST {$url}]: Failed with an exception message: {$e->getMessage()}");
+            }
+
+            $eventLog = [
+                'response_status' => strval($e->getCode()),
+                'origin_event' => $e->getRequest()->getUri()->getPath()
+            ];
+
+            if (method_exists($e, 'getRequest')) {
+                $eventLog['request_body'] = json_decode($e->getRequest()->getBody()->getContents());
+            }
+
+            if ($responseBody) {
+                $eventLog['response_body'] = $responseBody;
+            }
+
+            $this->logEvent($eventLog);
+
+            return null;
+        }
     }
 
     public function registerWebhook($body = []): ?array
@@ -155,7 +296,7 @@ class MonduClient
         }
     }
 
-    public function sendRequest($url, $method = 'GET', $body = [], $allowAlreadySubscribed = false) 
+    public function sendRequest($url, $method = 'GET', $body = [], $allowAlreadySubscribed = false)
     {
         $request = $this->getRequestObject($url, $method, $body);
 
@@ -166,7 +307,7 @@ class MonduClient
 
         } catch (GuzzleException $e) {
             $responseBody = null;
-            
+
             if (method_exists($e, 'getResponse') && $e->getResponse()) {
                 $responseBody = json_decode($e->getResponse()->getBody()->getContents(), true);
                 
@@ -192,8 +333,10 @@ class MonduClient
                     return ['status' => 'already_exists', 'message' => $responseBody['errors'][0]['details']];
                 }
             }
-            
-            $this->logger->critical("mondu.CRITICAL: MonduClient [{$method} {$url}]: Failed with an exception message: {$e->getMessage()}");
+
+            if ($this->configService->isExtendedLogsEnabled()) {
+                $this->logger->warning("mondu.WARNING: MonduClient [{$method} {$url}]: Failed with an exception message: {$e->getMessage()}");
+            }
 
             $eventLog = [
                 'response_status' => strval($e->getCode()),

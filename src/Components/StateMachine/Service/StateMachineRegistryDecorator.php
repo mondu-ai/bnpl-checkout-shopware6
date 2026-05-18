@@ -72,6 +72,10 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
         /** @var OrderDataEntity $monduData */
         $monduData = $order->getExtension(OrderExtension::EXTENSION_NAME);
         if (!$monduData) {
+            $liveOrder = $this->getOrder($order->getId(), Context::createDefaultContext());
+            $monduData = $liveOrder?->getExtension(OrderExtension::EXTENSION_NAME);
+        }
+        if (!$monduData) {
             throw new MonduException('Corrupt order');
         }
 
@@ -86,6 +90,10 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
     {
         /** @var OrderDataEntity $monduData */
         $monduData = $order->getExtension(OrderExtension::EXTENSION_NAME);
+        if (!$monduData) {
+            $liveOrder = $this->getOrder($order->getId(), Context::createDefaultContext());
+            $monduData = $liveOrder?->getExtension(OrderExtension::EXTENSION_NAME);
+        }
         if (!$monduData) {
             throw new MonduException('Corrupt order');
         }

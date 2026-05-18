@@ -333,6 +333,24 @@ class ConfigService
     }
 
     /**
+     * Whether to hide Mondu payment methods for private (B2C) customers when account type selection is available.
+     */
+    public function isHideMonduForB2CEnabled(): bool
+    {
+        $config = $this->getPluginConfiguration();
+
+        return (bool) ($config['hideMonduForB2C'] ?? true);
+    }
+
+    /**
+     * Whether the shop shows account type selection (private vs commercial) to customers.
+     */
+    public function isAccountTypeSelectionEnabled(): bool
+    {
+        return (bool) $this->systemConfigService->get('core.loginRegistration.showAccountTypeSelection', $this->salesChannelId);
+    }
+
+    /**
      * @return \Shopware\Core\Framework\DataAbstractionLayer\Entity|null
      */
     public function getPlugin()

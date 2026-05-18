@@ -12,5 +12,13 @@
             "Mondu Payments.order.Declined": "Mondu Payments / Order / Declined",
             "Mondu Payments.order.Approved": "Mondu Payments / Order / Approved"
         }
+    },
+    "sw-flow-custom-event": {
+        "flow-list": {
+            "Mondu Payments_order_Confirmed": "Mondu: Order Confirmed",
+            "Mondu Payments_order_Cancelled": "Mondu: Order Cancelled",
+            "Mondu Payments_order_Pending": "Mondu: Order Pending",
+            "Mondu Payments_order_Declined": "Mondu: Order Declined"
+        }
     }
 }
