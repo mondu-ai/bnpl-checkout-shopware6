@@ -1,11 +1,52 @@
 {
+  "sw-flow": {
+    "triggers": {
+      "Confirmed": "Confirmé",
+      "Cancelled": "Annulé",
+      "Pending": "En attente",
+      "Declined": "Refusé",
+      "Approved": "Approuvé",
+      "Mondu Payments.order.Confirmed": "Mondu Payments / Commande / Confirmé",
+      "Mondu Payments.order.Cancelled": "Mondu Payments / Commande / Annulé",
+      "Mondu Payments.order.Pending": "Mondu Payments / Commande / En attente",
+      "Mondu Payments.order.Declined": "Mondu Payments / Commande / Refusé",
+      "Mondu Payments.order.Approved": "Mondu Payments / Commande / Approuvé"
+    },
+    "triggerDescriptions": {
+      "Mondu Payments.order.Confirmed": "Déclenché lorsque le paiement Mondu est confirmé",
+      "Mondu Payments.order.Cancelled": "Déclenché lorsque le paiement Mondu est annulé",
+      "Mondu Payments.order.Pending": "Déclenché lorsque le paiement Mondu est en attente",
+      "Mondu Payments.order.Declined": "Déclenché lorsque le paiement Mondu est refusé",
+      "Mondu Payments.order.Approved": "Déclenché lorsque le paiement Mondu est approuvé"
+    }
+  },
   "sw-order-mondu": {
     "documentCard": {
       "labelCancelInvoice": "Annuler la facture",
       "labelCancelCreditNote": "Annuler la note de crédit",
       "cancelSuccessTitle": "Bravo! Opération réussie.",
-      "cancelSuccessMessage": "Annulation réussie.",
-      "cancelErrorMessage": "Une erreur s'est produite. Le document n'a pas pu être annulé."
+      "cancelSuccessMessage": "Annulée avec succès.",
+      "cancelAlreadyCancelledTitle": "Déjà annulée",
+      "cancelAlreadyCancelledMessage": "Cette facture a déjà été annulée chez Mondu.",
+      "cancelNotSubmittedTitle": "Non soumise à Mondu",
+      "cancelNotSubmittedMessage": "Cette facture n'a pas encore été soumise à Mondu. Expédiez d'abord la commande pour soumettre la facture.",
+      "cancelErrorMessage": "Une erreur s'est produite. Le document n'a pas pu être annulé.",
+      "cancelErrorAlreadyCancelled": "Cette note de crédit a déjà été annulée chez Mondu.",
+      "cancelErrorNotFound": "Cette note de crédit est introuvable chez Mondu.",
+      "cancelErrorNotRegistered": "Cette note de crédit n'est pas enregistrée chez Mondu et ne peut pas être annulée via cette intégration.",
+      "creditNoteViolationTitle": "La note de crédit ne peut pas être créée",
+      "creditNoteViolationMessage": "Le montant de la note de crédit dépasse le montant ouvert restant de la facture. Il n'y a plus rien à rembourser.",
+      "columnShopwareStatus": "Statut",
+      "shopwareStatusActive": "Actif",
+      "shopwareStatusCancelled": "Annulé",
+      "shopwareStatusStorno": "Storno",
+      "columnMonduStatus": "Mondu",
+      "monduStatusNotSent": "Non envoyé",
+      "monduStatusSent": "Envoyé",
+      "monduStatusCancelled": "Annulé"
+    },
+    "summary": {
+      "monduAmountLabel": "Montant de la créance chez Mondu"
     }
   },
   "sw-mondu-config": {

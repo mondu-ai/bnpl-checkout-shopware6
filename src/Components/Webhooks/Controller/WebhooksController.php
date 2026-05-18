@@ -11,19 +11,23 @@ use Shopware\Storefront\Controller\StorefrontController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Psr\Log\LoggerInterface;
 
 #[Route(defaults: ['_routeScope' => ['storefront']])]
 class WebhooksController extends StorefrontController
 {
     private ConfigService $configService;
     private WebhookService $webhookService;
+    private LoggerInterface $logger;
 
     public function __construct(
         ConfigService $configService,
-        WebhookService $webhookService
+        WebhookService $webhookService,
+        LoggerInterface $logger
     ) {
         $this->configService = $configService;
         $this->webhookService = $webhookService;
+        $this->logger = $logger;
     }
 
     #[Route(path: '/mondu/webhooks', name: 'mondu-payment.webhooks', methods: ['POST'])]
@@ -31,9 +35,37 @@ class WebhooksController extends StorefrontController
     {
         $content = $request->getContent();
         $headers = $request->headers;
+        $params = json_decode($content, true);
 
-        $signature = hash_hmac('sha256', $content, $this->configService->getWebhooksSecret());
-        if ($signature !== $headers->get('X-Mondu-Signature')) {
+        if ($this->configService->isExtendedLogsEnabled()) {
+            $this->logger->info('mondu.INFO: Incoming webhook received', [
+                'topic' => $params['topic'] ?? 'unknown',
+                'order_uuid' => $params['order_uuid'] ?? null,
+                'external_reference_id' => $params['external_reference_id'] ?? null,
+                'order_state' => $params['order_state'] ?? null
+            ]);
+        }
+
+        $receivedSignature = (string) $headers->get('X-Mondu-Signature');
+
+        $secrets = $this->configService->getAllWebhooksSecrets();
+        $matched = false;
+        foreach ($secrets as $secret) {
+            $expected = hash_hmac('sha256', $content, $secret);
+            if (hash_equals($expected, $receivedSignature)) {
+                $matched = true;
+                break;
+            }
+        }
+
+        if (!$matched) {
+            if ($this->configService->isExtendedLogsEnabled()) {
+                $this->logger->info('mondu.INFO: Webhook signature mismatch', [
+                    'topic' => $params['topic'] ?? 'unknown',
+                    'candidate_secrets_tried' => count($secrets),
+                ]);
+            }
+
             return new Response(
                 json_encode([
                     'message' => 'Signature mismatch',
@@ -43,7 +75,6 @@ class WebhooksController extends StorefrontController
             );
         }
 
-        $params = json_decode($content, true);
         $topic = $params['topic'];
 
         switch ($topic) {
@@ -54,11 +85,53 @@ class WebhooksController extends StorefrontController
                 [$resBody, $resStatus] = $this->webhookService->handlePending($params, $context);
                 break;
             case 'order/declined':
+            case 'order/canceled':
+            case 'order/cancelled':
                 [$resBody, $resStatus] = $this->webhookService->handleDeclinedOrCanceled($params, $context);
                 break;
+            case 'order':
+                $orderState = $params['order_state'] ?? null;
+
+                switch ($orderState) {
+                    case 'confirmed':
+                        [$resBody, $resStatus] = $this->webhookService->handleConfirmed($params, $context);
+                        break;
+                    case 'pending':
+                        [$resBody, $resStatus] = $this->webhookService->handlePending($params, $context);
+                        break;
+                    case 'declined':
+                    case 'canceled':
+                        [$resBody, $resStatus] = $this->webhookService->handleDeclinedOrCanceled($params, $context);
+                        break;
+                    default:
+                        if ($this->configService->isExtendedLogsEnabled()) {
+                            $this->logger->info('mondu.INFO: Unknown order_state for order webhook', [
+                                'topic' => $topic,
+                                'order_state' => $orderState,
+                                'order_uuid' => $params['order_uuid'] ?? null
+                            ]);
+                        }
+                        $resBody = ['message' => 'Unknown order_state', 'code' => 200];
+                        $resStatus = 200;
+                }
+                break;
             default:
+                if ($this->configService->isExtendedLogsEnabled()) {
+                    $this->logger->info('mondu.INFO: Unregistered webhook topic', [
+                        'topic' => $topic,
+                        'order_uuid' => $params['order_uuid'] ?? null
+                    ]);
+                }
                 $resBody = ['message' => 'Unregistered topic', 'code' => 200];
                 $resStatus = 200;
+        }
+
+        if ($this->configService->isExtendedLogsEnabled()) {
+            $this->logger->info('mondu.INFO: Webhook processed', [
+                'topic' => $topic,
+                'response_status' => $resStatus,
+                'response_body' => $resBody
+            ]);
         }
 
         return new Response(

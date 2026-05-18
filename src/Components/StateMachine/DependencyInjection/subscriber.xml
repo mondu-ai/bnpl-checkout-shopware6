@@ -9,13 +9,16 @@
         </defaults>
 
         <service id="Mondu\MonduPayment\Components\StateMachine\Subscriber\TransitionSubscriber">
-            <argument key="$orderRepository" id="order.repository" type="service" />
             <argument key="$orderDeliveryRepository" id="order_delivery.repository" type="service" />
+            <argument key="$orderRepository" id="order.repository" type="service" />
             <argument key="$configService" type="service" id="mondu.mondu_config"/>
             <argument key="$monduClient" type="service" id="mondu.mondu_api"/>
             <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
             <argument key="$invoiceDataRepository" type="service" id="mondu_invoice_data.repository"/>
             <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <argument key="$invoiceDataService" type="service" id="Mondu\MonduPayment\Services\InvoiceServices\AbstractInvoiceDataService"/>
+            <argument key="$stateMachineRegistry" type="service" id="Shopware\Core\System\StateMachine\StateMachineRegistry"/>
+            <argument key="$documentUrlHelper" type="service" id="Mondu\MonduPayment\Components\Order\Util\DocumentUrlHelper"/>
         </service>
 
     </services>

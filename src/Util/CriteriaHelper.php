@@ -14,7 +14,7 @@ class CriteriaHelper
         $criteria = (new Criteria([$orderId]))
             ->addAssociation('addresses.country')
             ->addAssociation('addresses.salutation')
-            ->addAssociation('deliveries')
+            ->addAssociation('deliveries.shippingMethod')
             ->addAssociation('lineItems')
             ->addAssociation('transactions.paymentMethod');
 

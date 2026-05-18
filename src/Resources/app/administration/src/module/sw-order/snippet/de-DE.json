@@ -1,11 +1,62 @@
 {
+  "sw-flow": {
+    "triggers": {
+      "Confirmed": "Bestätigt",
+      "Cancelled": "Abgebrochen",
+      "Pending": "Ausstehend",
+      "Declined": "Fehlgeschlagen",
+      "Approved": "Genehmigt",
+      "declined": "Fehlgeschlagen",
+      "Mondu Payments.order.declined": "Mondu Payments / Bestellung / Fehlgeschlagen",
+      "Mondu Payments.order.Confirmed": "Mondu Payments / Bestellung / Bestätigt",
+      "Mondu Payments.order.Cancelled": "Mondu Payments / Bestellung / Abgebrochen",
+      "Mondu Payments.order.Pending": "Mondu Payments / Bestellung / Ausstehend",
+      "Mondu Payments.order.Declined": "Mondu Payments / Bestellung / Fehlgeschlagen",
+      "Mondu Payments.order.Approved": "Mondu Payments / Bestellung / Genehmigt"
+    },
+    "triggerDescriptions": {
+      "Mondu Payments.order.Confirmed": "Wird ausgelöst, wenn die Mondu-Zahlung bestätigt wird",
+      "Mondu Payments.order.Cancelled": "Wird ausgelöst, wenn die Mondu-Zahlung abgebrochen wird",
+      "Mondu Payments.order.Pending": "Wird ausgelöst, wenn die Mondu-Zahlung aussteht",
+      "Mondu Payments.order.Declined": "Wird ausgelöst, wenn die Mondu-Zahlung fehlgeschlagen ist",
+      "Mondu Payments.order.Approved": "Wird ausgelöst, wenn die Mondu-Zahlung genehmigt wird"
+    }
+  },
+  "sw-flow-custom-event": {
+    "flow-list": {
+      "Mondu Payments_order_Confirmed": "Mondu: Bestellung bestätigt",
+      "Mondu Payments_order_Cancelled": "Mondu: Bestellung storniert",
+      "Mondu Payments_order_Pending": "Mondu: Bestellung ausstehend",
+      "Mondu Payments_order_Declined": "Mondu: Bestellung abgelehnt"
+    }
+  },
   "sw-order-mondu": {
     "documentCard": {
       "labelCancelInvoice": "Rechnung stornieren",
       "labelCancelCreditNote": "Gutschrift stornieren",
       "cancelSuccessTitle": "Erfolg!",
-      "cancelSuccessMessage": "Erfolgreich gelöscht.",
-      "cancelErrorMessage": "Es ist ein Fehler aufgetreten. Dokument konnte nicht storniert werden."
+      "cancelSuccessMessage": "Erfolgreich storniert.",
+      "cancelAlreadyCancelledTitle": "Bereits storniert",
+      "cancelAlreadyCancelledMessage": "Diese Rechnung wurde bei Mondu bereits storniert.",
+      "cancelNotSubmittedTitle": "Nicht an Mondu übermittelt",
+      "cancelNotSubmittedMessage": "Diese Rechnung wurde noch nicht an Mondu übermittelt. Versenden Sie die Bestellung zuerst, um die Rechnung zu übermitteln.",
+      "cancelErrorMessage": "Es ist ein Fehler aufgetreten. Dokument konnte nicht storniert werden.",
+      "cancelErrorAlreadyCancelled": "Diese Gutschrift wurde bei Mondu bereits storniert.",
+      "cancelErrorNotFound": "Diese Gutschrift konnte bei Mondu nicht gefunden werden.",
+      "cancelErrorNotRegistered": "Diese Gutschrift ist bei Mondu nicht registriert und kann über diese Integration nicht storniert werden.",
+      "creditNoteViolationTitle": "Gutschrift kann nicht erstellt werden",
+      "creditNoteViolationMessage": "Der Gutschriftsbetrag übersteigt den verbleibenden offenen Betrag der Rechnung. Es gibt nichts mehr zu erstatten.",
+      "columnShopwareStatus": "Status",
+      "shopwareStatusActive": "Aktiv",
+      "shopwareStatusCancelled": "Storniert",
+      "shopwareStatusStorno": "Storno",
+      "columnMonduStatus": "Mondu",
+      "monduStatusNotSent": "Nicht gesendet",
+      "monduStatusSent": "Gesendet",
+      "monduStatusCancelled": "Storniert"
+    },
+    "summary": {
+      "monduAmountLabel": "Forderungsbetrag bei Mondu"
     }
   },
   "sw-mondu-config": {

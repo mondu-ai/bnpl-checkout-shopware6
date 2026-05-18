@@ -34,7 +34,8 @@ class ConfigService
      */
     public function __construct(
         private readonly SystemConfigService $systemConfigService,
-        private readonly EntityRepository $pluginRepository
+        private readonly EntityRepository $pluginRepository,
+        private readonly EntityRepository $salesChannelRepository
     ) {}
 
     /**
@@ -66,8 +67,9 @@ class ConfigService
      */
     public function isSandbox(): mixed
     {
-        if (!is_null($this->overrideSandbox))
+        if ($this->overrideSandbox !== null) {
             return $this->overrideSandbox;
+        }
 
         $config = $this->getPluginConfiguration();
 
@@ -136,6 +138,36 @@ class ConfigService
         return $config['webhooksSecret'] ?? null;
     }
 
+    public function getAllWebhooksSecrets(): array
+    {
+        $secrets = [];
+        $prev = $this->salesChannelId;
+
+        $collect = function (?string $salesChannelId) use (&$secrets): void {
+            $this->salesChannelId = $salesChannelId;
+            $s = $this->getWebhooksSecret();
+            if (is_string($s) && $s !== '') {
+                $secrets[$s] = true;
+            }
+        };
+
+        $collect(null);
+
+        $channels = $this->salesChannelRepository
+            ->searchIds(new Criteria(), new Context(new SystemSource()))
+            ->getIds();
+
+        foreach ($channels as $scId) {
+            if (is_string($scId)) {
+                $collect($scId);
+            }
+        }
+
+        $this->salesChannelId = $prev;
+
+        return array_keys($secrets);
+    }
+
     /**
      * @return false|mixed|string
      */
@@ -147,13 +179,105 @@ class ConfigService
     }
 
     /**
-     * @return false|mixed|string
+     * @return string
      */
-    public function skipOrderStateValidation(): mixed
+    public function getSkipOrderStateValidationMode(): string
     {
         $config = $this->getPluginConfiguration();
 
-        return $config['skipOrderStateValidation'] ?? false;
+        return $config['skipOrderStateValidation'] ?? 'no_skipping';
+    }
+
+    /**
+     * @return bool
+     */
+    public function skipOrderStateValidation(): bool
+    {
+        return $this->getSkipOrderStateValidationMode() !== 'no_skipping';
+    }
+
+    /**
+     * @return bool
+     */
+    public function isSkipAllValidationMode(): bool
+    {
+        return $this->getSkipOrderStateValidationMode() === 'skip_all_validation';
+    }
+
+    /**
+     * @return bool
+     */
+    public function isSkippingAllMode(): bool
+    {
+        return $this->getSkipOrderStateValidationMode() === 'skipping_all';
+    }
+
+    /**
+     * @return bool
+     */
+    public function isAutoTransitionOrderStateEnabled(): bool
+    {
+        $config = $this->getPluginConfiguration();
+
+        return isset($config['autoTransitionOrderState']) && $config['autoTransitionOrderState'];
+    }
+
+    /**
+     * @return bool
+     */
+    public function isExtendedLogsEnabled(): bool
+    {
+        $config = $this->getPluginConfiguration();
+
+        return (bool) ($config['extendedLogs'] ?? false);
+    }
+
+    /**
+     * @return string
+     */
+    public function getHandlingAddressAdditionalField1(): string
+    {
+        $config = $this->getPluginConfiguration();
+
+        return $config['handlingAddressAdditionalField1'] ?? 'ignore';
+    }
+
+    /**
+     * @return string
+     */
+    public function getHandlingAddressAdditionalField2(): string
+    {
+        $config = $this->getPluginConfiguration();
+
+        return $config['handlingAddressAdditionalField2'] ?? 'ignore';
+    }
+
+    /**
+     * Whether to hide Mondu payment methods for private (B2C) customers when account type selection is available.
+     */
+    public function isHideMonduForB2CEnabled(): bool
+    {
+        $config = $this->getPluginConfiguration();
+
+        return (bool) ($config['hideMonduForB2C'] ?? true);
+    }
+
+    /**
+     * Whether the shop shows account type selection (private vs commercial) to customers.
+     */
+    public function isAccountTypeSelectionEnabled(): bool
+    {
+        return (bool) $this->systemConfigService->get('core.loginRegistration.showAccountTypeSelection', $this->salesChannelId);
+    }
+
+    /**
+     * @param  string  $hash
+     *
+     * @return void
+     */
+    public function setWebhookRegistrationHash(string $hash): void
+    {
+        $this->systemConfigService->set('Mond1SW6.customConfig.webhookRegistrationHash', $hash, $this->salesChannelId);
     }
 
     /**

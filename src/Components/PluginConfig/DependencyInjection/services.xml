@@ -8,6 +8,7 @@
         <service id="mondu.mondu_config" class="Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService">
             <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService" />
             <argument type="service" id="plugin.repository"/>
+            <argument type="service" id="sales_channel.repository"/>
         </service>
     </services>
 </container>

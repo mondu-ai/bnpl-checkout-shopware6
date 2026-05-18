@@ -5,11 +5,20 @@
     <services>
         <defaults autowire="true"/>
 
+        <service id="Mondu\MonduPayment\Components\Webhooks\Service\ShopUrlService">
+            <argument key="$salesChannelRepository" type="service" id="sales_channel.repository"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+        </service>
+
         <service id="mondu.webhook_service" class="Mondu\MonduPayment\Components\Webhooks\Service\WebhookService">
+          <argument key="$stateMachineRegistry" type="service" id="Shopware\Core\System\StateMachine\StateMachineRegistry"/>
+          <argument key="$orderRepository" type="service" id="order.repository"/>
           <argument key="$logger" type="service" id="monolog.logger.mondu"/>
           <argument key="$monduClient" type="service" id="mondu.mondu_api"/>
           <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
           <argument key="$configService" type="service" id="mondu.mondu_config"/>
+          <argument key="$shopUrlService" type="service" id="Mondu\MonduPayment\Components\Webhooks\Service\ShopUrlService"/>
+          <argument key="$eventDispatcher" type="service" id="event_dispatcher"/>
         </service>
 
         <service id="Mondu\MonduPayment\Components\Webhooks\Subscriber\ConfigSubscriber">
