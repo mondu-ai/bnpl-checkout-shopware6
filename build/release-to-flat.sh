@@ -55,8 +55,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 case "$VARIANT" in
-  sw66) RELEASE_BRANCH="main-v6.6"; SW_VER="6.6";;
-  sw67) RELEASE_BRANCH="main-v6.7"; SW_VER="6.7";;
+  sw66) RELEASE_BRANCH="main-monorepo-v6.6"; SW_VER="6.6";;
+  sw67) RELEASE_BRANCH="main-monorepo-v6.7"; SW_VER="6.7";;
   *) echo "variant must be sw66 or sw67" >&2; exit 2;;
 esac
 

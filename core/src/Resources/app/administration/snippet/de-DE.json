@@ -1,0 +1,46 @@
+{
+    "sw-flow": {
+        "triggers": {
+            "Confirmed": "Bestätigt",
+            "Cancelled": "Abgebrochen",
+            "Pending": "Ausstehend",
+            "Declined": "Fehlgeschlagen",
+            "Approved": "Genehmigt",
+            "declined": "Fehlgeschlagen",
+            "Mondu Payments.order.declined": "Mondu Payments / Bestellung / Fehlgeschlagen",
+            "Mondu Payments.order.Confirmed": "Mondu Payments / Bestellung / Bestätigt",
+            "Mondu Payments.order.Cancelled": "Mondu Payments / Bestellung / Abgebrochen",
+            "Mondu Payments.order.Pending": "Mondu Payments / Bestellung / Ausstehend",
+            "Mondu Payments.order.Declined": "Mondu Payments / Bestellung / Fehlgeschlagen",
+            "Mondu Payments.order.Approved": "Mondu Payments / Bestellung / Genehmigt"
+        }
+    },
+    "sw-flow-custom-event": {
+        "flow-list": {
+            "Mondu Payments_order_Confirmed": "Mondu: Bestellung bestätigt",
+            "Mondu Payments_order_Cancelled": "Mondu: Bestellung storniert",
+            "Mondu Payments_order_Pending": "Mondu: Bestellung ausstehend",
+            "Mondu Payments_order_Declined": "Mondu: Bestellung abgelehnt"
+        }
+    },
+    "sw-order-mondu": {
+        "documentCard": {
+            "labelCancelInvoice": "Rechnung stornieren",
+            "labelCancelCreditNote": "Gutschrift stornieren",
+            "cancelSuccessTitle": "Erfolg!",
+            "cancelSuccessMessage": "Erfolgreich gelöscht.",
+            "cancelErrorMessage": "Es ist ein Fehler aufgetreten. Dokument konnte nicht storniert werden."
+        }
+    },
+    "sw-mondu-config": {
+        "apiValidation": {
+            "apiConfigurationValidationTitle": "API Validierung",
+            "apiConfigurationValidationMessage": "Validierung der API Zugangsdaten gestartet...",
+            "apiConfigurationSuccessTitle": "Erfolg!",
+            "apiConfigurationSuccessMessage": "API Zugangsdaten sind gültig!",
+            "apiConfigurationFailureTitle": "Fehler!",
+            "apiConfigurationFailureMessage": "API Zugangsdaten sind ungültig.",
+            "testApiConfiguration": "API Zugangsdaten testen"
+        }
+    }
+}

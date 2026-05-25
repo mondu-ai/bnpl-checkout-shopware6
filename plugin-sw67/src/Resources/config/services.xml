@@ -4,22 +4,217 @@
            xsi:schemaLocation="https://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
 
     <imports>
-        <!--
-          Path is resolved relative to this file AFTER build/build.sh has
-          overlaid core/src onto the plugin's src/, at which point
-          ../../Resources/config/core-services.xml is the shared DI.
-          In the source tree this file is incomplete on its own — that is
-          intentional. Run build/build.sh <version> to produce a working dist.
-        -->
-        <import resource="./core-services.xml"/>
+        <import resource="../../Services/services.xml"/>
+        <import resource="../../Components/*/DependencyInjection/services.xml"/>
+        <import resource="../../Components/*/DependencyInjection/subscriber.xml"/>
+        <import resource="../../Components/*/DependencyInjection/controllers.xml"/>
     </imports>
 
+    <parameters>
+        <parameter key="mondu.plugin.path">%kernel.project_dir%/custom/plugins/Mond1SW6</parameter>
+    </parameters>
+
     <services>
-        <!--
-          SW6.7-only service wiring goes here.
-          Currently there is none — core-services.xml alone boots the plugin
-          on Shopware 6.7.x. Add decorates="…" overrides or version-specific
-          services below if and when Shopware 6.7 API diverges further.
-        -->
+        <defaults autowire="true">
+            <tag name="controller.service_arguments"/>
+        </defaults>
+
+        <service id="Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduHandler">
+            <argument type="service" id="Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler"/>
+            <argument type="service" id="mondu.mondu_api"/>
+            <argument key="$productRepository" type="service" id="product.repository"/>
+            <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
+            <argument key="$orderLinesService" type="service" id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService"/>
+            <argument key="$orderRepository" type="service" id="order.repository"/>
+            <argument key="$orderTransactionRepository" type="service" id="order_transaction.repository"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <argument key="$eventDispatcher" type="service" id="event_dispatcher"/>
+            <tag name="shopware.payment.method" />
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduSepaHandler">
+            <argument type="service" id="Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler"/>
+            <argument type="service" id="mondu.mondu_api"/>
+            <argument key="$productRepository" type="service" id="product.repository"/>
+            <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
+            <argument key="$orderLinesService" type="service" id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService"/>
+            <argument key="$orderRepository" type="service" id="order.repository"/>
+            <argument key="$orderTransactionRepository" type="service" id="order_transaction.repository"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <argument key="$eventDispatcher" type="service" id="event_dispatcher"/>
+            <tag name="shopware.payment.method" />
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduInstallmentHandler">
+            <argument type="service" id="Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler"/>
+            <argument type="service" id="mondu.mondu_api"/>
+            <argument key="$productRepository" type="service" id="product.repository"/>
+            <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
+            <argument key="$orderLinesService" type="service" id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService"/>
+            <argument key="$orderRepository" type="service" id="order.repository"/>
+            <argument key="$orderTransactionRepository" type="service" id="order_transaction.repository"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <argument key="$eventDispatcher" type="service" id="event_dispatcher"/>
+            <tag name="shopware.payment.method" />
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduInstallmentByInvoiceHandler">
+            <argument type="service" id="Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler"/>
+            <argument type="service" id="mondu.mondu_api"/>
+            <argument key="$productRepository" type="service" id="product.repository"/>
+            <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
+            <argument key="$orderLinesService" type="service" id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService"/>
+            <argument key="$orderRepository" type="service" id="order.repository"/>
+            <argument key="$orderTransactionRepository" type="service" id="order_transaction.repository"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <argument key="$eventDispatcher" type="service" id="event_dispatcher"/>
+            <tag name="shopware.payment.method" />
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\PaymentMethod\PaymentHandler\MonduPayNowHandler">
+            <argument type="service" id="Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler"/>
+            <argument type="service" id="mondu.mondu_api"/>
+            <argument key="$productRepository" type="service" id="product.repository"/>
+            <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
+            <argument key="$orderLinesService" type="service" id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService"/>
+            <argument key="$orderRepository" type="service" id="order.repository"/>
+            <argument key="$orderTransactionRepository" type="service" id="order_transaction.repository"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <argument key="$eventDispatcher" type="service" id="event_dispatcher"/>
+            <tag name="shopware.payment.method" />
+        </service>
+
+        <service id="mondu.mondu_api" class="Mondu\MonduPayment\Components\MonduApi\Service\MonduClient" public="true">
+            <argument type="service" id="mondu.mondu_config"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\MonduApi\Service\MonduOperationService">
+            <argument type="service" id="mondu.mondu_api"/>
+            <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\Order\Model\Extension\OrderExtension">
+            <tag name="shopware.entity.extension"/>
+        </service>
+        <service id="Mondu\MonduPayment\Components\Order\Model\Definition\OrderDataDefinition">
+            <tag name="shopware.entity.definition"/>
+        </service>
+        <service id="Mondu\MonduPayment\Components\Order\Util\DocumentUrlHelper">
+            <argument type="service" id="mondu.mondu_config"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\Invoice\InvoiceDataDefinition">
+            <tag name="shopware.entity.definition"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\Checkout\Service\PaymentMethodFilterService">
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
+            <argument key="$monduOperationService" type="service" id="Mondu\MonduPayment\Components\MonduApi\Service\MonduOperationService"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\Checkout\Subscriber\CheckoutSubscriber" >
+            <tag name="kernel.event_subscriber" />
+            <argument key="$paymentMethodFilterService" type="service" id="Mondu\MonduPayment\Components\Checkout\Service\PaymentMethodFilterService"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\Checkout\Decorator\CheckoutGatewayRouteDecorator"
+                 decorates="Shopware\Core\Checkout\Gateway\SalesChannel\CheckoutGatewayRoute">
+            <argument type="service" id="Mondu\MonduPayment\Components\Checkout\Decorator\CheckoutGatewayRouteDecorator.inner"/>
+            <argument type="service" id="Mondu\MonduPayment\Components\Checkout\Service\PaymentMethodFilterService"/>
+            <argument type="service" id="mondu.mondu_config"/>
+            <argument type="service" id="monolog.logger.mondu"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\Checkout\Decorator\CachedPaymentMethodRouteDecorator"
+                 decorates="Shopware\Core\Checkout\Payment\SalesChannel\PaymentMethodRoute">
+            <argument type="service" id="Mondu\MonduPayment\Components\Checkout\Decorator\CachedPaymentMethodRouteDecorator.inner"/>
+            <argument type="service" id="Mondu\MonduPayment\Components\Checkout\Service\PaymentMethodFilterService"/>
+            <argument type="service" id="mondu.mondu_config"/>
+            <argument type="service" id="monolog.logger.mondu"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\Order\Subscriber\AdjustOrderSubscriber" >
+            <tag name="kernel.event_subscriber" />
+            <argument key="$stateMachineRegistry" type="service" id="Shopware\Core\System\StateMachine\StateMachineRegistry"/>
+            <argument key="$orderRepository" id="order.repository" type="service" />
+            <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
+            <argument key="$invoiceDataRepository" type="service" id="mondu_invoice_data.repository"/>
+            <argument key="$monduClient" type="service" id="mondu.mondu_api"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <argument key="$productRepository" type="service" id="product.repository"/>
+            <argument key="$currencyRepository" type="service" id="currency.repository"/>
+            <argument key="$orderLinesService" type="service" id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService"/>
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\Order\Subscriber\OrderExceptionSubscriber" >
+            <tag name="kernel.event_subscriber" />
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <argument key="$router" type="service" id="router"/>
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\Order\Subscriber\CreditNoteSubscriber" >
+            <tag name="kernel.event_subscriber" />
+            <argument key="$orderRepository" id="order.repository" type="service" />
+            <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
+            <argument key="$invoiceDataRepository" type="service" id="mondu_invoice_data.repository"/>
+            <argument key="$monduClient" type="service" id="mondu.mondu_api"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\Order\Subscriber\StornoSubscriber" >
+            <tag name="kernel.event_subscriber" />
+            <argument key="$orderRepository" id="order.repository" type="service" />
+            <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
+            <argument key="$invoiceDataRepository" type="service" id="mondu_invoice_data.repository"/>
+            <argument key="$documentRepository" type="service" id="document.repository"/>
+            <argument key="$monduClient" type="service" id="mondu.mondu_api"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\Logger\MonduLogHandler" public="true">
+            <argument type="service" id="mondu.mondu_config"/>
+            <argument key="$filename">%kernel.logs_dir%/mondu_%kernel.environment%.log</argument>
+        </service>
+
+        <service id="Mondu\MonduPayment\Bootstrap\MediaProvider" public="true">
+            <argument type="service" key="$fileSaver" id="Shopware\Core\Content\Media\File\FileSaver"/>
+            <argument type="service" key="$mediaRepository" id="media.repository"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Command\ConfigApiTokenCommand">
+            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
+            <tag name="console.command"/>
+        </service>
+        <service id="Mondu\MonduPayment\Command\TestApiTokenCommand">
+            <argument type="service" id="mondu.mondu_api"/>
+            <tag name="console.command"/>
+        </service>
+        <service id="Mondu\MonduPayment\Command\ActivatePaymentCommand">
+            <argument type="service" key="$salesChannelPaymentMethodRepository" id="sales_channel_payment_method.repository"/>
+            <argument type="service" key="$salesChannelRepository" id="sales_channel.repository"/>
+            <argument type="service" key="$paymentMethodRepository" id="payment_method.repository"/>
+            <tag name="console.command"/>
+        </service>
+        <service id="Mondu\MonduPayment\Command\CheckFlowAwareCommand">
+            <argument type="service" id="Shopware\Core\Framework\Event\BusinessEventCollector"/>
+            <tag name="console.command"/>
+        </service>
+        <service id="Mondu\MonduPayment\Command\CheckMonduEventsCommand">
+            <argument type="service" id="Shopware\Core\Framework\Event\BusinessEventCollector"/>
+            <tag name="console.command"/>
+        </service>
+        <service id="Mondu\MonduPayment\Command\TestMonduEventsCommand">
+            <tag name="console.command"/>
+        </service>
     </services>
 </container>

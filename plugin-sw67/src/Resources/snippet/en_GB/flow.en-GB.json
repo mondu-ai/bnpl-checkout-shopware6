@@ -1,0 +1,20 @@
+{
+    "Confirmed": "Confirmed",
+    "Cancelled": "Cancelled",
+    "Pending": "Pending",
+    "Declined": "Declined",
+    "Approved": "Approved",
+    "sw-flow-custom-event": {
+        "flow-list": {
+            "Mondu Payments_order_Cancelled": "Mondu: Order Cancelled",
+            "Mondu Payments_order_Declined": "Mondu: Order Declined",
+            "Mondu Payments_order_Pending": "Mondu: Order Pending",
+            "Mondu Payments_order_Confirmed": "Mondu: Order Confirmed"
+        }
+    },
+    "mondu": {
+        "account": {
+            "externalPaymentDeclined": "We have received your order, but the payment was declined. Please change your payment method or try again."
+        }
+    }
+}

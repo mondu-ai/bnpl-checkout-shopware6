@@ -1,0 +1,37 @@
+<?xml version="1.0" ?>
+<container xmlns="http://symfony.com/schema/dic/services"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="https://symfony.com/schema/dic/services https://symfony.com/schema/dic/services/services-1.0.xsd">
+    <services>
+
+        <defaults autowire="true" >
+            <tag name="controller.service_arguments"/>
+        </defaults>
+
+        <service id="Mondu\MonduPayment\Components\Order\Controller\DocumentController">
+            <call method="setContainer">
+                <argument id="service_container" type="service"/>
+            </call>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\Order\Controller\InvoiceController">
+            <argument key="$monduClient" type="service" id="mondu.mondu_api" />
+            <argument key="$invoiceDataRepository" type="service" id="mondu_invoice_data.repository"/>
+            <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
+            <argument key="$documentRepository" type="service" id="document.repository"/>
+            <call method="setContainer">
+                <argument id="service_container" type="service"/>
+            </call>
+        </service>
+
+         <service id="Mondu\MonduPayment\Components\Order\Controller\CreditNoteController">
+            <argument key="$monduClient" type="service" id="mondu.mondu_api" />
+            <argument key="$invoiceDataRepository" type="service" id="mondu_invoice_data.repository"/>
+            <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
+            <call method="setContainer">
+                <argument id="service_container" type="service"/>
+            </call>
+        </service>
+
+    </services>
+</container>

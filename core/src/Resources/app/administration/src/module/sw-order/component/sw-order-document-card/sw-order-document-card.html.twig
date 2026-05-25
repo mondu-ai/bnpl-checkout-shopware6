@@ -1,0 +1,32 @@
+{% block sw_order_document_card_grid_column_sent %}
+    {% parent %}
+
+    <template #column-shopwareStatus="{ item }">
+        <sw-label :variant="getShopwareStatusVariant(item)" :small="true" :style="{ borderRadius: '999px' }">
+            {{ getShopwareStatusLabel(item) }}
+        </sw-label>
+    </template>
+
+    <template #column-monduStatus="{ item }">
+        <sw-label :variant="getMonduStatusVariant(item.id)" :small="true" :style="{ borderRadius: '999px' }">
+            {{ getMonduStatusLabel(item.id) }}
+        </sw-label>
+    </template>
+{% endblock %}
+
+{% block sw_order_document_card_grid_action_download %}
+    {% parent %}
+
+      <sw-context-menu-item v-if="['invoice','zugferd_invoice','zugferd_embedded_invoice'].includes(item.documentType.technicalName)" :disabled="getShopwareStatus(item) === 'cancelled'" @click="onCancelInvoice(item.id, item.orderId)">
+        {% block sw_order_document_card_grid_action_cancel_invoice_label %}
+          {{ $tc('sw-order-mondu.documentCard.labelCancelInvoice') }}
+        {% endblock %}
+      </sw-context-menu-item>
+
+
+      <sw-context-menu-item v-if="['credit_note','zugferd_credit_note','zugferd_embedded_credit_note'].includes(item.documentType.technicalName)" :disabled="getMonduStatus(item.id) === 'cancelled' || getShopwareStatus(item) === 'cancelled'" @click="onCancelCreditNote(item.id, item.orderId)">
+        {% block sw_order_document_card_grid_action_cancel_credit_note_label %}
+          {{ $tc('sw-order-mondu.documentCard.labelCancelCreditNote') }}
+        {% endblock %}
+      </sw-context-menu-item>
+{% endblock %}
