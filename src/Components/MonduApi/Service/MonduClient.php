@@ -88,9 +88,9 @@ class MonduClient
     public function confirmOrder($orderUuid, $data): ?string
     {
         $response = $this->sendRequest('orders/'. $orderUuid .'/confirm', 'POST', $data);
-        
+
         $state = $response['state'] ?? $response['order']['state'] ?? null;
-        
+
         if ($this->configService->isExtendedLogsEnabled()) {
             $this->logger->info('mondu.INFO: confirmOrder full API response', [
                 'order_uuid' => $orderUuid,
@@ -287,27 +287,31 @@ class MonduClient
 
             if (method_exists($e, 'getResponse') && $e->getResponse()) {
                 $responseBody = json_decode($e->getResponse()->getBody()->getContents(), true);
-                
-                if ($allowAlreadySubscribed && 
-                    $e->getCode() == 422 && 
-                    isset($responseBody['errors'][0]['details']) && 
+
+                if ($allowAlreadySubscribed &&
+                    $e->getCode() == 422 &&
+                    isset($responseBody['errors'][0]['details']) &&
                     strpos($responseBody['errors'][0]['details'], 'already subscribed') !== false) {
-                    
+
                     if ($this->configService->isExtendedLogsEnabled()) {
                         $this->logger->info("mondu.INFO: MonduClient [{$method} {$url}]: Webhook already registered - " . $responseBody['errors'][0]['details']);
                     }
                     return ['status' => 'already_registered', 'message' => $responseBody['errors'][0]['details']];
                 }
-                
-                if ($e->getCode() == 422 &&
-                    isset($responseBody['errors'][0]['details']) &&
-                    strpos($responseBody['errors'][0]['details'], 'must be unique') !== false) {
 
-                    if ($this->configService->isExtendedLogsEnabled()) {
-                        $this->logger->info("mondu.INFO: MonduClient [{$method} {$url}]: Invoice already exists, returning special status - " . $responseBody['errors'][0]['details']);
+                if ($e->getCode() == 422 && isset($responseBody['errors'])) {
+                    foreach ($responseBody['errors'] as $error) {
+                        $details = $error['details'] ?? '';
+                        if (strpos($details, 'must be unique') !== false ||
+                            strpos($details, 'order cannot be shipped or complete') !== false) {
+
+                            if ($this->configService->isExtendedLogsEnabled()) {
+                                $this->logger->info("mondu.INFO: MonduClient [{$method} {$url}]: Invoice already exists, returning special status - " . $details);
+                            }
+
+                            return ['status' => 'already_exists', 'message' => $details];
+                        }
                     }
-
-                    return ['status' => 'already_exists', 'message' => $responseBody['errors'][0]['details']];
                 }
             }
 

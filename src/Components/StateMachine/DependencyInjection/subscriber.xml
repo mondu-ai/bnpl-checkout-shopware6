@@ -18,6 +18,7 @@
             <argument key="$logger" type="service" id="monolog.logger.mondu"/>
             <argument key="$invoiceDataService" type="service" id="Mondu\MonduPayment\Services\InvoiceServices\AbstractInvoiceDataService"/>
             <argument key="$stateMachineRegistry" type="service" id="Shopware\Core\System\StateMachine\StateMachineRegistry"/>
+            <argument key="$documentUrlHelper" type="service" id="Mondu\MonduPayment\Components\Order\Util\DocumentUrlHelper"/>
         </service>
 
     </services>

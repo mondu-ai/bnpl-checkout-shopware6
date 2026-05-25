@@ -34,7 +34,8 @@ class ConfigService
      */
     public function __construct(
         private readonly SystemConfigService $systemConfigService,
-        private readonly EntityRepository $pluginRepository
+        private readonly EntityRepository $pluginRepository,
+        private readonly EntityRepository $salesChannelRepository
     ) {}
 
     /**
@@ -66,7 +67,7 @@ class ConfigService
      */
     public function isSandbox(): mixed
     {
-        if (!is_null($this->overrideSandbox)) {
+        if ($this->overrideSandbox !== null) {
             return $this->overrideSandbox;
         }
 
@@ -137,6 +138,36 @@ class ConfigService
         return $config['webhooksSecret'] ?? null;
     }
 
+    public function getAllWebhooksSecrets(): array
+    {
+        $secrets = [];
+        $prev = $this->salesChannelId;
+
+        $collect = function (?string $salesChannelId) use (&$secrets): void {
+            $this->salesChannelId = $salesChannelId;
+            $s = $this->getWebhooksSecret();
+            if (is_string($s) && $s !== '') {
+                $secrets[$s] = true;
+            }
+        };
+
+        $collect(null);
+
+        $channels = $this->salesChannelRepository
+            ->searchIds(new Criteria(), new Context(new SystemSource()))
+            ->getIds();
+
+        foreach ($channels as $scId) {
+            if (is_string($scId)) {
+                $collect($scId);
+            }
+        }
+
+        $this->salesChannelId = $prev;
+
+        return array_keys($secrets);
+    }
+
     /**
      * @return false|mixed|string
      */
@@ -182,72 +213,6 @@ class ConfigService
     }
 
     /**
-     * @param  string  $secret
-     *
-     * @return mixed
-     */
-    public function setWebhooksSecret(string $secret = '')
-    {
-        return $this->systemConfigService->set('Mond1SW6.customConfig.webhooksSecret', $secret, $this->salesChannelId);
-    }
-
-    /**
-     * @param  bool  $val
-     *
-     * @return void
-     */
-    public function setIsApiTokenValid(bool $val = false): void
-    {
-        $this->systemConfigService->set('Mond1SW6.customConfig.apiTokenValid', $val, $this->salesChannelId);
-    }
-
-    /**
-     * @param  string  $hash
-     *
-     * @return void
-     */
-    public function setWebhookRegistrationHash(string $hash): void
-    {
-        $this->systemConfigService->set('Mond1SW6.customConfig.webhookRegistrationHash', $hash, $this->salesChannelId);
-    }
-
-    /**
-     * @return bool
-     */
-    public function isStateWatchingEnabled(): bool
-    {
-        $config = $this->getPluginConfiguration();
-
-        return isset($config['stateEnabled']) && $config['stateEnabled'];
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getPluginVersion()
-    {
-        return $this->getPlugin()->getVersion();
-    }
-
-    /**
-     * @return mixed|string
-     */
-    public function orderTransactionState(): mixed
-    {
-        $config = $this->getPluginConfiguration();
-
-        return $config['orderTransactionState'] ?? 'paid';
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getPluginName()
-    {
-        return $this->getPlugin()->getName();
-    }
-
-    /**
      * @return bool
      */
     public function isAutoTransitionOrderStateEnabled(): bool
@@ -264,7 +229,7 @@ class ConfigService
     {
         $config = $this->getPluginConfiguration();
 
-        return (bool) ($config['extendedLogs'] ?? true);
+        return (bool) ($config['extendedLogs'] ?? false);
     }
 
     /**
@@ -303,6 +268,72 @@ class ConfigService
     public function isAccountTypeSelectionEnabled(): bool
     {
         return (bool) $this->systemConfigService->get('core.loginRegistration.showAccountTypeSelection', $this->salesChannelId);
+    }
+
+    /**
+     * @param  string  $hash
+     *
+     * @return void
+     */
+    public function setWebhookRegistrationHash(string $hash): void
+    {
+        $this->systemConfigService->set('Mond1SW6.customConfig.webhookRegistrationHash', $hash, $this->salesChannelId);
+    }
+
+    /**
+     * @param  string  $secret
+     *
+     * @return mixed
+     */
+    public function setWebhooksSecret(string $secret = '')
+    {
+        return $this->systemConfigService->set('Mond1SW6.customConfig.webhooksSecret', $secret, $this->salesChannelId);
+    }
+
+    /**
+     * @param  bool  $val
+     *
+     * @return void
+     */
+    public function setIsApiTokenValid(bool $val = false): void
+    {
+        $this->systemConfigService->set('Mond1SW6.customConfig.apiTokenValid', $val, $this->salesChannelId);
+    }
+
+    /**
+     * @return bool
+     */
+    public function isStateWatchingEnabled(): bool
+    {
+        $config = $this->getPluginConfiguration();
+
+        return isset($config['stateEnabled']) && $config['stateEnabled'];
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getPluginVersion()
+    {
+        return $this->getPlugin()->getVersion();
+    }
+
+    /**
+     * @return mixed|string
+     */
+    public function orderTransactionState(): mixed
+    {
+        $config = $this->getPluginConfiguration();
+
+        return $config['orderTransactionState'] ?? 'paid';
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getPluginName()
+    {
+        return $this->getPlugin()->getName();
     }
 
     /**

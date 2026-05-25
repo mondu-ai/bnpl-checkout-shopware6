@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Mondu\MonduPayment\Components\Checkout\Subscriber;
 
-use Mondu\MonduPayment\Components\MonduApi\Service\MonduOperationService;
-use Mondu\MonduPayment\Components\PaymentMethod\Util\MethodHelper;
-use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
+use Mondu\MonduPayment\Components\Checkout\Service\PaymentMethodFilterService;
 use Shopware\Storefront\Page\Account\Order\AccountEditOrderPageLoadedEvent;
 use Shopware\Storefront\Page\Checkout\Confirm\CheckoutConfirmPageLoadedEvent;
 use Shopware\Storefront\Page\PageLoadedEvent;
@@ -16,8 +14,7 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 class CheckoutSubscriber implements EventSubscriberInterface
 {
     public function __construct(
-        private readonly ConfigService $configService,
-        private readonly MonduOperationService $monduOperationService
+        private readonly PaymentMethodFilterService $paymentMethodFilterService
     ) {}
 
     public static function getSubscribedEvents(): array
@@ -37,30 +34,15 @@ class CheckoutSubscriber implements EventSubscriberInterface
         $this->filterPaymentMethods($event);
     }
 
-    public function filterPaymentMethods(PageLoadedEvent $event) {
-        $allowedPaymentMethods = $this->monduOperationService->getAllowedPaymentMethods($event->getSalesChannelContext()->getSalesChannelId());
-        $disallowedPaymentMethods = [];
-        $allPaymentMethods = MethodHelper::MONDU_PAYMENT_METHODS;
+    public function filterPaymentMethods(PageLoadedEvent $event): void
+    {
+        $disallowedHandlers = $this->paymentMethodFilterService->getDisallowedMonduHandlers(
+            $event->getSalesChannelContext()
+        );
 
-        foreach($allPaymentMethods as $value) {
-            if(!in_array($value, $allowedPaymentMethods)) {
-                $disallowedPaymentMethods[] = $value;
-            }
-        }
-
-        if(!$this->configService->setSalesChannelId($event->getSalesChannelContext()->getSalesChannelId())->getApiTokenValid()) {
-            $disallowedPaymentMethods = $allPaymentMethods;
-        }
-
-        $disallowedPaymentMethodsMapped = array_map(function ($val) {
-            return MethodHelper::monduNameToHandler($val);
-        }, $disallowedPaymentMethods);
-
-        $paymentMethods = $event->getPage()->getPaymentMethods();
-
-        $paymentMethods = $paymentMethods->filter(
-            static function (PaymentMethodEntity $paymentMethod) use ($disallowedPaymentMethodsMapped) {
-                return !in_array($paymentMethod->getHandlerIdentifier(), $disallowedPaymentMethodsMapped);
+        $paymentMethods = $event->getPage()->getPaymentMethods()->filter(
+            static function (PaymentMethodEntity $paymentMethod) use ($disallowedHandlers) {
+                return !in_array($paymentMethod->getHandlerIdentifier(), $disallowedHandlers);
             }
         );
 

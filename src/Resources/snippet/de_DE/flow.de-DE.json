@@ -3,5 +3,18 @@
     "Cancelled": "Abgebrochen",
     "Pending": "Ausstehend",
     "Declined": "Fehlgeschlagen",
-    "Approved": "Genehmigt"
+    "Approved": "Genehmigt",
+    "sw-flow-custom-event": {
+        "flow-list": {
+            "Mondu Payments_order_Cancelled": "Mondu: Bestellung storniert",
+            "Mondu Payments_order_Declined": "Mondu: Bestellung abgelehnt",
+            "Mondu Payments_order_Pending": "Mondu: Bestellung ausstehend",
+            "Mondu Payments_order_Confirmed": "Mondu: Bestellung bestätigt"
+        }
+    },
+    "mondu": {
+        "account": {
+            "externalPaymentDeclined": "Wir haben Ihre Bestellung erhalten, aber die Zahlung wurde abgelehnt. Bitte ändern Sie Ihre Zahlungsmethode oder versuchen Sie es erneut."
+        }
+    }
 }

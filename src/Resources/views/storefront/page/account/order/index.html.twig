@@ -1,0 +1,13 @@
+{% sw_extends '@Storefront/storefront/page/account/order/index.html.twig' %}
+
+{% block page_checkout_confirm_header %}
+    {% if page.errorCode == 'CHECKOUT__CUSTOMER_CANCELED_EXTERNAL_PAYMENT' and app.session.get('mondu_payment_declined') %}
+        {% do app.session.remove('mondu_payment_declined') %}
+        {% sw_include '@Storefront/storefront/utilities/alert.html.twig' with {
+            type: 'danger',
+            content: 'mondu.account.externalPaymentDeclined'|trans|sw_sanitize
+        } %}
+    {% else %}
+        {{ parent() }}
+    {% endif %}
+{% endblock %}

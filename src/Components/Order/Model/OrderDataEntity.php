@@ -34,6 +34,8 @@ class OrderDataEntity extends Entity
 
     public const FIELD_DURATION = 'duration';
 
+    public const FIELD_EXTERNAL_REFERENCE_ID = 'externalReferenceId';
+
     /**
      * @var string
      */
@@ -58,6 +60,11 @@ class OrderDataEntity extends Entity
      * @var string
      */
     protected string $referenceId;
+
+    /**
+     * @var string|null
+     */
+    protected ?string $externalReferenceId = null;
 
     /**
      * @var string|null
@@ -127,6 +134,11 @@ class OrderDataEntity extends Entity
     public function getReferenceId(): string
     {
         return $this->referenceId;
+    }
+
+    public function getExternalReferenceId(): ?string
+    {
+        return $this->externalReferenceId;
     }
 
     public function getExternalInvoiceNumber(): ?string

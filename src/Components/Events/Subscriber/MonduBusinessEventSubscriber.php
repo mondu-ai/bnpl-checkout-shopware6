@@ -33,9 +33,6 @@ class MonduBusinessEventSubscriber implements EventSubscriberInterface
     {
         $collection = $event->getCollection();
 
-        // Define aware interfaces for all Mondu events
-        // Format: [shortName, FullClassName, shortName, FullClassName, ...]
-        // This matches Shopware's expected format for Flow Builder action filtering
         $aware = [
             'orderAware',
             OrderAware::class,
@@ -48,8 +45,7 @@ class MonduBusinessEventSubscriber implements EventSubscriberInterface
             'customerGroupAware',
             CustomerGroupAware::class,
         ];
-        
-        // Aware interfaces for Cancelled and Declined events (without customer)
+
         $awareWithoutCustomer = [
             'orderAware',
             OrderAware::class,
@@ -59,7 +55,6 @@ class MonduBusinessEventSubscriber implements EventSubscriberInterface
             MailAware::class,
         ];
 
-        // Register all Mondu events
         $collection->set(
             MonduOrderConfirmedEvent::EVENT_NAME,
             new BusinessEventDefinition(

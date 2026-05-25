@@ -7,7 +7,6 @@ namespace Mondu\MonduPayment\Components\Webhooks\Controller;
 use Shopware\Core\Framework\Context;
 use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 use Mondu\MonduPayment\Components\Webhooks\Service\WebhookService;
-use Shopware\Core\Framework\Routing\Annotation\RouteScope;
 use Shopware\Storefront\Controller\StorefrontController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -47,16 +46,26 @@ class WebhooksController extends StorefrontController
             ]);
         }
 
-        $signature = hash_hmac('sha256', $content, $this->configService->getWebhooksSecret());
-        if ($signature !== $headers->get('X-Mondu-Signature')) {
+        $receivedSignature = (string) $headers->get('X-Mondu-Signature');
+
+        $secrets = $this->configService->getAllWebhooksSecrets();
+        $matched = false;
+        foreach ($secrets as $secret) {
+            $expected = hash_hmac('sha256', $content, $secret);
+            if (hash_equals($expected, $receivedSignature)) {
+                $matched = true;
+                break;
+            }
+        }
+
+        if (!$matched) {
             if ($this->configService->isExtendedLogsEnabled()) {
                 $this->logger->info('mondu.INFO: Webhook signature mismatch', [
                     'topic' => $params['topic'] ?? 'unknown',
-                    'expected_signature' => $signature,
-                    'received_signature' => $headers->get('X-Mondu-Signature')
+                    'candidate_secrets_tried' => count($secrets),
                 ]);
             }
-            
+
             return new Response(
                 json_encode([
                     'message' => 'Signature mismatch',
@@ -76,11 +85,13 @@ class WebhooksController extends StorefrontController
                 [$resBody, $resStatus] = $this->webhookService->handlePending($params, $context);
                 break;
             case 'order/declined':
+            case 'order/canceled':
+            case 'order/cancelled':
                 [$resBody, $resStatus] = $this->webhookService->handleDeclinedOrCanceled($params, $context);
                 break;
             case 'order':
                 $orderState = $params['order_state'] ?? null;
-                
+
                 switch ($orderState) {
                     case 'confirmed':
                         [$resBody, $resStatus] = $this->webhookService->handleConfirmed($params, $context);

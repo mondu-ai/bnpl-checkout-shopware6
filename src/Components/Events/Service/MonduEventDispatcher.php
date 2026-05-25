@@ -51,7 +51,6 @@ class MonduEventDispatcher
         $this->eventDispatcher->dispatch($event);
     }
 
-
     public function dispatchOrderDeclined(
         OrderEntity $order,
         string $monduOrderId,

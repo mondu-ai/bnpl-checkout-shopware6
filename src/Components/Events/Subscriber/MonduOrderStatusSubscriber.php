@@ -38,7 +38,7 @@ class MonduOrderStatusSubscriber implements EventSubscriberInterface
         if (!$this->configService->isExtendedLogsEnabled()) {
             return;
         }
-        
+
         $this->logger->info('mondu.INFO: Mondu Order Confirmed Event Triggered', [
             'order_id' => $event->getOrder()->getId(),
             'order_number' => $event->getOrder()->getOrderNumber(),
@@ -53,7 +53,7 @@ class MonduOrderStatusSubscriber implements EventSubscriberInterface
         if (!$this->configService->isExtendedLogsEnabled()) {
             return;
         }
-        
+
         $this->logger->info('mondu.INFO: Mondu Order Cancelled Event Triggered', [
             'order_id' => $event->getOrder()->getId(),
             'order_number' => $event->getOrder()->getOrderNumber(),
@@ -68,7 +68,7 @@ class MonduOrderStatusSubscriber implements EventSubscriberInterface
         if (!$this->configService->isExtendedLogsEnabled()) {
             return;
         }
-        
+
         $this->logger->info('mondu.INFO: Mondu Order Pending Event Triggered', [
             'order_id' => $event->getOrder()->getId(),
             'order_number' => $event->getOrder()->getOrderNumber(),
@@ -83,7 +83,7 @@ class MonduOrderStatusSubscriber implements EventSubscriberInterface
         if (!$this->configService->isExtendedLogsEnabled()) {
             return;
         }
-        
+
         $this->logger->info('mondu.INFO: Mondu Order Declined Event Triggered', [
             'order_id' => $event->getOrder()->getId(),
             'order_number' => $event->getOrder()->getOrderNumber(),

@@ -7,6 +7,7 @@ namespace Mondu\MonduPayment\Components\StateMachine\Subscriber;
 use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
 use Mondu\MonduPayment\Components\Order\Model\Extension\OrderExtension;
 use Mondu\MonduPayment\Components\Order\Model\OrderDataEntity;
+use Mondu\MonduPayment\Components\Order\Util\DocumentUrlHelper;
 use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 use Mondu\MonduPayment\Components\StateMachine\Exception\MonduException;
 use Mondu\MonduPayment\Components\StateMachine\Exception\MonduInvoiceException;
@@ -26,8 +27,6 @@ use Shopware\Core\System\StateMachine\StateMachineRegistry;
 use Shopware\Core\System\StateMachine\Transition;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Mondu\MonduPayment\Components\Invoice\InvoiceDataEntity;
-use Shopware\Core\Content\MailTemplate\Subscriber\MailSendSubscriberConfig;
-use Shopware\Core\Content\Flow\Dispatching\Action\SendMailAction;
 
 class TransitionSubscriber implements EventSubscriberInterface
 {
@@ -40,13 +39,14 @@ class TransitionSubscriber implements EventSubscriberInterface
         private readonly EntityRepository $invoiceDataRepository,
         private readonly LoggerInterface $logger,
         private readonly AbstractInvoiceDataService $invoiceDataService,
-        private readonly StateMachineRegistry $stateMachineRegistry
+        private readonly StateMachineRegistry $stateMachineRegistry,
+        private readonly DocumentUrlHelper $documentUrlHelper
     ) {}
 
     public static function getSubscribedEvents(): array
     {
         return [
-            StateMachineTransitionEvent::class => "onTransition",
+            StateMachineTransitionEvent::class => 'onTransition',
         ];
     }
 
@@ -66,7 +66,7 @@ class TransitionSubscriber implements EventSubscriberInterface
                 return;
             }
 
-            if ($order->getStateMachineState()->getTechnicalName() === 'cancelled' && 
+            if ($order->getStateMachineState()->getTechnicalName() === 'cancelled' &&
                 $event->getToPlace()->getTechnicalName() === 'cancelled') {
                 if ($this->configService->isExtendedLogsEnabled()) {
                     $this->logger->info('mondu.INFO: Order already cancelled, skipping transition subscriber', [
@@ -84,7 +84,7 @@ class TransitionSubscriber implements EventSubscriberInterface
             }
 
             switch ($event->getToPlace()->getTechnicalName()) {
-                case "cancelled":
+                case 'cancelled':
                     try {
                         $state = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->cancelOrder($monduOrder->getReferenceId());
                         if ($state) {
@@ -95,10 +95,10 @@ class TransitionSubscriber implements EventSubscriberInterface
                     } catch (\Exception $e) {
                         if ($this->configService->isExtendedLogsEnabled()) {
                             $this->logger->warning(
-                                "mondu.INFO: Order cannot be cancelled in Mondu API: " . $e->getMessage(),
+                                'mondu.INFO: Order cannot be cancelled in Mondu API: ' . $e->getMessage(),
                                 [
-                                    "order_id" => $order->getId(),
-                                    "mondu_reference_id" => $monduOrder->getReferenceId()
+                                    'order_id' => $order->getId(),
+                                    'mondu_reference_id' => $monduOrder->getReferenceId()
                                 ]
                             );
                         }
@@ -117,7 +117,7 @@ class TransitionSubscriber implements EventSubscriberInterface
                     break;
             }
         } catch (\Throwable $e) {
-            if (strpos($e->getMessage(), 'cannot be edited') !== false || 
+            if (strpos($e->getMessage(), 'cannot be edited') !== false ||
                 strpos($e->getMessage(), 'was cancelled') !== false) {
                 if ($this->configService->isExtendedLogsEnabled()) {
                     $this->logger->info('mondu.INFO: Order was already cancelled, transition subscriber skipped gracefully', [
@@ -127,7 +127,7 @@ class TransitionSubscriber implements EventSubscriberInterface
                 }
                 return;
             }
-            
+
             throw $e;
         }
     }
@@ -154,6 +154,16 @@ class TransitionSubscriber implements EventSubscriberInterface
         $this->orderDataRepository->update([
             $updateData
         ], $context);
+
+        $liveContext = Context::createDefaultContext();
+        $criteria = new Criteria();
+        $criteria->addFilter(new EqualsFilter('orderId', $monduData->getOrderId()));
+        $liveRecords = $this->orderDataRepository->search($criteria, $liveContext);
+        foreach ($liveRecords as $record) {
+            $liveUpdate = $data;
+            $liveUpdate[OrderDataEntity::FIELD_ID] = $record->getId();
+            $this->orderDataRepository->update([$liveUpdate], $liveContext);
+        }
     }
 
     private function shipOrder(OrderEntity $order, Context $context, OrderDataEntity $monduData, ?string $deliveryId = null): void
@@ -164,7 +174,7 @@ class TransitionSubscriber implements EventSubscriberInterface
                 'delivery_id' => $deliveryId
             ]);
         }
-        
+
         $monduData = $this->getMonduDataFromOrder($order);
 
         if ($monduData->getOrderState() === 'shipped') {
@@ -174,10 +184,26 @@ class TransitionSubscriber implements EventSubscriberInterface
             return;
         }
 
-        $invoiceCriteria = new Criteria();
-        $invoiceCriteria->addFilter(new EqualsFilter('orderId', $order->getId()));
-        $existingInvoice = $this->invoiceDataRepository->search($invoiceCriteria, $context)->first();
-        
+        // Check if invoice already exists in DB
+        $allInvoiceCriteria = new Criteria();
+        $allInvoiceCriteria->addAssociation('document.documentType');
+        $allInvoiceCriteria->addFilter(new EqualsFilter('orderId', $order->getId()));
+        $allInvoices = $this->invoiceDataRepository->search($allInvoiceCriteria, $context);
+
+        $creditNoteTypes = ['credit_note', 'zugferd_credit_note', 'zugferd_embedded_credit_note'];
+        $existingInvoice = null;
+        foreach ($allInvoices as $inv) {
+            if ($inv->getInvoiceState() === 'cancelled') {
+                continue;
+            }
+            $doc = $inv->getDocument();
+            if ($doc !== null && in_array($doc->getDocumentType()?->getTechnicalName(), $creditNoteTypes, true)) {
+                continue;
+            }
+            $existingInvoice = $inv;
+            break;
+        }
+
         if ($existingInvoice) {
             if ($this->configService->isExtendedLogsEnabled()) {
                 $this->logger->info('mondu.INFO: Invoice already exists in DB, updating order state to shipped', [
@@ -185,7 +211,7 @@ class TransitionSubscriber implements EventSubscriberInterface
                     'existing_invoice_id' => $existingInvoice->getId()
                 ]);
             }
-            
+
             try {
                 $this->updateOrder($context, $monduData, [
                     OrderDataEntity::FIELD_ORDER_STATE => 'shipped'
@@ -200,28 +226,30 @@ class TransitionSubscriber implements EventSubscriberInterface
             }
         }
 
+        // Skip all mode: return immediately
         if ($this->configService->isSkippingAllMode()) {
             return;
         }
 
+        // Skip all validation mode: send invoice without document requirement
         if ($this->configService->isSkipAllValidationMode()) {
             $invoiceUrl = 'https://example.com/invoice.pdf';
             $invoiceNumber = $order->getOrderNumber();
             $hasRealInvoice = false;
             $documentId = null;
-            
+
             if ($order->getDocuments() && $order->getDocuments()->count() > 0) {
                 // Prefer the document explicitly selected by the admin in the UI
                 $selectedDocumentIds = [];
-                $mailConfig = $context->getExtension(SendMailAction::MAIL_CONFIG_EXTENSION);
-                if ($mailConfig instanceof MailSendSubscriberConfig) {
-                    $selectedDocumentIds = $mailConfig->getDocumentIds();
+                if ($context->hasExtension('mail-attachments')) {
+                    $mailAttachments = $context->getExtension('mail-attachments');
+                    $selectedDocumentIds = $mailAttachments->getDocumentIds();
                 }
 
                 $chosenDoc = null;
 
                 // First: try to find the selected document among invoice-type docs
-                if (!empty($selectedDocumentIds) && $order->getDocuments()) {
+                if (!empty($selectedDocumentIds)) {
                     foreach ($order->getDocuments() as $document) {
                         if (
                             in_array($document->getId(), $selectedDocumentIds) &&
@@ -238,10 +266,13 @@ class TransitionSubscriber implements EventSubscriberInterface
 
                 // Fallback: take the newest active (non-cancelled) invoice document
                 if ($chosenDoc === null) {
-                    // Collect IDs of documents that have been cancelled (referenced by a storno doc)
+                    $stornoTypes = ['storno', 'cancellation_invoice', 'zugferd_cancellation_invoice', 'zugferd_embedded_cancellation_invoice'];
                     $cancelledByStornoIds = [];
                     foreach ($order->getDocuments() as $document) {
-                        if ($document->getReferencedDocumentId() !== null) {
+                        if (
+                            in_array($document->getDocumentType()->getTechnicalName(), $stornoTypes, true) &&
+                            $document->getReferencedDocumentId() !== null
+                        ) {
                             $cancelledByStornoIds[] = $document->getReferencedDocumentId();
                         }
                     }
@@ -258,14 +289,14 @@ class TransitionSubscriber implements EventSubscriberInterface
                             $invoiceDocs[] = $document;
                         }
                     }
-                    usort($invoiceDocs, function($a, $b) {
+                    usort($invoiceDocs, function ($a, $b) {
                         return $b->getCreatedAt() <=> $a->getCreatedAt();
                     });
                     $chosenDoc = $invoiceDocs[0] ?? null;
                 }
 
                 if ($chosenDoc !== null) {
-                    $foundUrl = $this->invoiceDataService->getDocumentUrl($chosenDoc);
+                    $foundUrl = $this->documentUrlHelper->generateRouteForDocument($chosenDoc);
                     if ($foundUrl !== null) {
                         $invoiceUrl = $foundUrl;
                         $hasRealInvoice = true;
@@ -275,29 +306,31 @@ class TransitionSubscriber implements EventSubscriberInterface
                     $documentId = $chosenDoc->getId();
                 }
             }
-            
+
+            $invoice = null;
+
             try {
                 $reflection = new \ReflectionClass($this->invoiceDataService);
                 $orderLineItemsServiceProperty = $reflection->getProperty('orderLineItemsService');
                 $orderLineItemsServiceProperty->setAccessible(true);
                 $orderLineItemsService = $orderLineItemsServiceProperty->getValue($this->invoiceDataService);
-                
+
                 $orderUtilsServiceProperty = $reflection->getProperty('orderUtilsService');
                 $orderUtilsServiceProperty->setAccessible(true);
                 $orderUtilsService = $orderUtilsServiceProperty->getValue($this->invoiceDataService);
-                
+
                 $orderDiscountServiceProperty = $reflection->getProperty('orderDiscountService');
                 $orderDiscountServiceProperty->setAccessible(true);
                 $orderDiscountService = $orderDiscountServiceProperty->getValue($this->invoiceDataService);
-                
+
                 $lineItemDocId = $documentId ?? $order->getOrderNumber();
                 $lineItems = $orderLineItemsService->getLineItems($order, $context, true);
-                
+
                 foreach ($lineItems as &$lineItem) {
                     $lineItem['documentId'] = $lineItemDocId;
                 }
                 unset($lineItem);
-                
+
                 $invoiceData = [
                     'currency' => $orderUtilsService->getOrderCurrency($order),
                     'external_reference_id' => (string) $invoiceNumber,
@@ -309,22 +342,6 @@ class TransitionSubscriber implements EventSubscriberInterface
                 ];
                 $invoiceData = $this->addShipmentDetailsToInvoiceData($invoiceData, $order, $deliveryId);
 
-                if ($this->configService->isExtendedLogsEnabled()) {
-                    $this->logger->info(
-                        'mondu.INFO: Skip all validation mode: Sending invoice to Mondu' . ($hasRealInvoice ? ' with real invoice URL' : ' with placeholder URL'),
-                        [
-                            'order' => $order->getId(),
-                            'order_number' => $order->getOrderNumber(),
-                            'mondu-reference-id' => $monduData->getReferenceId(),
-                            'invoice_url' => $invoiceUrl,
-                            'has_real_invoice' => $hasRealInvoice,
-                            'documentId' => $documentId,
-                            'line_items_count' => count($invoiceData['line_items'] ?? [])
-                        ]
-                    );
-                }
-
-                $invoice = null;
                 $invoice = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->invoiceOrder(
                     $monduData->getReferenceId(),
                     $invoiceData
@@ -341,18 +358,6 @@ class TransitionSubscriber implements EventSubscriberInterface
                                 InvoiceDataEntity::FIELD_EXTERNAL_INVOICE_UUID => $invoice['uuid'],
                             ]
                         ], $context);
-                    }
-
-                    if ($this->configService->isExtendedLogsEnabled()) {
-                        $this->logger->info(
-                            'mondu.INFO: Skip all validation mode: Invoice successfully sent to Mondu',
-                            [
-                                'order' => $order->getId(),
-                                'mondu-reference-id' => $monduData->getReferenceId(),
-                                'invoice_uuid' => $invoice['uuid'],
-                                'invoice_data_saved' => $documentId !== null
-                            ]
-                        );
                     }
                 }
             } catch (\Exception $e) {
@@ -418,21 +423,20 @@ class TransitionSubscriber implements EventSubscriberInterface
             $deliveryId
         );
 
+        $invoiceData['external_reference_id'] = $invoiceData['external_reference_id'] ?? '';
+
+        if ($this->configService->isExtendedLogsEnabled()) {
+            $this->logger->info('mondu.INFO: Invoice data before API call', [
+                'order' => $order->getId(),
+                'invoice_data' => array_diff_key($invoiceData, ['line_items' => null])
+            ]);
+        }
+
         try {
             $invoice = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->invoiceOrder(
                 $monduData->getReferenceId(),
                 $invoiceData
             );
-
-            if ($this->configService->isExtendedLogsEnabled()) {
-                $this->logger->info('mondu.INFO: Invoice response from API', [
-                    'order' => $order->getId(),
-                    'invoice_type' => gettype($invoice),
-                    'invoice_is_array' => is_array($invoice),
-                    'invoice_status' => is_array($invoice) && isset($invoice['status']) ? $invoice['status'] : 'no status',
-                    'invoice_content' => $invoice
-                ]);
-            }
 
             if (is_array($invoice) && isset($invoice['status']) && $invoice['status'] === 'already_exists') {
                 throw new MonduInvoiceException('Invoice already exists in Mondu. Please cancel the existing invoice before shipping.');
@@ -441,13 +445,40 @@ class TransitionSubscriber implements EventSubscriberInterface
             if ($invoice == null) {
                 throw new MonduInvoiceException('Error occurred while shipping an order. Invoice API call failed. Please contact Mondu Support.');
             }
-            
+
             $attachedDocument = null;
             if ($context->hasExtension('mail-attachments')) {
                 $mailAttachments = $context->getExtension('mail-attachments');
                 $documentIds = $mailAttachments->getDocumentIds();
                 if (!empty($documentIds)) {
                     $attachedDocument = $documentIds[0];
+                }
+            }
+
+            if ($attachedDocument === null && $order->getDocuments() && $order->getDocuments()->count() > 0) {
+                $stornoTypes = ['storno', 'cancellation_invoice', 'zugferd_cancellation_invoice', 'zugferd_embedded_cancellation_invoice'];
+                $cancelledByStornoIds = [];
+                foreach ($order->getDocuments() as $document) {
+                    if (
+                        in_array($document->getDocumentType()->getTechnicalName(), $stornoTypes, true) &&
+                        $document->getReferencedDocumentId() !== null
+                    ) {
+                        $cancelledByStornoIds[] = $document->getReferencedDocumentId();
+                    }
+                }
+                $invoiceDocs = [];
+                foreach ($order->getDocuments() as $document) {
+                    if (
+                        ($document->getDocumentType()->getTechnicalName() === 'invoice' ||
+                         $document->getDocumentType()->getTechnicalName() === 'zugferd_embedded_invoice') &&
+                        !in_array($document->getId(), $cancelledByStornoIds)
+                    ) {
+                        $invoiceDocs[] = $document;
+                    }
+                }
+                usort($invoiceDocs, fn($a, $b) => $b->getCreatedAt() <=> $a->getCreatedAt());
+                if (!empty($invoiceDocs)) {
+                    $attachedDocument = $invoiceDocs[0]->getId();
                 }
             }
 
@@ -460,7 +491,7 @@ class TransitionSubscriber implements EventSubscriberInterface
                     InvoiceDataEntity::FIELD_EXTERNAL_INVOICE_UUID => $invoice['uuid'],
                 ]
             ], $context);
-            
+
             $this->updateOrder($context, $monduData, [
                 OrderDataEntity::FIELD_ORDER_STATE => 'shipped'
             ]);
@@ -476,7 +507,8 @@ class TransitionSubscriber implements EventSubscriberInterface
                     ]
                 );
             }
-            
+
+            // Revert delivery state on failure
             if ($deliveryId !== null) {
                 try {
                     $this->stateMachineRegistry->transition(new Transition(
@@ -485,7 +517,7 @@ class TransitionSubscriber implements EventSubscriberInterface
                         'reopen',
                         'stateId'
                     ), $context);
-                    
+
                     if ($this->configService->isExtendedLogsEnabled()) {
                         $this->logger->info('mondu.INFO: Delivery state reverted to open due to shipment failure', [
                             'order' => $order->getId(),
@@ -500,7 +532,7 @@ class TransitionSubscriber implements EventSubscriberInterface
                     ]);
                 }
             }
-            
+
             throw new MonduInvoiceException('Error occurred while shipping an order. Invoice API call failed. Please contact Mondu Support.');
         }
     }

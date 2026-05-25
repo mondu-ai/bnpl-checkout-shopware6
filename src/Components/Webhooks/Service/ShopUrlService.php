@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mondu\MonduPayment\Components\Webhooks\Service;
 
+use Psr\Log\LoggerInterface;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
@@ -13,7 +14,8 @@ use Shopware\Core\System\SalesChannel\SalesChannelEntity;
 class ShopUrlService
 {
     public function __construct(
-        private readonly EntityRepository $salesChannelRepository
+        private readonly EntityRepository $salesChannelRepository,
+        private readonly LoggerInterface $logger
     ) {}
 
     /**
@@ -21,7 +23,13 @@ class ShopUrlService
      */
     public function getShopUrl(?string $salesChannelId = null): string
     {
-        // If we're in a web context, try to get URL from $_SERVER first
+        if ($salesChannelId) {
+            $scUrl = $this->getSalesChannelUrl($salesChannelId);
+            if ($scUrl !== '') {
+                return $scUrl;
+            }
+        }
+
         if (isset($_SERVER['HTTP_ORIGIN'])) {
             return $_SERVER['HTTP_ORIGIN'];
         }
@@ -31,12 +39,6 @@ class ShopUrlService
             return $protocol . '://' . $_SERVER['HTTP_HOST'];
         }
 
-        // Fallback: get URL from sales channel configuration
-        if ($salesChannelId) {
-            return $this->getSalesChannelUrl($salesChannelId);
-        }
-
-        // Final fallback: get URL from default sales channel
         return $this->getDefaultSalesChannelUrl();
     }
 
@@ -55,16 +57,15 @@ class ShopUrlService
         if ($salesChannel && $salesChannel->getDomains()->count() > 0) {
             $domain = $salesChannel->getDomains()->first();
             $url = $domain->getUrl();
-            
-            // Ensure URL has protocol
+
             if (!preg_match('/^https?:\/\//', $url)) {
                 $url = 'https://' . $url;
             }
-            
+
             return $url;
         }
 
-        return $this->getDefaultSalesChannelUrl();
+        return '';
     }
 
     /**
@@ -84,16 +85,15 @@ class ShopUrlService
         if ($salesChannel && $salesChannel->getDomains()->count() > 0) {
             $domain = $salesChannel->getDomains()->first();
             $url = $domain->getUrl();
-            
+
             // Ensure URL has protocol
             if (!preg_match('/^https?:\/\//', $url)) {
                 $url = 'https://' . $url;
             }
-            
+
             return $url;
         }
 
-        // Ultimate fallback
-        return 'https://localhost';
+        throw new \RuntimeException('Mondu: ShopUrlService could not determine shop URL — no sales channel domain found, no HTTP_HOST available');
     }
 }

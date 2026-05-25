@@ -80,8 +80,8 @@ class MonduOrderDeclinedEvent implements ShopwareEvent, OrderAware, MailAware, S
         }
 
         return new MailRecipientStruct([
-            $this->order->getOrderCustomer()->getEmail() => 
-                $this->order->getOrderCustomer()->getFirstName() . ' ' . 
+            $this->order->getOrderCustomer()->getEmail() =>
+                $this->order->getOrderCustomer()->getFirstName() . ' ' .
                 $this->order->getOrderCustomer()->getLastName()
         ]);
     }

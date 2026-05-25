@@ -1,6 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Mondu\MonduPayment\Components\Webhooks\Model;
+
+use Mondu\MonduPayment\Components\Webhooks\Service\ShopUrlService;
 
 class Webhook
 {
@@ -11,21 +15,25 @@ class Webhook
 
     /**
      * @param $topic
+     * @param ShopUrlService $shopUrlService
+     * @param string|null $salesChannelId
      */
     public function __construct(
-        private $topic
+        private string $topic,
+        private ShopUrlService $shopUrlService,
+        private ?string $salesChannelId = null
     ) {
-        $this->address = $_SERVER['HTTP_ORIGIN'] . "/mondu/webhooks";
+        $this->address = $this->shopUrlService->getShopUrl($this->salesChannelId) . "/mondu/webhooks";
     }
 
     public function getTopic(): string
     {
-      return $this->topic;
+        return $this->topic;
     }
 
     public function getAddress(): string
     {
-      return $this->address;
+        return $this->address;
     }
 
     public function getData(): array

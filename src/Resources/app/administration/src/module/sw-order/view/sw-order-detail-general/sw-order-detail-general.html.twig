@@ -1,0 +1,13 @@
+{% block sw_order_detail_general_line_items_summary_amount_free_tax %}
+    {% parent %}
+
+    <template v-if="isMonduOrder">
+        <dt><strong>{{ $tc('sw-order-mondu.summary.monduAmountLabel') }}</strong></dt>
+        <dd>
+            <sw-skeleton v-if="monduAmountLoading" variant="text" width="80px" />
+            <strong v-else :style="monduAmountDiffers ? { color: '#ff9800' } : {}">
+                {{ formattedMonduAmount }}
+            </strong>
+        </dd>
+    </template>
+{% endblock %}

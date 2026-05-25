@@ -104,8 +104,8 @@ class MonduOrderConfirmedEvent implements ShopwareEvent, OrderAware, MailAware, 
         }
 
         return new MailRecipientStruct([
-            $this->order->getOrderCustomer()->getEmail() => 
-                $this->order->getOrderCustomer()->getFirstName() . ' ' . 
+            $this->order->getOrderCustomer()->getEmail() =>
+                $this->order->getOrderCustomer()->getFirstName() . ' ' .
                 $this->order->getOrderCustomer()->getLastName()
         ]);
     }

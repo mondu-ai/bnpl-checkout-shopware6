@@ -19,14 +19,14 @@ class Migration1728850000MigrateSkipOrderStateValidation extends MigrationStep
         // Migrate old boolean values to new string format
         // Old: false/0 -> New: 'no_skipping'
         // Old: true/1  -> New: 'skipping_all'
-        
+
         $sql = "
             UPDATE `system_config`
             SET `configuration_value` = JSON_SET(
                 `configuration_value`,
                 '$._value',
                 CASE
-                    WHEN JSON_EXTRACT(`configuration_value`, '$._value') IN (1, true) 
+                    WHEN JSON_EXTRACT(`configuration_value`, '$._value') IN (1, true)
                         THEN 'skipping_all'
                     WHEN JSON_EXTRACT(`configuration_value`, '$._value') IN (0, false)
                         THEN 'no_skipping'
@@ -45,4 +45,3 @@ class Migration1728850000MigrateSkipOrderStateValidation extends MigrationStep
         // No destructive changes needed
     }
 }
-

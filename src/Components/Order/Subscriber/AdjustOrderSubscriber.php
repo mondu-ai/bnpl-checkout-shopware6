@@ -59,7 +59,10 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                 continue;
             }
 
-            /** @var ChangeSetAware|InsertCommand|UpdateCommand $command */
+            if (!$command instanceof InsertCommand && !$command instanceof UpdateCommand) {
+                continue;
+            }
+
             if ($command->getEntityName() !== OrderDefinition::ENTITY_NAME) {
                 continue;
             }
@@ -220,8 +223,7 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                 return true;
             }
         }
-        
+
         return false;
     }
-
 }

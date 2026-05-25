@@ -1,14 +1,60 @@
 {
+  "sw-flow": {
+    "triggers": {
+      "Confirmed": "Confirmed",
+      "Cancelled": "Cancelled",
+      "Pending": "Pending",
+      "Declined": "Declined",
+      "Approved": "Approved",
+      "Mondu Payments.order.Confirmed": "Mondu Payments / Order / Confirmed",
+      "Mondu Payments.order.Cancelled": "Mondu Payments / Order / Cancelled",
+      "Mondu Payments.order.Pending": "Mondu Payments / Order / Pending",
+      "Mondu Payments.order.Declined": "Mondu Payments / Order / Declined",
+      "Mondu Payments.order.Approved": "Mondu Payments / Order / Approved"
+    },
+    "triggerDescriptions": {
+      "Mondu Payments.order.Confirmed": "Triggered when Mondu payment is confirmed",
+      "Mondu Payments.order.Cancelled": "Triggered when Mondu payment is cancelled",
+      "Mondu Payments.order.Pending": "Triggered when Mondu payment is pending",
+      "Mondu Payments.order.Declined": "Triggered when Mondu payment is declined",
+      "Mondu Payments.order.Approved": "Triggered when Mondu payment is approved"
+    }
+  },
+  "sw-flow-custom-event": {
+    "flow-list": {
+      "Mondu Payments_order_Confirmed": "Mondu: Order Confirmed",
+      "Mondu Payments_order_Cancelled": "Mondu: Order Cancelled",
+      "Mondu Payments_order_Pending": "Mondu: Order Pending",
+      "Mondu Payments_order_Declined": "Mondu: Order Declined"
+    }
+  },
   "sw-order-mondu": {
     "documentCard": {
-      "labelCancelInvoice": "Cancel Invoice",
-      "labelCancelCreditNote": "Cancel Credit Note",
+      "labelCancelInvoice": "Cancel invoice",
+      "labelCancelCreditNote": "Cancel credit note",
       "cancelSuccessTitle": "Success!",
       "cancelSuccessMessage": "Successfully cancelled.",
+      "cancelAlreadyCancelledTitle": "Already cancelled",
+      "cancelAlreadyCancelledMessage": "This invoice has already been cancelled at Mondu.",
+      "cancelNotSubmittedTitle": "Not submitted to Mondu",
+      "cancelNotSubmittedMessage": "This invoice has not been submitted to Mondu yet. Ship the order first to submit the invoice.",
       "cancelErrorMessage": "An error occurred. Document could not be cancelled.",
       "cancelErrorAlreadyCancelled": "This credit note has already been cancelled at Mondu.",
       "cancelErrorNotFound": "This credit note could not be found at Mondu.",
-      "cancelErrorNotRegistered": "This credit note is not registered with Mondu and cannot be cancelled through this integration."
+      "cancelErrorNotRegistered": "This credit note is not registered with Mondu and cannot be cancelled through this integration.",
+      "creditNoteViolationTitle": "Credit note cannot be created",
+      "creditNoteViolationMessage": "The credit note amount exceeds the remaining open amount on the invoice. There is nothing left to refund.",
+      "columnShopwareStatus": "Status",
+      "shopwareStatusActive": "Active",
+      "shopwareStatusCancelled": "Cancelled",
+      "shopwareStatusStorno": "Storno",
+      "columnMonduStatus": "Mondu",
+      "monduStatusNotSent": "Not sent",
+      "monduStatusSent": "Sent",
+      "monduStatusCancelled": "Cancelled"
+    },
+    "summary": {
+      "monduAmountLabel": "Claim at Mondu"
     }
   },
   "sw-mondu-config": {
