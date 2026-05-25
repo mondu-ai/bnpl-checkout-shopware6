@@ -5,10 +5,7 @@ export default class CreditNoteService extends Shopware.Classes.ApiService {
 
   cancel(orderId, creditNoteId) {
     return this.httpClient
-      .post(`/mondu/orders/${orderId}/credit_notes/${creditNoteId}/cancel`,
-        {
-          headers: this.getBasicHeaders()
-        })
+      .post(`/mondu/orders/${orderId}/credit_notes/${creditNoteId}/cancel`, {}, { headers: this.getBasicHeaders() })
       .then(response => response.data)
   }
 }

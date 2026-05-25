@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mondu\MonduPayment\Components\Webhooks\Controller;
 
 use Shopware\Core\Framework\Context;
+use Shopware\Core\PlatformRequest;
 use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 use Mondu\MonduPayment\Components\Webhooks\Service\WebhookService;
 use Shopware\Core\Framework\Routing\Annotation\RouteScope;
@@ -47,16 +48,32 @@ class WebhooksController extends StorefrontController
             ]);
         }
 
-        $signature = hash_hmac('sha256', $content, $this->configService->getWebhooksSecret());
-        if ($signature !== $headers->get('X-Mondu-Signature')) {
+        $receivedSignature = (string) $headers->get('X-Mondu-Signature');
+
+        // In a multi–sales-channel setup each channel may have its own webhook
+        // registration with a distinct secret (Mondu returns a new secret per
+        // registered webhook URL). Shopware stores those secrets under different
+        // config scopes. We try each known secret until one matches — otherwise we
+        // cannot tell which sales channel the incoming event belongs to.
+        $secrets = $this->configService->getAllWebhooksSecrets();
+        $matched = false;
+        foreach ($secrets as $secret) {
+            $expected = hash_hmac('sha256', $content, $secret);
+            if (hash_equals($expected, $receivedSignature)) {
+                $matched = true;
+                break;
+            }
+        }
+
+        if (!$matched) {
             if ($this->configService->isExtendedLogsEnabled()) {
                 $this->logger->info('mondu.INFO: Webhook signature mismatch', [
                     'topic' => $params['topic'] ?? 'unknown',
-                    'expected_signature' => $signature,
-                    'received_signature' => $headers->get('X-Mondu-Signature')
+                    'candidate_secrets_tried' => count($secrets),
+                    'received_signature' => $receivedSignature
                 ]);
             }
-            
+
             return new Response(
                 json_encode([
                     'message' => 'Signature mismatch',
@@ -64,6 +81,16 @@ class WebhooksController extends StorefrontController
                 ]),
                 Response::HTTP_UNAUTHORIZED,
             );
+        }
+
+        // Shopware's storefront routing resolves each incoming request to a sales
+        // channel based on the matching sales_channel_domain.url and stores its id
+        // in the request attributes. We pre-seed WebhookService with that value as
+        // a fallback — handlers then override it via resolveSalesChannelIdFromOrder()
+        // once they find the owning order. If neither works, scope stays null (default).
+        $scFromUrl = $request->attributes->get(PlatformRequest::ATTRIBUTE_SALES_CHANNEL_ID);
+        if (is_string($scFromUrl) && $scFromUrl !== '') {
+            $this->webhookService->setSalesChannelId($scFromUrl);
         }
 
         $topic = $params['topic'];
@@ -76,6 +103,8 @@ class WebhooksController extends StorefrontController
                 [$resBody, $resStatus] = $this->webhookService->handlePending($params, $context);
                 break;
             case 'order/declined':
+            case 'order/canceled':
+            case 'order/cancelled':
                 [$resBody, $resStatus] = $this->webhookService->handleDeclinedOrCanceled($params, $context);
                 break;
             case 'order':

@@ -14,11 +14,10 @@ class CriteriaHelper
         $criteria = (new Criteria([$orderId]))
             ->addAssociation('addresses.country')
             ->addAssociation('addresses.salutation')
-            ->addAssociation('deliveries')
+            ->addAssociation('deliveries.shippingMethod')
             ->addAssociation('lineItems')
             ->addAssociation('transactions.paymentMethod');
 
-        // sort by latest transactions to get the current transaction
         $criteria->getAssociation('transactions')->addSorting(new FieldSorting('createdAt'));
 
         return $criteria;

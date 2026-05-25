@@ -16,13 +16,23 @@ class OrderLinesService extends AbstractOrderLinesService
 
     public function getLines(OrderEntity $order, Context $context): array
     {
+        $lineItems = $this->orderLineItemsService->getLineItems($order, $context);
+
+        if (empty($lineItems)) {
+            throw new \RuntimeException(
+                'Cannot create Mondu order: No valid line items found. ' .
+                'This may occur with bundle products if all items are nested. ' .
+                'Order ID: ' . $order->getId()
+            );
+        }
+        
         return [
             [
                 'tax_cents' => $this->orderUtilsService->priceToCents($order->getPrice()->getCalculatedTaxes()->getAmount()),
                 'shipping_price_cents' => $this->orderUtilsService->getShippingPriceCents($order),
                 'discount_cents' => $this->orderDiscountService->getOrderDiscountCents($order, $context),
                 'buyer_fee_cents' => $this->additionalCostsService->getAdditionalCostsCents($order, $context),
-                'line_items' => $this->orderLineItemsService->getLineItems($order, $context)
+                'line_items' => $lineItems
             ]
         ];
     }

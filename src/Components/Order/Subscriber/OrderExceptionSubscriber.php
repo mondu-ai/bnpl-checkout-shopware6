@@ -36,15 +36,14 @@ class OrderExceptionSubscriber implements EventSubscriberInterface
         $exception = $event->getThrowable();
         $request = $event->getRequest();
 
-        // Skip Admin API requests — this subscriber only handles the frontend
-        // checkout/payment flow (cannot be edited / was cancelled / Illegal transition).
-        // Admin API exceptions (e.g. MissingPrivilegeException on /api/search/*) are
-        // unrelated to Mondu and would only produce noise in the log.
         if (str_starts_with($request->getPathInfo(), '/api/')) {
             return;
         }
 
-        // LOG ALL EXCEPTIONS to debug
+        if (str_contains($request->getRequestUri(), '/mondu/webhooks')) {
+            return;
+        }
+
         if ($this->configService->isExtendedLogsEnabled()) {
             $this->logger->info('mondu.DEBUG: Exception caught in subscriber', [
                 'message' => $exception->getMessage(),
@@ -53,13 +52,10 @@ class OrderExceptionSubscriber implements EventSubscriberInterface
                 'route' => $request->attributes->get('_route'),
             ]);
         }
-        
+
         $requestUri = $request->getRequestUri();
         $route = $request->attributes->get('_route', '');
 
-        // SW6.6 PaymentProcessor auto-cancels the transaction after catching customerCanceled.
-        // This block runs independently of the exception message — we detect declined by query param.
-        // After PaymentProcessor's cancel(), we correct the state to failed via reopen→process→fail.
         if ($request->query->get('payment') === 'declined' &&
             (stripos($requestUri, '/payment/finalize-transaction') !== false || $route === 'payment.finalize.transaction')) {
             $transactionId = $this->extractTransactionIdFromToken($request);
@@ -84,7 +80,6 @@ class OrderExceptionSubscriber implements EventSubscriberInterface
             }
         }
 
-        // Handle cancellation errors (when order was already cancelled by webhook)
         if (stripos($exception->getMessage(), 'cannot be edited') !== false ||
             stripos($exception->getMessage(), 'was cancelled') !== false ||
             stripos($exception->getMessage(), 'Illegal transition') !== false) {
@@ -135,7 +130,6 @@ class OrderExceptionSubscriber implements EventSubscriberInterface
 
                 try {
                     $redirectUrl = $this->router->generate('frontend.account.order.page', [], UrlGeneratorInterface::ABSOLUTE_PATH);
-
                     $event->setResponse(new RedirectResponse($redirectUrl));
 
                     if ($this->configService->isExtendedLogsEnabled()) {

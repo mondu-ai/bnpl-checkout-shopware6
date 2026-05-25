@@ -18,13 +18,6 @@ class MediaProvider
     private readonly string $resourcesPath;
     private readonly string $paymentLogosPath;
 
-    /**
-     * Constructs a `MediaProvider`
-     *
-     * @param  MediaService  $mediaService
-     * @param  EntityRepository  $mediaRepository
-     * @param  string  $pluginPath  Optional path to plugin root (e.g. from container). If not set or path has no plugin.png, the path is derived from the actual file location so CLI and admin behave the same.
-     */
     public function __construct(
         private readonly MediaService $mediaService,
         private readonly EntityRepository $mediaRepository,

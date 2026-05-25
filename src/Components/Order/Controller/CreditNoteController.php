@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mondu\MonduPayment\Components\Order\Controller;
 
 use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
+use Mondu\MonduPayment\Components\Invoice\InvoiceDataEntity;
 use Shopware\Core\Framework\Context;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -29,18 +30,27 @@ class CreditNoteController extends AbstractController
     public function cancel(Request $request, string $orderId, string $creditNoteId, Context $context): Response
     {
         try {
+            $liveContext = Context::createDefaultContext();
+
             $creditNoteCriteria = new Criteria();
             $creditNoteCriteria->addFilter(new EqualsFilter('documentId', $creditNoteId));
             $creditNoteEntity = $this->invoiceDataRepository->search($creditNoteCriteria, $context)->first();
+            if ($creditNoteEntity === null) {
+                $creditNoteEntity = $this->invoiceDataRepository->search($creditNoteCriteria, $liveContext)->first();
+            }
 
             if ($creditNoteEntity === null) {
-                return new Response(json_encode(['status' => 'credit_note_not_registered_in_mondu', 'error' => '2']), Response::HTTP_BAD_REQUEST);
+                $this->unlinkCancelledCreditNote($creditNoteId, $context);
+                return new Response(json_encode(['status' => 'ok', 'error' => '0']), Response::HTTP_OK);
             }
 
             $documentCriteria = new Criteria();
             $documentCriteria->addFilter(new EqualsFilter('id', $creditNoteId));
             $documentCriteria->addAssociation('order');
             $document = $this->documentRepository->search($documentCriteria, $context)->first();
+            if ($document === null) {
+                $document = $this->documentRepository->search($documentCriteria, $liveContext)->first();
+            }
 
             if ($document === null) {
                 return new Response(json_encode(['status' => 'document_not_found', 'error' => '2']), Response::HTTP_BAD_REQUEST);
@@ -52,16 +62,19 @@ class CreditNoteController extends AbstractController
                 return new Response(json_encode(['status' => 'invoice_number_missing', 'error' => '2']), Response::HTTP_BAD_REQUEST);
             }
 
-            // Parent invoice must be scoped by orderId — invoice numbers are NOT globally
-            // unique across orders (and the same row table also stores credit-note entries
-            // whose invoiceNumber field holds the credit-note number). Without the orderId
-            // filter, first() may return a credit-note row from a different order whose
-            // invoiceNumber happens to equal the number we are looking up, which is then
-            // sent to Mondu as an invoice UUID and yields a 404.
+            $referencedDocumentId = $document->getReferencedDocumentId();
+
             $invoiceCriteria = new Criteria();
-            $invoiceCriteria->addFilter(new EqualsFilter('invoiceNumber', $documentInvoiceNumber));
             $invoiceCriteria->addFilter(new EqualsFilter('orderId', $orderId));
+            if ($referencedDocumentId !== null) {
+                $invoiceCriteria->addFilter(new EqualsFilter('documentId', $referencedDocumentId));
+            } else {
+                $invoiceCriteria->addFilter(new EqualsFilter('invoiceNumber', $documentInvoiceNumber));
+            }
             $invoiceEntity = $this->invoiceDataRepository->search($invoiceCriteria, $context)->first();
+            if ($invoiceEntity === null) {
+                $invoiceEntity = $this->invoiceDataRepository->search($invoiceCriteria, $liveContext)->first();
+            }
 
             if ($invoiceEntity === null) {
                 return new Response(json_encode(['status' => 'invoice_not_registered_in_mondu', 'error' => '2']), Response::HTTP_BAD_REQUEST);
@@ -75,16 +88,19 @@ class CreditNoteController extends AbstractController
             $status = is_array($cancellation) ? ($cancellation['status'] ?? null) : null;
 
             if ($status === 'already_cancelled') {
+                $this->markCreditNoteAsCancelled($creditNoteId, $context);
                 $this->unlinkCancelledCreditNote($creditNoteId, $context);
                 return new Response(json_encode(['status' => 'already_cancelled', 'error' => '4']), Response::HTTP_BAD_REQUEST);
             }
 
             if ($status === 'not_found') {
+                $this->markCreditNoteAsCancelled($creditNoteId, $context);
                 $this->unlinkCancelledCreditNote($creditNoteId, $context);
                 return new Response(json_encode(['status' => 'not_found_in_mondu', 'error' => '2']), Response::HTTP_BAD_REQUEST);
             }
 
             if ($cancellation !== null) {
+                $this->markCreditNoteAsCancelled($creditNoteId, $context);
                 $this->unlinkCancelledCreditNote($creditNoteId, $context);
                 return new Response(json_encode(['status' => 'ok', 'error' => '0']), Response::HTTP_OK);
             }
@@ -92,6 +108,23 @@ class CreditNoteController extends AbstractController
             return new Response(json_encode(['status' => 'request_failed', 'error' => '1' ]), Response::HTTP_BAD_REQUEST);
         } catch (\Exception) {
             return new Response(json_encode(['status' => 'error', 'error' => '3' ]), Response::HTTP_BAD_REQUEST);
+        }
+    }
+
+    private function markCreditNoteAsCancelled(string $creditNoteDocumentId, Context $context): void
+    {
+        $liveContext = Context::createDefaultContext();
+        $criteria = new Criteria();
+        $criteria->addFilter(new EqualsFilter('documentId', $creditNoteDocumentId));
+
+        foreach ([$liveContext, $context] as $ctx) {
+            $entry = $this->invoiceDataRepository->search($criteria, $ctx)->first();
+            if ($entry !== null && $entry->getInvoiceState() !== 'cancelled') {
+                $this->invoiceDataRepository->update([[
+                    'id' => $entry->getId(),
+                    InvoiceDataEntity::FIELD_INVOICE_STATE => 'cancelled',
+                ]], $ctx);
+            }
         }
     }
 

@@ -117,7 +117,18 @@ class MonduClient
 
     public function cancelInvoice($orderUuid, $invoiceUuid): ?array
     {
-        return $this->sendRequest('orders/'. $orderUuid.'/invoices/' . $invoiceUuid . '/cancel', 'POST');
+        $url = 'orders/' . $orderUuid . '/invoices/' . $invoiceUuid . '/cancel';
+        $result = $this->sendRequest($url, 'POST');
+
+        if ($this->configService->isExtendedLogsEnabled()) {
+            $this->logger->info("mondu.INFO: MonduClient [POST {$url}]: Cancel invoice", [
+                'order_uuid' => $orderUuid,
+                'invoice_uuid' => $invoiceUuid,
+                'response' => $result,
+            ]);
+        }
+
+        return $result;
     }
 
     public function cancelCreditNote($invoiceUuid, $creditNoteUuid): ?array
@@ -198,6 +209,14 @@ class MonduClient
             $response = $this->restClient->send($request);
             $decoded = json_decode($response->getBody()->getContents(), true);
 
+            if ($this->configService->isExtendedLogsEnabled()) {
+                $this->logger->info("mondu.INFO: MonduClient [POST {$url}]: Credit note created", [
+                    'invoice_uuid' => $invoiceUuid,
+                    'request_body' => $body,
+                    'response' => $decoded,
+                ]);
+            }
+
             return is_array($decoded) ? $decoded : null;
         } catch (GuzzleException $e) {
             $responseBody = null;
@@ -217,6 +236,10 @@ class MonduClient
                             $this->logger->info("mondu.INFO: MonduClient [POST {$url}]: parent invoice cancelled - {$details}");
                         }
                         return ['status' => 'invoice_cancelled', 'message' => $details];
+                    }
+                    if (stripos($details, 'credit_notes_exceed_invoice_value') !== false) {
+                        $this->logger->warning("mondu.WARNING: MonduClient [POST {$url}]: credit notes exceed invoice value");
+                        return ['status' => 'amount_exceeded', 'message' => $details];
                     }
                 }
             }
@@ -304,7 +327,7 @@ class MonduClient
                     strpos($responseBody['errors'][0]['details'], 'must be unique') !== false) {
 
                     if ($this->configService->isExtendedLogsEnabled()) {
-                        $this->logger->info("mondu.INFO: MonduClient [{$method} {$url}]: Invoice already exists, returning special status - " . $responseBody['errors'][0]['details']);
+                        $this->logger->warning("mondu.WARNING: MonduClient [{$method} {$url}]: Invoice already exists, returning special status - " . $responseBody['errors'][0]['details']);
                     }
 
                     return ['status' => 'already_exists', 'message' => $responseBody['errors'][0]['details']];

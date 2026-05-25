@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mondu\MonduPayment\Components\Order\Subscriber;
 
 use Doctrine\DBAL\Connection;
+use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 use Psr\Log\LoggerInterface;
 use Shopware\Core\Checkout\Cart\LineItem\LineItem;
 use Shopware\Core\Checkout\Document\Event\CreditNoteOrdersEvent;
@@ -20,7 +21,8 @@ class CreditNoteDocumentSubscriber implements EventSubscriberInterface
 {
     public function __construct(
         private readonly Connection $connection,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        private readonly ConfigService $configService
     ) {}
 
     public static function getSubscribedEvents(): array
@@ -80,12 +82,14 @@ class CreditNoteDocumentSubscriber implements EventSubscriberInterface
                     $lineItems->remove($id);
                 }
 
-                $this->logger->info('mondu.INFO: CreditNoteDocumentSubscriber: filtered previous credit items', [
-                    'order_id' => $order->getId(),
-                    'removed' => count($toRemove),
-                    'remaining' => $remaining,
-                    'cutoff' => $latestCNCreatedAt->format('Y-m-d H:i:s'),
-                ]);
+                if ($this->configService->isExtendedLogsEnabled()) {
+                    $this->logger->info('mondu.INFO: CreditNoteDocumentSubscriber: filtered previous credit items', [
+                        'order_id' => $order->getId(),
+                        'removed' => count($toRemove),
+                        'remaining' => $remaining,
+                        'cutoff' => $latestCNCreatedAt->format('Y-m-d H:i:s'),
+                    ]);
+                }
             } catch (\Throwable $e) {
                 $this->logger->warning('mondu.WARNING: CreditNoteDocumentSubscriber failed, using default behavior', [
                     'order_id' => $order->getId(),
@@ -105,14 +109,16 @@ class CreditNoteDocumentSubscriber implements EventSubscriberInterface
             FROM document AS d
             INNER JOIN document_type AS dt ON dt.id = d.document_type_id
             WHERE d.referenced_document_id = :referencedDocumentId
-              AND dt.technical_name = :technicalName
+              AND dt.technical_name IN (:technicalNames)
             ORDER BY d.created_at DESC
             LIMIT 1
         ';
 
         $result = $this->connection->fetchOne($sql, [
             'referencedDocumentId' => Uuid::fromHexToBytes($referencedDocumentId),
-            'technicalName' => 'credit_note',
+            'technicalNames' => ['credit_note', 'zugferd_credit_note', 'zugferd_embedded_credit_note'],
+        ], [
+            'technicalNames' => Connection::PARAM_STR_ARRAY,
         ]);
 
         if ($result === false || $result === null) {

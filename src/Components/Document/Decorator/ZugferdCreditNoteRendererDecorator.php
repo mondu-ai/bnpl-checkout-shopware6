@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mondu\MonduPayment\SW66\Document\Decorator;
+namespace Mondu\MonduPayment\Components\Document\Decorator;
 
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
