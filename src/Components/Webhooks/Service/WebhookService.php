@@ -51,6 +51,41 @@ class WebhookService
         return $this;
     }
 
+    /**
+     * Look up the Shopware order by its external reference and pin $this->salesChannelId
+     * to the order's actual sales channel. Called at the top of every webhook handler
+     * so that subsequent config reads (autoTransitionOrderState, orderTransactionState,
+     * extendedLogs, ...) resolve to the scope of the sales channel that owns the order,
+     * not to the default scope.
+     *
+     * No-op if the order can't be found -- downstream code will throw a MonduException
+     * on its own, and we don't want the scope resolution to mask that.
+     */
+    protected function resolveSalesChannelIdFromOrder($externalReferenceId, $context, $monduId = null): void
+    {
+        try {
+            $orderId = $this->getOrderUuid($externalReferenceId, $context, $monduId);
+        } catch (MonduException $e) {
+            return;
+        }
+
+        /** @var OrderEntity|null $order */
+        $order = $this->orderRepository->search(new Criteria([$orderId]), $context)->first();
+        if ($order === null) {
+            return;
+        }
+
+        $this->salesChannelId = $order->getSalesChannelId();
+
+        if ($this->configService->isExtendedLogsEnabled()) {
+            $this->logger->info('mondu.INFO: Webhook — resolved sales channel from order', [
+                'order_number' => $externalReferenceId,
+                'order_id' => $orderId,
+                'sales_channel_id' => $this->salesChannelId,
+            ]);
+        }
+    }
+
     public function getSecret($key)
     {
         try {
@@ -96,6 +131,8 @@ class WebhookService
             if (!$viban || !$externalReferenceId) {
                 throw new MonduException('Missing params.');
             }
+
+            $this->resolveSalesChannelIdFromOrder($externalReferenceId, $context, $monduId);
 
             // Update vIBAN
             $criteria = new Criteria();
@@ -180,6 +217,8 @@ class WebhookService
                 throw new MonduException('Required params missing');
             }
 
+            $this->resolveSalesChannelIdFromOrder($externalReferenceId, $context, $monduId);
+
             try {
                 // Only transition order state if autoTransitionOrderState is enabled
                 if ($this->configService->setSalesChannelId($this->salesChannelId)->isAutoTransitionOrderStateEnabled()) {
@@ -237,6 +276,8 @@ class WebhookService
                 throw new MonduException('Required params missing');
             }
 
+            $this->resolveSalesChannelIdFromOrder($externalReferenceId, $context, $monduId);
+
             // Determine if this is declined or canceled based on order_state or topic
             $isDeclined = ($orderState === 'declined') || ($topic === 'order/declined');
             $isCanceled = ($orderState === 'canceled' || $orderState === 'cancelled') || ($topic === 'order/canceled' || $topic === 'order/cancelled');
@@ -251,7 +292,7 @@ class WebhookService
 
             // Check current transaction state to determine if this is a checkout decline or webhook decline
             $transaction = $orderEntity->getTransactions()->last();
-            $currentTransactionState = $transaction ? $transaction->getStateMachineState()->getTechnicalName() : null;
+            $currentTransactionState = $transaction?->getStateMachineState()?->getTechnicalName();
 
             $isCheckoutDecline = ($isDeclined && $currentTransactionState === 'open');
             $isCheckoutCancellation = ($isCanceled && $currentTransactionState === 'open');
@@ -378,11 +419,17 @@ class WebhookService
             $criteria = new Criteria([$this->getOrderUuid($externalReferenceId, $context, $monduId)]);
             $criteria->addAssociation('transactions.stateMachineState');
 
-            /** @var OrderEntity $orderEntity */
+            /** @var OrderEntity|null $orderEntity */
             $orderEntity = $this->orderRepository->search($criteria, $context)->first();
-            $transaction = $orderEntity->getTransactions()->last();
+            if ($orderEntity === null) {
+                throw new MonduException('Order not found: ' . $externalReferenceId);
+            }
+            $transaction = $orderEntity->getTransactions()?->last();
+            if ($transaction === null) {
+                throw new MonduException('No transaction found for order: ' . $externalReferenceId);
+            }
             $orderTransactionId = $transaction->getId();
-            $currentState = $transaction->getStateMachineState()->getTechnicalName();
+            $currentState = $transaction->getStateMachineState()?->getTechnicalName();
 
             // Map state names to action names
             $stateToAction = [

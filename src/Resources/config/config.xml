@@ -13,7 +13,6 @@
             <label lang="de-DE">Testmodus</label>
             <label lang="nl-NL">Testmodus</label>
             <label lang="fr-FR">Mode test</label>
-            <value>0</value>
             <defaultValue>1</defaultValue>
         </input-field>
 

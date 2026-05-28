@@ -30,15 +30,6 @@ class ShopUrlService
             }
         }
 
-        if (isset($_SERVER['HTTP_ORIGIN'])) {
-            return $_SERVER['HTTP_ORIGIN'];
-        }
-
-        if (isset($_SERVER['HTTP_HOST'])) {
-            $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
-            return $protocol . '://' . $_SERVER['HTTP_HOST'];
-        }
-
         return $this->getDefaultSalesChannelUrl();
     }
 
@@ -94,6 +85,6 @@ class ShopUrlService
             return $url;
         }
 
-        throw new \RuntimeException('Mondu: ShopUrlService could not determine shop URL — no sales channel domain found, no HTTP_HOST available');
+        return '';
     }
 }

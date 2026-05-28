@@ -11,7 +11,7 @@
                 {% set paymentDescription = (paymentDescription|length > 75 ? payment.translated.description[:75] ~ ' ...' : paymentDescription) %}
             {% endif %}
 
-            <p>{{ paymentDescription | raw }}</p>
+            <p>{{ paymentDescription | sw_sanitize }}</p>
         {% endif %}
       </div>
     {% else %}

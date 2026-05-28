@@ -6,8 +6,6 @@
       "Pending": "Ausstehend",
       "Declined": "Fehlgeschlagen",
       "Approved": "Genehmigt",
-      "declined": "Fehlgeschlagen",
-      "Mondu Payments.order.declined": "Mondu Payments / Bestellung / Fehlgeschlagen",
       "Mondu Payments.order.Confirmed": "Mondu Payments / Bestellung / Bestätigt",
       "Mondu Payments.order.Cancelled": "Mondu Payments / Bestellung / Abgebrochen",
       "Mondu Payments.order.Pending": "Mondu Payments / Bestellung / Ausstehend",
@@ -27,7 +25,8 @@
       "Mondu Payments_order_Confirmed": "Mondu: Bestellung bestätigt",
       "Mondu Payments_order_Cancelled": "Mondu: Bestellung storniert",
       "Mondu Payments_order_Pending": "Mondu: Bestellung ausstehend",
-      "Mondu Payments_order_Declined": "Mondu: Bestellung abgelehnt"
+      "Mondu Payments_order_Declined": "Mondu: Bestellung abgelehnt",
+      "Mondu Payments_order_Approved": "Mondu: Bestellung genehmigt"
     }
   },
   "sw-order-mondu": {

@@ -185,12 +185,10 @@ Shopware.Component.override('sw-order-document-card', {
           });
         }
         this.loadMonduStatuses(orderId);
-      }).catch((error) => {
-        if (error['error'] != '0') {
-          this.createNotificationError({
-            message: this.$tc('sw-order-mondu.documentCard.cancelErrorMessage')
-          });
-        }
+      }).catch(() => {
+        this.createNotificationError({
+          message: this.$tc('sw-order-mondu.documentCard.cancelErrorMessage')
+        });
       });
     },
 

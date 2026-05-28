@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace Mondu\MonduPayment\Components\Webhooks\Controller;
 
 use Shopware\Core\Framework\Context;
+use Shopware\Core\PlatformRequest;
 use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 use Mondu\MonduPayment\Components\Webhooks\Service\WebhookService;
 use Shopware\Storefront\Controller\StorefrontController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Psr\Log\LoggerInterface;
 
 #[Route(defaults: ['_routeScope' => ['storefront']])]
@@ -75,7 +76,20 @@ class WebhooksController extends StorefrontController
             );
         }
 
-        $topic = $params['topic'];
+        // Shopware's storefront routing resolves each incoming request to a sales
+        // channel based on the matching sales_channel_domain.url and stores its id
+        // in the request attributes. We pre-seed WebhookService with that value as
+        // a fallback — handlers then override it via resolveSalesChannelIdFromOrder()
+        // once they find the owning order. If neither works, scope stays null (default).
+        $scFromUrl = $request->attributes->get(PlatformRequest::ATTRIBUTE_SALES_CHANNEL_ID);
+        if (is_string($scFromUrl) && $scFromUrl !== '') {
+            $this->webhookService->setSalesChannelId($scFromUrl);
+        }
+
+        $topic = $params['topic'] ?? null;
+        if ($topic === null) {
+            return new Response(json_encode(['message' => 'Missing topic', 'code' => 400]), Response::HTTP_BAD_REQUEST);
+        }
 
         switch ($topic) {
             case 'order/confirmed':

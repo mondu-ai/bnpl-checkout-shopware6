@@ -18,7 +18,8 @@
             "Mondu Payments_order_Confirmed": "Mondu: Order Confirmed",
             "Mondu Payments_order_Cancelled": "Mondu: Order Cancelled",
             "Mondu Payments_order_Pending": "Mondu: Order Pending",
-            "Mondu Payments_order_Declined": "Mondu: Order Declined"
+            "Mondu Payments_order_Declined": "Mondu: Order Declined",
+            "Mondu Payments_order_Approved": "Mondu: Order Approved"
         }
     }
 }

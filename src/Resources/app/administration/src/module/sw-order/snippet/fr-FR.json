@@ -20,6 +20,15 @@
       "Mondu Payments.order.Approved": "Déclenché lorsque le paiement Mondu est approuvé"
     }
   },
+  "sw-flow-custom-event": {
+    "flow-list": {
+      "Mondu Payments_order_Confirmed": "Mondu : Commande confirmée",
+      "Mondu Payments_order_Cancelled": "Mondu : Commande annulée",
+      "Mondu Payments_order_Pending": "Mondu : Commande en attente",
+      "Mondu Payments_order_Declined": "Mondu : Commande refusée",
+      "Mondu Payments_order_Approved": "Mondu : Commande approuvée"
+    }
+  },
   "sw-order-mondu": {
     "documentCard": {
       "labelCancelInvoice": "Annuler la facture",

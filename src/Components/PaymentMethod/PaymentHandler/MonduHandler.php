@@ -364,8 +364,8 @@ class MonduHandler extends AbstractPaymentHandler
         $addressAddition1 = $billingAddress->getAdditionalAddressLine1();
         $addressAddition2 = $billingAddress->getAdditionalAddressLine2();
         $addressLine1 = $billingAddress->getStreet();
-        $addressLine2 = null;
-        $shippingAddressLine2 = null;
+        $addressLine2 = '';
+        $shippingAddressLine2 = '';
 
         if ($addressAdditionHandling1 === 'addtoaddressline1' && !empty($addressAddition1)) {
             $addressLine1 .= ' ' . $addressAddition1;
@@ -424,17 +424,17 @@ class MonduHandler extends AbstractPaymentHandler
             'declined_url' => $returnUrl . '&payment=declined',
             'external_reference_id' => $externalReferenceId,
             'gross_amount_cents' => round($order->getPrice()->getTotalPrice() * 100),
-            'buyer' => $this->buildBuyerPayload($order, $addressLine1, $addressLine2),
+            'buyer' => $this->buildBuyerPayload($order, $addressLine1, $addressLine2 ?: null),
             'billing_address' => [
                 'address_line1' => $addressLine1,
-                'address_line2' => $addressLine2,
+                'address_line2' => $addressLine2 ?: null,
                 'city' => $billingAddress->getCity(),
                 'country_code' => $billingAddress->getCountry()->getIso(),
                 'zip_code' => $billingAddress->getZipCode(),
             ],
             'shipping_address' => [
                 'address_line1' => $shippingAddressLine1,
-                'address_line2' => $shippingAddressLine2,
+                'address_line2' => $shippingAddressLine2 ?: null,
                 'city' => $addressForShipping->getCity(),
                 'country_code' => $addressForShipping->getCountry()->getIso(),
                 'zip_code' => $addressForShipping->getZipCode(),
@@ -495,7 +495,7 @@ class MonduHandler extends AbstractPaymentHandler
                 OrderDataEntity::FIELD_ORDER_VERSION_ID => $order->getVersionId(),
                 OrderDataEntity::FIELD_REFERENCE_ID => $monduOrder['uuid'],
                 OrderDataEntity::FIELD_ORDER_STATE => $monduOrder['state'],
-                OrderDataEntity::FIELD_VIBAN => $monduOrder['bank_account']['iban'],
+                OrderDataEntity::FIELD_VIBAN => $monduOrder['bank_account']['iban'] ?? null,
                 OrderDataEntity::FIELD_DURATION => $monduOrder['authorized_net_term'],
                 OrderDataEntity::FIELD_EXTERNAL_REFERENCE_ID => $monduOrder['external_reference_id'] ?? null,
                 OrderDataEntity::FIELD_IS_SUCCESSFUL => true,
@@ -558,16 +558,4 @@ class MonduHandler extends AbstractPaymentHandler
         return $this->orderTransactionRepository->search($criteria, $context)->first();
     }
 
-    private function getOrder(string $orderId, Context $context)
-    {
-        $criteria = new Criteria([$orderId]);
-        $criteria->addAssociation('orderCustomer.customer');
-        $criteria->addAssociation('billingAddress.country');
-        $criteria->addAssociation('deliveries.shippingOrderAddress.country');
-        $criteria->addAssociation('currency');
-        $criteria->addAssociation('lineItems');
-        $criteria->addAssociation('price.calculatedTaxes');
-
-        return $this->orderRepository->search($criteria, $context)->first();
-    }
 }

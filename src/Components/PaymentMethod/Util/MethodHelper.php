@@ -50,6 +50,6 @@ class MethodHelper
 
     public static function monduPaymentMethodOrDefault($paymentMethod)
     {
-        return in_array($paymentMethod, self::MONDU_PAYMENT_METHODS) ? $paymentMethod : self::DEFAULT_MONDU_PAYMENT_METHOD;
+        return in_array($paymentMethod, self::MONDU_PAYMENT_METHODS, true) ? $paymentMethod : self::DEFAULT_MONDU_PAYMENT_METHOD;
     }
 }

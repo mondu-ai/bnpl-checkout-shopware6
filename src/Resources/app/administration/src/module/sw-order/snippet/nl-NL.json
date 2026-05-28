@@ -20,6 +20,15 @@
       "Mondu Payments.order.Approved": "Wordt geactiveerd wanneer de Mondu-betaling is goedgekeurd"
     }
   },
+  "sw-flow-custom-event": {
+    "flow-list": {
+      "Mondu Payments_order_Confirmed": "Mondu: Bestelling bevestigd",
+      "Mondu Payments_order_Cancelled": "Mondu: Bestelling geannuleerd",
+      "Mondu Payments_order_Pending": "Mondu: Bestelling in behandeling",
+      "Mondu Payments_order_Declined": "Mondu: Bestelling afgewezen",
+      "Mondu Payments_order_Approved": "Mondu: Bestelling goedgekeurd"
+    }
+  },
   "sw-order-mondu": {
     "documentCard": {
       "labelCancelInvoice": "Factuur annuleren",

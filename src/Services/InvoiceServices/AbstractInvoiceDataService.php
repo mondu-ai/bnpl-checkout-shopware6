@@ -29,4 +29,19 @@ abstract class AbstractInvoiceDataService
      * @return array
      */
     abstract public function getInvoiceData(OrderEntity $order, Context $context): array;
+
+    public function getOrderUtilsService(): AbstractOrderUtilsService
+    {
+        return $this->orderUtilsService;
+    }
+
+    public function getOrderDiscountService(): AbstractOrderDiscountService
+    {
+        return $this->orderDiscountService;
+    }
+
+    public function getOrderLineItemsService(): AbstractOrderLineItemsService
+    {
+        return $this->orderLineItemsService;
+    }
 }

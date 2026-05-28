@@ -41,6 +41,10 @@ class OrderExceptionSubscriber implements EventSubscriberInterface
             return;
         }
 
+        if (str_contains($request->getRequestUri(), '/mondu/webhooks')) {
+            return;
+        }
+
         if ($this->configService->isExtendedLogsEnabled()) {
             $this->logger->info('mondu.DEBUG: Exception caught in subscriber', [
                 'message' => $exception->getMessage(),

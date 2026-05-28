@@ -13,30 +13,15 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 
 abstract class AbstractBootstrap
 {
-    /**
-     * @var Context
-     */
-    protected Context $context;
+    protected ?Context $context = null;
 
-    /**
-     * @var InstallContext
-     */
-    protected InstallContext $installContext;
+    protected ?InstallContext $installContext = null;
 
-    /**
-     * @var UpdateContext
-     */
-    protected UpdateContext $updateContext;
+    protected ?UpdateContext $updateContext = null;
 
-    /**
-     * @var Logger
-     */
-    protected Logger $logger;
+    protected ?Logger $logger = null;
 
-    /**
-     * @var PluginEntity
-     */
-    protected PluginEntity $plugin;
+    protected ?PluginEntity $plugin = null;
 
     /**
      * @param  ContainerInterface  $container
@@ -127,6 +112,6 @@ abstract class AbstractBootstrap
 
     final protected function getPluginPath(): string
     {
-        return $this->container->getParameter('kernel.root_dir') . DIRECTORY_SEPARATOR . $this->plugin->getPath();
+        return $this->container->getParameter('kernel.project_dir') . DIRECTORY_SEPARATOR . $this->plugin->getPath();
     }
 }
