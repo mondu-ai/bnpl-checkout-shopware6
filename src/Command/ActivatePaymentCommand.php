@@ -46,7 +46,7 @@ class ActivatePaymentCommand extends Command
             $paymentMethods = $this->paymentMethodRepository->search($criteria, $this->context);
 
             foreach ($paymentMethods->getIterator() as $paymentMethod) {
-                $this->salesChannelPaymentMethodRepository->create([
+                $this->salesChannelPaymentMethodRepository->upsert([
                     [
                         'salesChannelId'  => $salesChannel->getId(),
                         'paymentMethodId' => $paymentMethod->getId()

@@ -21,10 +21,15 @@ class MonduOperationService
     public function syncOrder(OrderDataEntity $orderData, Context $context, $salesChannelId = null)
     {
         $order = $this->monduClient->setSalesChannelId($salesChannelId)->getMonduOrder($orderData->getReferenceId());
+
+        if ($order === null) {
+            return null;
+        }
+
         $this->orderDataRepository->update([
             [
                 OrderDataEntity::FIELD_ID => $orderData->getId(),
-                OrderDataEntity::FIELD_VIBAN => null,
+                OrderDataEntity::FIELD_VIBAN => $order['bank_account']['iban'] ?? null,
                 OrderDataEntity::FIELD_ORDER_STATE => $order['state'],
             ]
         ], $context);
@@ -34,7 +39,8 @@ class MonduOperationService
 
     public function getAllowedPaymentMethods($salesChannelId = null): array
     {
-        $cacheItem = $this->cache->getItem('mondu_payment_methods');
+        $cacheKey = 'mondu_payment_methods' . ($salesChannelId ? '_' . $salesChannelId : '');
+        $cacheItem = $this->cache->getItem($cacheKey);
         if ($cacheItem->isHit()) {
             return $cacheItem->get();
         }
@@ -46,14 +52,13 @@ class MonduOperationService
             foreach ($paymentMethods['payment_methods'] as $value) {
                 $result[] = $value['identifier'];
             }
+
+            $cacheItem->set($result);
+            $cacheItem->expiresAfter(3600);
+            $this->cache->save($cacheItem);
         } else {
             $result = MethodHelper::MONDU_PAYMENT_METHODS;
         }
-
-        $cacheItem->set($result);
-        $cacheItem->expiresAfter(3600);
-        $this->cache->save($cacheItem);
-        $this->cache->commit();
 
         return $result;
     }

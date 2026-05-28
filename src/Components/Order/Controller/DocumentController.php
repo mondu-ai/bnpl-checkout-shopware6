@@ -8,7 +8,6 @@ use Mondu\MonduPayment\Components\Order\Util\DocumentUrlHelper;
 use Shopware\Core\Framework\Context;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Shopware\Core\Framework\Routing\Annotation\RouteScope;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Shopware\Core\Checkout\Document\Service\DocumentGenerator;
@@ -29,8 +28,15 @@ class DocumentController extends AbstractController
     public function downloadDocument(Request $request, string $documentId, string $deepLinkCode, Context $context): Response
     {
         $documentUrlHelper = $this->container->get(DocumentUrlHelper::class);
-        if ($documentUrlHelper->getToken() !== $request->attributes->get('token')) {
+        $expectedToken = $documentUrlHelper->getTokenForDocument($documentId, $deepLinkCode);
+        $legacyToken = $documentUrlHelper->getToken();
+        $providedToken = $request->attributes->get('token');
+        if ($providedToken !== $expectedToken && $providedToken !== $legacyToken) {
             throw $this->createNotFoundException();
+        }
+
+        if ($providedToken === $legacyToken && $providedToken !== $expectedToken) {
+            trigger_error('Mondu: Legacy document token is deprecated. Re-ship the order to generate a new URL.', \E_USER_DEPRECATED);
         }
 
         return $this->generateDocument($request, $documentId, $deepLinkCode, $context);

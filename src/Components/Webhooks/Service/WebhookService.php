@@ -309,7 +309,7 @@ class WebhookService
             
             // Check current transaction state to determine if this is a checkout decline or webhook decline
             $transaction = $orderEntity->getTransactions()->last();
-            $currentTransactionState = $transaction ? $transaction->getStateMachineState()->getTechnicalName() : null;
+            $currentTransactionState = $transaction?->getStateMachineState()?->getTechnicalName();
             
             // IMPORTANT: Distinguish between two types of declined/cancelled:
             // 1. Through checkout (finalize): Transaction State = 'open' → Do NOT cancel order
@@ -464,11 +464,17 @@ class WebhookService
             $criteria = new Criteria([$this->getOrderUuid($externalReferenceId, $context, $monduId)]);
             $criteria->addAssociation('transactions.stateMachineState');
 
-            /** @var OrderEntity $orderEntity */
+            /** @var OrderEntity|null $orderEntity */
             $orderEntity = $this->orderRepository->search($criteria, $context)->first();
-            $transaction = $orderEntity->getTransactions()->last();
+            if ($orderEntity === null) {
+                throw new MonduException('Order not found: ' . $externalReferenceId);
+            }
+            $transaction = $orderEntity->getTransactions()?->last();
+            if ($transaction === null) {
+                throw new MonduException('No transaction found for order: ' . $externalReferenceId);
+            }
             $orderTransactionId = $transaction->getId();
-            $currentState = $transaction->getStateMachineState()->getTechnicalName();
+            $currentState = $transaction->getStateMachineState()?->getTechnicalName();
 
             // Map state names to action names (Shopware expects actions, not states)
             // Note: In Shopware, most actions have same name as state (paid, not pay)

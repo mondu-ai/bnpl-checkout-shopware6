@@ -43,7 +43,6 @@ class CachedPaymentMethodRouteDecorator extends AbstractPaymentMethodRoute
         $filtered = $response->getObject()->filter(
             static fn ($method) => !in_array($method->getHandlerIdentifier(), $disallowedHandlers, true)
         );
-        $this->configService->setSalesChannelId($context->getSalesChannelId());
 
         return new PaymentMethodRouteResponse($filtered);
     }

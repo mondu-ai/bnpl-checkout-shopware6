@@ -12,7 +12,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
@@ -22,7 +22,7 @@ use Mondu\MonduPayment\Util\CriteriaHelper;
 use Psr\Log\LoggerInterface;
 use Shopware\Core\Checkout\Cart\LineItem\LineItem;
 
-#[Route(defaults: ['_routeScope' => ['api']])]
+#[Route(defaults: ['_routeScope' => ['api'], '_acl' => ['order.editor']])]
 class InvoiceController extends AbstractController
 {
     public function __construct(
@@ -41,13 +41,15 @@ class InvoiceController extends AbstractController
         try {
             $liveContext = Context::createDefaultContext();
 
-            $criteria = new Criteria();
-            $criteria->addFilter(new EqualsFilter('orderId', $orderId));
-
             $invoiceCriteria = new Criteria();
             $order = $this->getOrder($orderId, $context);
+            if ($order === null) {
+                return new JsonResponse(['status' => 'not_found', 'error' => '2'], Response::HTTP_NOT_FOUND);
+            }
             $invoiceCriteria->addFilter(new EqualsFilter('documentId', $invoiceId));
 
+            $criteria = new Criteria();
+            $criteria->addFilter(new EqualsFilter('orderId', $orderId));
             $orderEntity = $this->orderDataRepository->search($criteria, $context)->first();
             // Search in both versioned and live context to find the invoice
             $invoiceEntity = $this->invoiceDataRepository->search($invoiceCriteria, $context)->first();
@@ -55,11 +57,11 @@ class InvoiceController extends AbstractController
                 $invoiceEntity = $this->invoiceDataRepository->search($invoiceCriteria, $liveContext)->first();
             }
 
-            if ($orderEntity != null && $invoiceEntity === null) {
+            if ($orderEntity !== null && $invoiceEntity === null) {
                 return new JsonResponse(['status' => 'ok', 'error' => '0']);
             }
 
-            if ($orderEntity != null && $invoiceEntity != null) {
+            if ($orderEntity !== null && $invoiceEntity !== null) {
                 if ($invoiceEntity->getInvoiceState() === 'cancelled') {
                     return new JsonResponse(['status' => 'already_cancelled', 'error' => '0']);
                 }
@@ -69,7 +71,7 @@ class InvoiceController extends AbstractController
                     $invoiceEntity->getExternalInvoiceUuid()
                 );
 
-                if ($cancellation != null) {
+                if ($cancellation !== null) {
                     $this->markInvoiceDataAsCancelled($invoiceId, $context);
                     $this->markAllCreditNotesAsCancelled($orderId, $invoiceId, $liveContext);
                     $this->resetOrderStateToAuthorized($orderId, $context);
@@ -151,7 +153,8 @@ class InvoiceController extends AbstractController
                 'id' => $documentId,
                 'referencedDocumentId' => null,
             ]], $context);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('Failed to unlink document', ['documentId' => $documentId, 'error' => $e->getMessage()]);
         }
     }
 
@@ -194,7 +197,8 @@ class InvoiceController extends AbstractController
             );
 
             $this->documentGenerator->generate('storno', [$orderId => $operation], $context);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('Failed to create storno document', ['orderId' => $orderId, 'error' => $e->getMessage()]);
         }
     }
 
@@ -219,6 +223,13 @@ class InvoiceController extends AbstractController
         $orderCriteria->addAssociation('currency');
         $order = $this->orderRepository->search($orderCriteria, $context)->first();
         $currency = $order?->getCurrency()?->getIsoCode() ?? 'EUR';
+
+        if ($order === null) {
+            return new JsonResponse([
+                'gross_amount_cents' => 0,
+                'currency' => $currency,
+            ]);
+        }
 
         $allDocCriteria = new Criteria();
         $allDocCriteria->addAssociation('documentType');
@@ -268,6 +279,10 @@ class InvoiceController extends AbstractController
                     continue;
                 }
                 $createdAt = $lineItem->getCreatedAt();
+
+                if ($lineItem->getPrice() === null) {
+                    continue;
+                }
 
                 if ($latestStornoTime !== null && $createdAt <= $latestStornoTime) {
                     $adjustmentCents += (int) round(abs($lineItem->getPrice()->getTotalPrice()) * 100);

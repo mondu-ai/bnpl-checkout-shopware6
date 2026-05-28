@@ -55,6 +55,9 @@ class InvoiceDataService extends AbstractInvoiceDataService
     protected function getInvoiceNumberAndUrl(OrderEntity $order, Context $context): array
     {
         $monduData = $this->orderUtilsService->getMonduDataFromOrder($order);
+        if ($monduData === null) {
+            return [null, null];
+        }
 
         $invoiceNumber = $monduData->getExternalInvoiceNumber();
         $invoiceUrl = $monduData->getExternalInvoiceUrl();
@@ -72,17 +75,17 @@ class InvoiceDataService extends AbstractInvoiceDataService
 
         if ($order->getDocuments()) {
             foreach ($order->getDocuments() as $document) {
-                if (($attachedDocument && $document->getId() == $attachedDocument) || !$attachedDocument) {
+                if (($attachedDocument && $document->getId() === $attachedDocument) || !$attachedDocument) {
                     if (
-                        ($document->getDocumentType()->getTechnicalName() === 'invoice' ||
-                         $document->getDocumentType()->getTechnicalName() === 'zugferd_embedded_invoice') &&
-                        !in_array($document->getId(), $cancelledByStornoIds)
+                        ($document->getDocumentType()?->getTechnicalName() === 'invoice' ||
+                         $document->getDocumentType()?->getTechnicalName() === 'zugferd_embedded_invoice') &&
+                        !in_array($document->getId(), $cancelledByStornoIds, true)
                     ) {
                         $config = $document->getConfig();
                         $invoiceNumber = $config['custom']['invoiceNumber'] ?? null;
                         $invoiceUrl = $this->documentUrlHelper->generateRouteForDocument($document);
 
-                        if ($attachedDocument && $document->getId() == $attachedDocument) {
+                        if ($attachedDocument && $document->getId() === $attachedDocument) {
                             break;
                         }
                     }
@@ -99,7 +102,7 @@ class InvoiceDataService extends AbstractInvoiceDataService
         if ($order->getDocuments()) {
             foreach ($order->getDocuments() as $document) {
                 if (
-                    in_array($document->getDocumentType()->getTechnicalName(), self::STORNO_TYPES, true) &&
+                    in_array($document->getDocumentType()?->getTechnicalName(), self::STORNO_TYPES, true) &&
                     $document->getReferencedDocumentId() !== null
                 ) {
                     $ids[] = $document->getReferencedDocumentId();
@@ -119,7 +122,7 @@ class InvoiceDataService extends AbstractInvoiceDataService
 
         $latestStornoTime = null;
         foreach ($order->getDocuments() as $document) {
-            if (in_array($document->getDocumentType()->getTechnicalName(), self::STORNO_TYPES, true)) {
+            if (in_array($document->getDocumentType()?->getTechnicalName(), self::STORNO_TYPES, true)) {
                 $docTime = $document->getCreatedAt();
                 if ($latestStornoTime === null || $docTime > $latestStornoTime) {
                     $latestStornoTime = $docTime;
@@ -136,6 +139,9 @@ class InvoiceDataService extends AbstractInvoiceDataService
         if ($order->getLineItems()) {
             foreach ($order->getLineItems() as $lineItem) {
                 if ($lineItem->getType() !== LineItem::CREDIT_LINE_ITEM_TYPE) {
+                    continue;
+                }
+                if ($lineItem->getPrice() === null) {
                     continue;
                 }
                 if ($lineItem->getCreatedAt() <= $latestStornoTime) {

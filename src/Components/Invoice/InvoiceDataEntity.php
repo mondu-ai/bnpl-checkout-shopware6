@@ -37,20 +37,14 @@ class InvoiceDataEntity extends Entity
      */
     protected string $orderVersionId;
 
-    /**
-     * @var OrderEntity
-     */
-    protected OrderEntity $order;
+    protected ?OrderEntity $order = null;
 
     /**
      * @var string
      */
     protected string $documentId;
 
-    /**
-     * @var DocumentEntity
-     */
-    protected DocumentEntity $document;
+    protected ?DocumentEntity $document = null;
 
     /**
      * @var string|null
@@ -74,7 +68,7 @@ class InvoiceDataEntity extends Entity
         return $this->documentId;
     }
 
-    public function getOrder(): OrderEntity
+    public function getOrder(): ?OrderEntity
     {
         return $this->order;
     }

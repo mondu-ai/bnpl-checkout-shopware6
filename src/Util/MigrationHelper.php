@@ -10,7 +10,6 @@ class MigrationHelper
 {
     public static function getExecuteStatementMethod(): string
     {
-        return (new \ReflectionClass(Connection::class))
-            ->hasMethod('executeStatement') ? 'executeStatement' : 'executeQuery';
+        return 'executeStatement';
     }
 }

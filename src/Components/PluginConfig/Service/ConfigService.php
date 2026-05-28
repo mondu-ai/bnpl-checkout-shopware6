@@ -309,7 +309,7 @@ class ConfigService
     {
         $config = $this->getPluginConfiguration();
 
-        return (bool) ($config['extendedLogs'] ?? true);
+        return (bool) ($config['extendedLogs'] ?? false);
     }
 
     /**

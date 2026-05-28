@@ -20,11 +20,15 @@ class OrderDiscountService extends AbstractOrderDiscountService
     {
         $discountAmount = 0;
 
-        foreach ($order->getLineItems() as $shopwareLineItem) {
+        foreach ($order->getLineItems() ?? [] as $shopwareLineItem) {
             if (
-                isset($isDiscountCallback) && !$isDiscountCallback($shopwareLineItem) ||
+                (isset($isDiscountCallback) && !$isDiscountCallback($shopwareLineItem)) ||
                 !$this->orderUtilsService->isDiscount($shopwareLineItem)
             ) {
+                continue;
+            }
+
+            if ($shopwareLineItem->getPrice() === null) {
                 continue;
             }
 

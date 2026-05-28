@@ -73,7 +73,7 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
         try {
             foreach ($event->getWriteResults() as $result) {
                 if ($result->getExistence() !== null && $result->getExistence()->exists()) {
-                    break;
+                    continue;
                 }
 
                 $payload = $result->getPayload();
@@ -83,7 +83,8 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                 }
 
                 $context = $event->getContext();
-                $orderId = $result->getPrimaryKey();
+                $pk = $result->getPrimaryKey();
+                $orderId = \is_array($pk) ? ($pk['id'] ?? reset($pk)) : $pk;
                 $order = $this->getOrder($orderId, $context);
 
                 $criteria = new Criteria();
@@ -91,14 +92,13 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                 $monduOrderEntity = $this->orderDataRepository->search($criteria, $context)->first();
 
                 if (!isset($monduOrderEntity)) {
-                    return;
+                    continue;
                 }
 
                 if ($this->hasInvoices($orderId, $context)) {
-                    return;
+                    continue;
                 }
 
-                // Skip adjust order call if credit note items are present in the order
                 if ($this->hasCreditNoteItems($order)) {
                     if ($this->configService->isExtendedLogsEnabled()) {
                         $this->logger->info('mondu.INFO: Skipping adjust order call - credit note items present', [
@@ -106,7 +106,7 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                             'order_number' => $order->getOrderNumber()
                         ]);
                     }
-                    return;
+                    continue;
                 }
 
                 $liveOrder = $this->monduClient
@@ -119,14 +119,14 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                         ['monduOrder' => $monduOrderEntity]
                     );
 
-                    return;
+                    continue;
                 }
 
                 $orderGrossAmountCents = round($order->getPrice()->getTotalPrice() * 100);
                 $liveOrderPrice = $liveOrder['real_price_cents'];
 
                 if ($orderGrossAmountCents == $liveOrderPrice) {
-                    return;
+                    continue;
                 }
 
                 $netPrice = 0;

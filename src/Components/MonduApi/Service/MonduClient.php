@@ -144,7 +144,7 @@ class MonduClient
         } catch (GuzzleException $e) {
             $responseBody = null;
 
-            if (method_exists($e, 'getResponse') && $e->getResponse()) {
+            if ($e instanceof \GuzzleHttp\Exception\RequestException && $e->getResponse()) {
                 $responseBody = json_decode($e->getResponse()->getBody()->getContents(), true);
             }
 
@@ -183,11 +183,11 @@ class MonduClient
 
             $eventLog = [
                 'response_status' => strval($e->getCode()),
-                'origin_event' => $e->getRequest()->getUri()->getPath()
+                'origin_event' => ($e instanceof \GuzzleHttp\Exception\RequestException) ? $e->getRequest()->getUri()->getPath() : 'unknown'
             ];
 
-            if (method_exists($e, 'getRequest')) {
-                $eventLog['request_body'] = json_decode($e->getRequest()->getBody()->getContents());
+            if ($e instanceof \GuzzleHttp\Exception\RequestException) {
+                $eventLog['request_body'] = json_decode((string) $e->getRequest()->getBody());
             }
 
             if ($responseBody) {
@@ -221,7 +221,7 @@ class MonduClient
         } catch (GuzzleException $e) {
             $responseBody = null;
 
-            if (method_exists($e, 'getResponse') && $e->getResponse()) {
+            if ($e instanceof \GuzzleHttp\Exception\RequestException && $e->getResponse()) {
                 $responseBody = json_decode($e->getResponse()->getBody()->getContents(), true);
             }
 
@@ -250,11 +250,11 @@ class MonduClient
 
             $eventLog = [
                 'response_status' => strval($e->getCode()),
-                'origin_event' => $e->getRequest()->getUri()->getPath()
+                'origin_event' => ($e instanceof \GuzzleHttp\Exception\RequestException) ? $e->getRequest()->getUri()->getPath() : 'unknown'
             ];
 
-            if (method_exists($e, 'getRequest')) {
-                $eventLog['request_body'] = json_decode($e->getRequest()->getBody()->getContents());
+            if ($e instanceof \GuzzleHttp\Exception\RequestException) {
+                $eventLog['request_body'] = json_decode((string) $e->getRequest()->getBody());
             }
 
             if ($responseBody) {
@@ -308,7 +308,7 @@ class MonduClient
         } catch (GuzzleException $e) {
             $responseBody = null;
 
-            if (method_exists($e, 'getResponse') && $e->getResponse()) {
+            if ($e instanceof \GuzzleHttp\Exception\RequestException && $e->getResponse()) {
                 $responseBody = json_decode($e->getResponse()->getBody()->getContents(), true);
                 
                 if ($allowAlreadySubscribed && 
@@ -340,11 +340,11 @@ class MonduClient
 
             $eventLog = [
                 'response_status' => strval($e->getCode()),
-                'origin_event' => $e->getRequest()->getUri()->getPath()
+                'origin_event' => ($e instanceof \GuzzleHttp\Exception\RequestException) ? $e->getRequest()->getUri()->getPath() : 'unknown'
             ];
 
-            if (method_exists($e, 'getRequest')) {
-                $eventLog['request_body'] = json_decode($e->getRequest()->getBody()->getContents());
+            if ($e instanceof \GuzzleHttp\Exception\RequestException) {
+                $eventLog['request_body'] = json_decode((string) $e->getRequest()->getBody());
             }
 
             if ($responseBody) {

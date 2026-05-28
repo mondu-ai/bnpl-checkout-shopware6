@@ -13,8 +13,8 @@ use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Event\EntityWrittenEvent;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsAnyFilter;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\NotFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
 use Shopware\Core\Framework\DataAbstractionLayer\Write\Command\DeleteCommand;
@@ -134,9 +134,15 @@ class CreditNoteSubscriber implements EventSubscriberInterface
                     $orderId = $payload['orderId'];
                     $invoiceNumber = $payload['config']['custom']['invoiceNumber'];
 
+                    $referencedDocumentId = $payload['referencedDocumentId'] ?? null;
+
                     $invoiceCriteria = new Criteria();
-                    $invoiceCriteria->addFilter(new EqualsFilter('invoiceNumber', $invoiceNumber));
                     $invoiceCriteria->addFilter(new EqualsFilter('orderId', $orderId));
+                    if ($referencedDocumentId !== null) {
+                        $invoiceCriteria->addFilter(new EqualsFilter('documentId', $referencedDocumentId));
+                    } else {
+                        $invoiceCriteria->addFilter(new EqualsFilter('invoiceNumber', $invoiceNumber));
+                    }
                     $invoiceEntity = $this->invoiceDataRepository->search($invoiceCriteria, $event->getContext())->first();
 
                     if ($invoiceEntity === null) {
@@ -185,7 +191,7 @@ class CreditNoteSubscriber implements EventSubscriberInterface
                         }
 
                         $grossAmountCents += (int) round(abs($lineItem->getPrice()->getTotalPrice()) * 100);
-                        $taxCents += (int) round(abs($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity()) * 100);
+                        $taxCents += (int) round(abs($lineItem->getPrice()->getCalculatedTaxes()->getAmount()) * 100);
                     }
 
                     if ($grossAmountCents <= 0) {

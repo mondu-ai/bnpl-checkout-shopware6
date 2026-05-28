@@ -107,7 +107,7 @@ class OrderExceptionSubscriber implements EventSubscriberInterface
                     $route === 'payment.finalize.transaction') {
 
                     $errorUrl = $this->extractErrorUrlFromToken($request);
-                    if ($errorUrl !== null) {
+                    if ($errorUrl !== null && str_starts_with($errorUrl, '/')) {
                         $separator = parse_url($errorUrl, PHP_URL_QUERY) ? '&' : '?';
                         $redirectUrl = $errorUrl . $separator . 'error-code=CHECKOUT__CUSTOMER_CANCELED_EXTERNAL_PAYMENT';
 

@@ -36,17 +36,6 @@ class ShopUrlService
             }
         }
 
-        // No sales channel id (or it had no domain): fall back to the request.
-        if (isset($_SERVER['HTTP_ORIGIN'])) {
-            return $_SERVER['HTTP_ORIGIN'];
-        }
-
-        if (isset($_SERVER['HTTP_HOST'])) {
-            $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
-            return $protocol . '://' . $_SERVER['HTTP_HOST'];
-        }
-
-        // Final fallback: get URL from default sales channel
         return $this->getDefaultSalesChannelUrl();
     }
 
