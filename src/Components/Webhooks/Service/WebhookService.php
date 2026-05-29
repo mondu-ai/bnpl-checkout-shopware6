@@ -79,6 +79,7 @@ class WebhookService
         }
 
         $this->salesChannelId = $order->getSalesChannelId();
+        $this->configService->setSalesChannelId($this->salesChannelId);
 
         if ($this->configService->isExtendedLogsEnabled()) {
             $this->logger->info('mondu.INFO: Webhook — resolved sales channel from order', [
@@ -139,7 +140,7 @@ class WebhookService
             $monduId = $params['order_uuid'];
             $externalReferenceId = $params['external_reference_id'];
 
-            if (!$viban || !$externalReferenceId) {
+            if (!$externalReferenceId) {
                 throw new MonduException('Missing params.');
             }
 
@@ -304,11 +305,14 @@ class WebhookService
             $criteria->addAssociation('deliveries.stateMachineState');
             $criteria->addAssociation('transactions.stateMachineState');
             
-            /** @var OrderEntity $orderEntity */
+            /** @var OrderEntity|null $orderEntity */
             $orderEntity = $this->orderRepository->search($criteria, $context)->first();
-            
+            if ($orderEntity === null) {
+                throw new MonduException('Order not found: ' . $externalReferenceId);
+            }
+
             // Check current transaction state to determine if this is a checkout decline or webhook decline
-            $transaction = $orderEntity->getTransactions()->last();
+            $transaction = $orderEntity->getTransactions()?->last();
             $currentTransactionState = $transaction?->getStateMachineState()?->getTechnicalName();
             
             // IMPORTANT: Distinguish between two types of declined/cancelled:
