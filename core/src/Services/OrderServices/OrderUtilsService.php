@@ -13,15 +13,17 @@ class OrderUtilsService extends AbstractOrderUtilsService
     public function isLineItem(mixed $lineItem): bool
     {
         return $lineItem instanceof OrderLineItemEntity
+            && $lineItem->getPrice() !== null
             && $lineItem->getPrice()->getTotalPrice() >= 0
-            && in_array($lineItem->getType(), self::LINE_ITEM_TYPES);
+            && in_array($lineItem->getType(), self::LINE_ITEM_TYPES, true);
     }
 
     public function isDiscount(mixed $lineItem): bool
     {
         return $lineItem instanceof OrderLineItemEntity
+            && $lineItem->getPrice() !== null
             && $lineItem->getPrice()->getTotalPrice() < 0
-            && in_array($lineItem->getType(), self::DISCOUNT_TYPES);
+            && in_array($lineItem->getType(), self::DISCOUNT_TYPES, true);
     }
 
     public function priceToCents(float $price): int
@@ -43,7 +45,7 @@ class OrderUtilsService extends AbstractOrderUtilsService
 
     public function getOrderCurrency(OrderEntity $order): string
     {
-        return $order->getCurrency()->getIsoCode();
+        return $order->getCurrency()?->getIsoCode() ?? 'EUR';
     }
 
     public function getShippingPriceCents(OrderEntity $order): int

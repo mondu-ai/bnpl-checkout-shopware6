@@ -8,7 +8,6 @@ use Shopware\Core\Framework\Context;
 use Shopware\Core\PlatformRequest;
 use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 use Mondu\MonduPayment\Components\Webhooks\Service\WebhookService;
-use Shopware\Core\Framework\Routing\Annotation\RouteScope;
 use Shopware\Storefront\Controller\StorefrontController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -70,7 +69,6 @@ class WebhooksController extends StorefrontController
                 $this->logger->info('mondu.INFO: Webhook signature mismatch', [
                     'topic' => $params['topic'] ?? 'unknown',
                     'candidate_secrets_tried' => count($secrets),
-                    'received_signature' => $receivedSignature
                 ]);
             }
 
@@ -93,7 +91,10 @@ class WebhooksController extends StorefrontController
             $this->webhookService->setSalesChannelId($scFromUrl);
         }
 
-        $topic = $params['topic'];
+        $topic = $params['topic'] ?? null;
+        if ($topic === null) {
+            return new Response(json_encode(['message' => 'Missing topic', 'code' => 400]), Response::HTTP_BAD_REQUEST);
+        }
 
         switch ($topic) {
             case 'order/confirmed':

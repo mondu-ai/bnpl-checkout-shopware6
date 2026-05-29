@@ -76,7 +76,7 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
         try {
             foreach ($event->getWriteResults() as $result) {
                 if ($result->getExistence() !== null && $result->getExistence()->exists()) {
-                    break;
+                    continue;
                 }
 
                 $payload = $result->getPayload();
@@ -86,22 +86,25 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                 }
 
                 $context = $event->getContext();
-                $orderId = $result->getPrimaryKey();
+                $pk = $result->getPrimaryKey();
+                $orderId = \is_array($pk) ? ($pk['id'] ?? reset($pk)) : $pk;
                 $order = $this->getOrder($orderId, $context);
+                if ($order === null) {
+                    continue;
+                }
 
                 $criteria = new Criteria();
                 $criteria->addFilter(new EqualsFilter('orderId', $orderId));
                 $monduOrderEntity = $this->orderDataRepository->search($criteria, $context)->first();
 
                 if (!isset($monduOrderEntity)) {
-                    return;
+                    continue;
                 }
 
                 if ($this->hasInvoices($orderId, $context)) {
-                    return;
+                    continue;
                 }
 
-                // Skip adjust order call if credit note items are present in the order
                 if ($this->hasCreditNoteItems($order)) {
                     if ($this->configService->isExtendedLogsEnabled()) {
                         $this->logger->info('mondu.INFO: Skipping adjust order call - credit note items present', [
@@ -109,7 +112,7 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                             'order_number' => $order->getOrderNumber()
                         ]);
                     }
-                    return;
+                    continue;
                 }
 
                 $liveOrder = $this->monduClient
@@ -122,19 +125,23 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                         ['monduOrder' => $monduOrderEntity]
                     );
 
-                    return;
+                    continue;
                 }
 
                 $orderGrossAmountCents = round($order->getPrice()->getTotalPrice() * 100);
                 $liveOrderPrice = $liveOrder['real_price_cents'];
 
                 if ($orderGrossAmountCents == $liveOrderPrice) {
-                    return;
+                    continue;
                 }
 
                 $netPrice = 0;
                 foreach ($order->getLineItems() as $lineItem) {
                     if ($lineItem->getType() !== LineItem::PRODUCT_LINE_ITEM_TYPE) {
+                        continue;
+                    }
+
+                    if ($lineItem->getPrice() === null) {
                         continue;
                     }
 
@@ -174,7 +181,7 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
         }
     }
 
-    protected function getOrder(string $orderId, Context $context): OrderEntity
+    protected function getOrder(string $orderId, Context $context): ?OrderEntity
     {
         $criteria = CriteriaHelper::getCriteriaForOrder($orderId);
         $criteria->addAssociation('documents.documentType');

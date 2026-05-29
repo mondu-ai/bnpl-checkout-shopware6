@@ -1,0 +1,26 @@
+name: PR Build Check
+
+on:
+  pull_request:
+    branches:
+      - main-monorepo
+
+jobs:
+  build:
+    name: Verify plugin ZIPs build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build SW6.6 ZIP
+        run: build/build.sh test-version --skip-admin --only sw66
+
+      - name: Build SW6.7 ZIP
+        run: build/build.sh test-version --skip-admin --only sw67
+
+      - name: Verify ZIPs exist
+        run: |
+          test -f dist/mondu-payment-sw66-test-version.zip || { echo "SW6.6 ZIP missing"; exit 1; }
+          test -f dist/mondu-payment-sw67-test-version.zip || { echo "SW6.7 ZIP missing"; exit 1; }
+          echo "Both ZIPs created successfully:"
+          ls -lh dist/*.zip

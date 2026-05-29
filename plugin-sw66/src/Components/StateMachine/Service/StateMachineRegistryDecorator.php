@@ -40,12 +40,15 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
     {
         if ($transition->getEntityName() === OrderDeliveryDefinition::ENTITY_NAME) {
             $orderDelivery = $this->orderDeliveryRepository->search(new Criteria([$transition->getEntityId()]), $context)->first();
+            if ($orderDelivery === null) {
+                return $this->innerService->transition($transition, $context);
+            }
             $order = $this->getOrder($orderDelivery->getOrderId(), $context);
-            $transaction = $order?->getTransactions()->first();
-            $paymentMethod = $transaction ? $transaction->getPaymentMethod() : null;
+            $transaction = $order?->getTransactions()?->first();
+            $paymentMethod = $transaction?->getPaymentMethod();
             $transitionName = $transition->getTransitionName();
 
-            if (MethodHelper::isMonduPayment($paymentMethod)) { 
+            if ($paymentMethod !== null && MethodHelper::isMonduPayment($paymentMethod)) {
                 if (!$this->configService->skipOrderStateValidation()) {
 
                     if ($transitionName == 'reopen' && !$this->canCancelOrder($order)) {

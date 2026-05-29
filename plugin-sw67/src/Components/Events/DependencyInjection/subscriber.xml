@@ -12,10 +12,5 @@
             <!-- No constructor arguments needed -->
         </service>
 
-        <service id="Mondu\MonduPayment\Components\Events\Subscriber\MonduOrderStatusSubscriber">
-            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
-            <argument key="$configService" type="service" id="mondu.mondu_config"/>
-        </service>
-
     </services>
 </container>

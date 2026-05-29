@@ -30,14 +30,14 @@ class ConfigApiTokenCommand extends Command
         $this->addArgument(
             'sandbox_mode',
             InputArgument::REQUIRED,
-            'Merchant\'s API token'
+            'Sandbox mode (true/false)'
         );
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $api_token = (string)$input->getArgument('api_token');
-        $sandboxMode = boolval($input->getArgument('sandbox_mode'));
+        $sandboxMode = filter_var($input->getArgument('sandbox_mode'), FILTER_VALIDATE_BOOLEAN);
 
         $this->systemConfig->set("Mond1SW6.config.apiToken", $api_token);
         $this->systemConfig->set("Mond1SW6.config.sandbox", $sandboxMode);

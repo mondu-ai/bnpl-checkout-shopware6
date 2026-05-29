@@ -3,7 +3,6 @@
     "Cancelled": "Cancelled",
     "Pending": "Pending",
     "Declined": "Declined",
-    "Approved": "Approved",
     "sw-flow-custom-event": {
         "flow-list": {
             "Mondu Payments_order_Cancelled": "Mondu: Order Cancelled",

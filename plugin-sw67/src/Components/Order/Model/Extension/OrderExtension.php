@@ -8,7 +8,6 @@ use Mondu\MonduPayment\Components\Order\Model\Definition\OrderDataDefinition;
 use Shopware\Core\Checkout\Order\OrderDefinition;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityExtension;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\Flag\CascadeDelete;
-use Shopware\Core\Framework\DataAbstractionLayer\Field\Flag\RestrictDelete;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\OneToOneAssociationField;
 use Shopware\Core\Framework\DataAbstractionLayer\FieldCollection;
 
@@ -25,7 +24,7 @@ class OrderExtension extends EntityExtension
                 'order_id',
                 OrderDataDefinition::class,
                 true
-            ))->addFlags(new RestrictDelete(), new CascadeDelete())
+            ))->addFlags(new CascadeDelete())
         );
     }
 

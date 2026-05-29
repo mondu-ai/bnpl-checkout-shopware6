@@ -31,18 +31,18 @@ class TestApiTokenCommand extends Command
         $this->addArgument(
             'sandbox_mode',
             InputArgument::REQUIRED,
-            'Merchant\'s API token'
+            'Sandbox mode (true/false)'
         );
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $api_token = (string) $input->getArgument('api_token');
-        $sandboxMode = boolval($input->getArgument('sandbox_mode'));
+        $sandboxMode = filter_var($input->getArgument('sandbox_mode'), FILTER_VALIDATE_BOOLEAN);
 
         $response = $this->monduClient->getWebhooksSecret($api_token, $sandboxMode);
 
-        if ($response == null) {
+        if ($response === null) {
             throw new \ErrorException("API token is not valid");
         }
 

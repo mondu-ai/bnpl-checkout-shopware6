@@ -176,6 +176,9 @@ class TransitionSubscriber implements EventSubscriberInterface
         }
 
         $monduData = $this->getMonduDataFromOrder($order);
+        if ($monduData === null) {
+            return;
+        }
 
         if ($monduData->getOrderState() === 'shipped') {
             if ($this->configService->isExtendedLogsEnabled()) {
@@ -310,18 +313,9 @@ class TransitionSubscriber implements EventSubscriberInterface
             $invoice = null;
 
             try {
-                $reflection = new \ReflectionClass($this->invoiceDataService);
-                $orderLineItemsServiceProperty = $reflection->getProperty('orderLineItemsService');
-                $orderLineItemsServiceProperty->setAccessible(true);
-                $orderLineItemsService = $orderLineItemsServiceProperty->getValue($this->invoiceDataService);
-
-                $orderUtilsServiceProperty = $reflection->getProperty('orderUtilsService');
-                $orderUtilsServiceProperty->setAccessible(true);
-                $orderUtilsService = $orderUtilsServiceProperty->getValue($this->invoiceDataService);
-
-                $orderDiscountServiceProperty = $reflection->getProperty('orderDiscountService');
-                $orderDiscountServiceProperty->setAccessible(true);
-                $orderDiscountService = $orderDiscountServiceProperty->getValue($this->invoiceDataService);
+                $orderLineItemsService = $this->invoiceDataService->getOrderLineItemsService();
+                $orderUtilsService = $this->invoiceDataService->getOrderUtilsService();
+                $orderDiscountService = $this->invoiceDataService->getOrderDiscountService();
 
                 $lineItemDocId = $documentId ?? $order->getOrderNumber();
                 $lineItems = $orderLineItemsService->getLineItems($order, $context, true);

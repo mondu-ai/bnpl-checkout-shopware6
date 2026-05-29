@@ -1,0 +1,16 @@
+{
+  "name": "mondu-sw6-monorepo-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:sw66": "playwright test --project=sw66",
+    "test:sw67": "playwright test --project=sw67",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.41.2",
+    "@types/node": "^20.11.16",
+    "dotenv": "^16.4.1"
+  }
+}

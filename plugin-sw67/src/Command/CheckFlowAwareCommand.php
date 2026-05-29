@@ -6,32 +6,19 @@ namespace Mondu\MonduPayment\Command;
 
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\Event\BusinessEventCollector;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
+#[AsCommand(name: 'mondu:check-flow-aware', description: 'Check Flow Builder aware interfaces for Mondu events')]
 class CheckFlowAwareCommand extends Command
 {
-    protected static $defaultName = 'mondu:check-flow-aware';
-
-    private BusinessEventCollector $businessEventCollector;
-
-    public function __construct(BusinessEventCollector $businessEventCollector)
-    {
+    public function __construct(
+        private readonly BusinessEventCollector $businessEventCollector
+    ) {
         parent::__construct();
-        $this->businessEventCollector = $businessEventCollector;
-    }
-
-    public static function getDefaultName(): ?string
-    {
-        return 'mondu:check-flow-aware';
-    }
-
-    protected function configure(): void
-    {
-        $this->setName('mondu:check-flow-aware')
-             ->setDescription('Check Flow Builder aware interfaces for Mondu events');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int

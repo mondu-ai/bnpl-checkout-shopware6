@@ -1,20 +1,28 @@
 {
-  "MonduConfirmed": "Confirmée",
-  "MonduCancelled": "Annulée",
-  "MonduPending": "En attente",
-  "MonduDeclined": "Refusée",
+  "Confirmed": "Confirmée",
+  "Cancelled": "Annulée",
+  "Pending": "En attente",
+  "Declined": "Refusée",
   "sw-flow": {
     "triggers": {
-      "Mondu Payments.order.MonduConfirmed": "Mondu Payments / Commande / Confirmée",
-      "Mondu Payments.order.MonduCancelled": "Mondu Payments / Commande / Annulée",
-      "Mondu Payments.order.MonduPending": "Mondu Payments / Commande / En attente",
-      "Mondu Payments.order.MonduDeclined": "Mondu Payments / Commande / Refusée"
+      "Mondu Payments.order.Confirmed": "Mondu Payments / Commande / Confirmée",
+      "Mondu Payments.order.Cancelled": "Mondu Payments / Commande / Annulée",
+      "Mondu Payments.order.Pending": "Mondu Payments / Commande / En attente",
+      "Mondu Payments.order.Declined": "Mondu Payments / Commande / Refusée"
     },
     "triggerDescriptions": {
-      "Mondu Payments.order.MonduConfirmed": "Déclenché lorsque le paiement Mondu est confirmé",
-      "Mondu Payments.order.MonduCancelled": "Déclenché lorsque le paiement Mondu est annulé",
-      "Mondu Payments.order.MonduPending": "Déclenché lorsque le paiement Mondu est en attente",
-      "Mondu Payments.order.MonduDeclined": "Déclenché lorsque le paiement Mondu est refusé"
+      "Mondu Payments.order.Confirmed": "Déclenché lorsque le paiement Mondu est confirmé",
+      "Mondu Payments.order.Cancelled": "Déclenché lorsque le paiement Mondu est annulé",
+      "Mondu Payments.order.Pending": "Déclenché lorsque le paiement Mondu est en attente",
+      "Mondu Payments.order.Declined": "Déclenché lorsque le paiement Mondu est refusé"
+    }
+  },
+  "sw-flow-custom-event": {
+    "flow-list": {
+      "Mondu Payments_order_Confirmed": "Mondu : Commande confirmée",
+      "Mondu Payments_order_Cancelled": "Mondu : Commande annulée",
+      "Mondu Payments_order_Pending": "Mondu : Commande en attente",
+      "Mondu Payments_order_Declined": "Mondu : Commande refusée"
     }
   },
   "sw-order-mondu": {

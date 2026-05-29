@@ -5,19 +5,16 @@
       "Cancelled": "Cancelled",
       "Pending": "Pending",
       "Declined": "Declined",
-      "Approved": "Approved",
       "Mondu Payments.order.Confirmed": "Mondu Payments / Order / Confirmed",
       "Mondu Payments.order.Cancelled": "Mondu Payments / Order / Cancelled",
       "Mondu Payments.order.Pending": "Mondu Payments / Order / Pending",
-      "Mondu Payments.order.Declined": "Mondu Payments / Order / Declined",
-      "Mondu Payments.order.Approved": "Mondu Payments / Order / Approved"
+      "Mondu Payments.order.Declined": "Mondu Payments / Order / Declined"
     },
     "triggerDescriptions": {
       "Mondu Payments.order.Confirmed": "Triggered when Mondu payment is confirmed",
       "Mondu Payments.order.Cancelled": "Triggered when Mondu payment is cancelled",
       "Mondu Payments.order.Pending": "Triggered when Mondu payment is pending",
-      "Mondu Payments.order.Declined": "Triggered when Mondu payment is declined",
-      "Mondu Payments.order.Approved": "Triggered when Mondu payment is approved"
+      "Mondu Payments.order.Declined": "Triggered when Mondu payment is declined"
     }
   },
   "sw-flow-custom-event": {

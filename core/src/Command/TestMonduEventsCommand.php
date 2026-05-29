@@ -31,8 +31,7 @@ class TestMonduEventsCommand extends Command
         $output->writeln('- mondu.order.declined');
         $output->writeln('');
         $output->writeln('Events are triggered automatically when webhooks are received from Mondu.');
-        $output->writeln('Check the Mondu logs for event details:');
-        $output->writeln('docker exec shop-sw6 tail -f /var/www/html/var/log/mondu.log');
+        $output->writeln('Check the Mondu logs for event details in var/log/mondu.log');
 
         return Command::SUCCESS;
     }

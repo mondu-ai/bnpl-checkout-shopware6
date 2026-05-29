@@ -92,7 +92,7 @@ class ConfigSubscriber implements EventSubscriberInterface
         $apiToken = $config['apiToken'] ?? '';
         $sandbox = $config['sandbox'] ?? false;
         
-        return md5($apiToken . '_' . ($sandbox ? '1' : '0'));
+        return hash('sha256', $apiToken . '_' . ($sandbox ? '1' : '0'));
     }
     
     /**

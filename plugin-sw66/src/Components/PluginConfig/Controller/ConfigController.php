@@ -11,7 +11,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
-#[Route(defaults: ['_routeScope' => ['api']])]
+#[Route(defaults: ['_routeScope' => ['api'], '_acl' => ['system.plugin_maintain']])]
 class ConfigController extends AbstractController
 {
     public function __construct(

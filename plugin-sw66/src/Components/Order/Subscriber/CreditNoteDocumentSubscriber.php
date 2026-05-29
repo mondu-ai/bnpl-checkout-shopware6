@@ -118,7 +118,7 @@ class CreditNoteDocumentSubscriber implements EventSubscriberInterface
             'referencedDocumentId' => Uuid::fromHexToBytes($referencedDocumentId),
             'technicalNames' => ['credit_note', 'zugferd_credit_note', 'zugferd_embedded_credit_note'],
         ], [
-            'technicalNames' => Connection::PARAM_STR_ARRAY,
+            'technicalNames' => \Doctrine\DBAL\ArrayParameterType::STRING,
         ]);
 
         if ($result === false || $result === null) {

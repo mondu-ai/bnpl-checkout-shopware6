@@ -44,4 +44,19 @@ abstract class AbstractInvoiceDataService
             return null;
         }
     }
+
+    public function getOrderUtilsService(): AbstractOrderUtilsService
+    {
+        return $this->orderUtilsService;
+    }
+
+    public function getOrderDiscountService(): AbstractOrderDiscountService
+    {
+        return $this->orderDiscountService;
+    }
+
+    public function getOrderLineItemsService(): AbstractOrderLineItemsService
+    {
+        return $this->orderLineItemsService;
+    }
 }
