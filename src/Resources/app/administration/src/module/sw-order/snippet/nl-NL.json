@@ -5,19 +5,16 @@
       "Cancelled": "Geannuleerd",
       "Pending": "In behandeling",
       "Declined": "Afgewezen",
-      "Approved": "Goedgekeurd",
       "Mondu Payments.order.Confirmed": "Mondu Payments / Bestelling / Bevestigd",
       "Mondu Payments.order.Cancelled": "Mondu Payments / Bestelling / Geannuleerd",
       "Mondu Payments.order.Pending": "Mondu Payments / Bestelling / In behandeling",
-      "Mondu Payments.order.Declined": "Mondu Payments / Bestelling / Afgewezen",
-      "Mondu Payments.order.Approved": "Mondu Payments / Bestelling / Goedgekeurd"
+      "Mondu Payments.order.Declined": "Mondu Payments / Bestelling / Afgewezen"
     },
     "triggerDescriptions": {
       "Mondu Payments.order.Confirmed": "Wordt geactiveerd wanneer de Mondu-betaling wordt bevestigd",
       "Mondu Payments.order.Cancelled": "Wordt geactiveerd wanneer de Mondu-betaling wordt geannuleerd",
       "Mondu Payments.order.Pending": "Wordt geactiveerd wanneer de Mondu-betaling in behandeling is",
-      "Mondu Payments.order.Declined": "Wordt geactiveerd wanneer de Mondu-betaling wordt afgewezen",
-      "Mondu Payments.order.Approved": "Wordt geactiveerd wanneer de Mondu-betaling is goedgekeurd"
+      "Mondu Payments.order.Declined": "Wordt geactiveerd wanneer de Mondu-betaling wordt afgewezen"
     }
   },
   "sw-flow-custom-event": {
@@ -25,8 +22,7 @@
       "Mondu Payments_order_Confirmed": "Mondu: Bestelling bevestigd",
       "Mondu Payments_order_Cancelled": "Mondu: Bestelling geannuleerd",
       "Mondu Payments_order_Pending": "Mondu: Bestelling in behandeling",
-      "Mondu Payments_order_Declined": "Mondu: Bestelling afgewezen",
-      "Mondu Payments_order_Approved": "Mondu: Bestelling goedgekeurd"
+      "Mondu Payments_order_Declined": "Mondu: Bestelling afgewezen"
     }
   },
   "sw-order-mondu": {

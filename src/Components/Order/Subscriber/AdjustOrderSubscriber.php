@@ -89,6 +89,9 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                 $pk = $result->getPrimaryKey();
                 $orderId = \is_array($pk) ? ($pk['id'] ?? reset($pk)) : $pk;
                 $order = $this->getOrder($orderId, $context);
+                if ($order === null) {
+                    continue;
+                }
 
                 $criteria = new Criteria();
                 $criteria->addFilter(new EqualsFilter('orderId', $orderId));
@@ -138,6 +141,10 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                         continue;
                     }
 
+                    if ($lineItem->getPrice() === null) {
+                        continue;
+                    }
+
                     if ($order->getTaxStatus() === CartPrice::TAX_STATE_GROSS) {
                         $unitNetPrice = ($lineItem->getPrice()->getUnitPrice() - ($lineItem->getPrice()->getCalculatedTaxes()->getAmount() / $lineItem->getQuantity())) * 100;
                     } else {
@@ -174,7 +181,7 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
         }
     }
 
-    protected function getOrder(string $orderId, Context $context): OrderEntity
+    protected function getOrder(string $orderId, Context $context): ?OrderEntity
     {
         $criteria = CriteriaHelper::getCriteriaForOrder($orderId);
         $criteria->addAssociation('documents.documentType');
