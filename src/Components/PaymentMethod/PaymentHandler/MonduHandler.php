@@ -24,6 +24,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\NotFilter;
 use Mondu\MonduPayment\Components\PaymentMethod\Util\MethodHelper;
 use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 use Psr\Log\LoggerInterface;
+use Shopware\Core\System\Locale\LanguageLocaleCodeProvider;
 
 class MonduHandler implements AsynchronousPaymentHandlerInterface
 {
@@ -33,6 +34,13 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
     const ORDER_TRANSACTION_STATE_PAID = 'paid';
     const ORDER_TRANSACTION_STATE_AUTHORIZED = 'authorized';
 
+    /**
+     * Languages the Mondu hosted checkout is translated into. Sending anything else makes the API
+     * fall back to English, which is worse than sending nothing: without the field the API derives
+     * the language from the billing country instead, and that mapping covers more languages.
+     */
+    const SUPPORTED_LANGUAGES = ['de', 'en', 'nl', 'fr', 'el'];
+
     public function __construct(
         private readonly OrderTransactionStateHandler $transactionStateHandler,
         private readonly MonduClient $monduClient,
@@ -41,7 +49,8 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         private readonly ConfigService $configService,
         private readonly AbstractOrderLinesService $orderLinesService,
         private readonly LoggerInterface $logger,
-        private readonly EventDispatcherInterface $eventDispatcher
+        private readonly EventDispatcherInterface $eventDispatcher,
+        private readonly LanguageLocaleCodeProvider $languageLocaleProvider
     ) {}
 
     /**
@@ -386,7 +395,7 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
             $shippingAddressLine1 .= ' ' . $shippingAddressAddition2;
         }
 
-        return [
+        $orderData = [
             'currency' => $order->getCurrency()->getIsoCode(),
             'state_flow' => 'authorization_flow',
             'payment_method' => $paymentMethod,
@@ -412,6 +421,59 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
             ],
             'lines' => $this->orderLinesService->getLines($order, $salesChannelContext->getContext())
         ];
+
+        $language = $this->resolveLanguageCode($order);
+
+        if ($language !== null) {
+            $orderData['language'] = $language;
+        }
+
+        return $orderData;
+    }
+
+    /**
+     * The language the buyer saw the storefront in, as a two letter code for the Mondu API.
+     *
+     * Without this field the API derives the language from the billing country, and Belgium is
+     * mapped to Dutch there, so a French speaking Belgian buyer was sent to a Dutch hosted
+     * checkout. The storefront language is what the buyer actually chose, so it wins.
+     *
+     * Returns null when the language cannot be resolved or Mondu does not translate it. The field
+     * is then left out and the API keeps its country based behaviour, which is the old behaviour.
+     */
+    private function resolveLanguageCode(object $order): ?string
+    {
+        // Shopware hands the payment handler the order language but not its locale, and the
+        // criteria for that order belong to the core, so the locale comes from the core provider.
+        $locale = $this->findLocaleCode($order->getLanguageId());
+
+        if ($locale === null || $locale === '') {
+            return null;
+        }
+
+        // Shopware stores locales as 'fr-FR' or 'de-DE'; Mondu expects the language part alone.
+        $language = strtolower(substr($locale, 0, 2));
+
+        return in_array($language, self::SUPPORTED_LANGUAGES, true) ? $language : null;
+    }
+
+    private function findLocaleCode(?string $languageId): ?string
+    {
+        if (!$languageId) {
+            return null;
+        }
+
+        try {
+            return $this->languageLocaleProvider->getLocaleForLanguageId($languageId);
+        } catch (\Throwable $e) {
+            // A payment must not fail because a language row could not be read.
+            $this->logger->warning('mondu.WARNING: Could not resolve the order language', [
+                'language_id' => $languageId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
     }
 
     private function buildBuyerPayload(object $order, string $addressLine1, ?string $addressLine2): array

@@ -25,6 +25,7 @@
             <argument key="$orderLinesService" type="service" id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService"/>
             <argument key="$logger" type="service" id="monolog.logger.mondu"/>
             <argument key="$eventDispatcher" type="service" id="event_dispatcher"/>
+            <argument key="$languageLocaleProvider" type="service" id="Shopware\Core\System\Locale\LanguageLocaleCodeProvider"/>
             <tag name="shopware.payment.method" />
         </service>
 
@@ -36,6 +37,7 @@
             <argument key="$configService" type="service" id="mondu.mondu_config"/>
             <argument key="$orderLinesService" type="service" id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService"/>
             <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <argument key="$languageLocaleProvider" type="service" id="Shopware\Core\System\Locale\LanguageLocaleCodeProvider"/>
             <tag name="shopware.payment.method" />
         </service>
 
@@ -47,6 +49,7 @@
             <argument key="$configService" type="service" id="mondu.mondu_config"/>
             <argument key="$orderLinesService" type="service" id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService"/>
             <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <argument key="$languageLocaleProvider" type="service" id="Shopware\Core\System\Locale\LanguageLocaleCodeProvider"/>
             <tag name="shopware.payment.method" />
         </service>
 
@@ -58,6 +61,7 @@
             <argument key="$configService" type="service" id="mondu.mondu_config"/>
             <argument key="$orderLinesService" type="service" id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService"/>
             <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <argument key="$languageLocaleProvider" type="service" id="Shopware\Core\System\Locale\LanguageLocaleCodeProvider"/>
             <tag name="shopware.payment.method" />
         </service>
 
@@ -69,6 +73,7 @@
             <argument key="$configService" type="service" id="mondu.mondu_config"/>
             <argument key="$orderLinesService" type="service" id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService"/>
             <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <argument key="$languageLocaleProvider" type="service" id="Shopware\Core\System\Locale\LanguageLocaleCodeProvider"/>
             <tag name="shopware.payment.method" />
         </service>
 
