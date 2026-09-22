@@ -36,6 +36,13 @@ class MonduHandler extends AbstractPaymentHandler
     const ORDER_TRANSACTION_STATE_PAID = 'paid';
     const ORDER_TRANSACTION_STATE_AUTHORIZED = 'authorized';
 
+    /**
+     * Languages the Mondu hosted checkout is translated into. Sending anything else makes the API
+     * fall back to English, which is worse than sending nothing: without the field the API derives
+     * the language from the billing country instead, and that mapping covers more languages.
+     */
+    const SUPPORTED_LANGUAGES = ['de', 'en', 'nl', 'fr', 'el'];
+
     public function __construct(
         private readonly OrderTransactionStateHandler $transactionStateHandler,
         private readonly MonduClient $monduClient,
@@ -415,7 +422,7 @@ class MonduHandler extends AbstractPaymentHandler
             $shippingAddressLine1 .= ' ' . $shippingAddressAddition2;
         }
 
-        return [
+        $orderData = [
             'currency' => $order->getCurrency()->getIsoCode(),
             'state_flow' => 'authorization_flow',
             'payment_method' => $paymentMethod,
@@ -441,6 +448,39 @@ class MonduHandler extends AbstractPaymentHandler
             ],
             'lines' => $this->orderLinesService->getLines($order, $context)
         ];
+
+        $language = $this->resolveLanguageCode($order);
+
+        if ($language !== null) {
+            $orderData['language'] = $language;
+        }
+
+        return $orderData;
+    }
+
+    /**
+     * The language the buyer saw the storefront in, as a two letter code for the Mondu API.
+     *
+     * Without this field the API derives the language from the billing country, and Belgium is
+     * mapped to Dutch there, so a French speaking Belgian buyer was sent to a Dutch hosted
+     * checkout. The storefront language is what the buyer actually chose, so it wins.
+     *
+     * Returns null when the language cannot be resolved or Mondu does not translate it. The field
+     * is then left out and the API keeps its country based behaviour, which is the old behaviour.
+     */
+    private function resolveLanguageCode(object $order): ?string
+    {
+        // The locale arrives through the language.locale association added where the order loads.
+        $locale = $order->getLanguage()?->getLocale()?->getCode();
+
+        if ($locale === null || $locale === '') {
+            return null;
+        }
+
+        // Shopware stores locales as 'fr-FR' or 'de-DE'; Mondu expects the language part alone.
+        $language = strtolower(substr($locale, 0, 2));
+
+        return in_array($language, self::SUPPORTED_LANGUAGES, true) ? $language : null;
     }
 
     private function buildBuyerPayload($order, string $addressLine1, ?string $addressLine2): array
@@ -553,6 +593,7 @@ class MonduHandler extends AbstractPaymentHandler
         $criteria->addAssociation('order.currency');
         $criteria->addAssociation('order.lineItems');
         $criteria->addAssociation('order.price.calculatedTaxes');
+        $criteria->addAssociation('order.language.locale');
         $criteria->addAssociation('paymentMethod');
 
         return $this->orderTransactionRepository->search($criteria, $context)->first();
@@ -567,6 +608,7 @@ class MonduHandler extends AbstractPaymentHandler
         $criteria->addAssociation('currency');
         $criteria->addAssociation('lineItems');
         $criteria->addAssociation('price.calculatedTaxes');
+        $criteria->addAssociation('language.locale');
 
         return $this->orderRepository->search($criteria, $context)->first();
     }
