@@ -33,6 +33,44 @@ export async function adminLogin(page: any): Promise<void> {
   await page.locator('input[name="sw-field--password"]').fill(ADMIN_PASS)
   await page.getByRole('button', { name: /anmelden|log\s*in/i }).click()
   await page.waitForURL('**/admin#/sw/dashboard/**', { timeout: 30_000 })
+  // Wait for Vue app to finish mounting
+  await page.waitForSelector('.sw-admin-menu', { timeout: 20_000 })
+
+  // Always finish the wizard via API (idempotent) — marks it done in DB for all future sessions
+  await page.evaluate(async () => {
+    const getToken = () => (window as any).Shopware?.Context?.api?.authToken?.access
+    // Wait briefly for token to be available
+    for (let i = 0; i < 10; i++) {
+      if (getToken()) break
+      await new Promise(r => setTimeout(r, 200))
+    }
+    const token = getToken()
+    if (token) {
+      await fetch('/api/_action/first-run-wizard/finish', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      }).catch(() => {})
+    }
+  }).catch(() => {})
+
+  // Dismiss update notification if present
+  const updateCancelBtn = page.locator('button:has-text("Abbrechen"), button:has-text("Cancel")').first()
+  if (await updateCancelBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
+    await updateCancelBtn.click()
+    await page.waitForTimeout(500)
+  }
+
+  // If wizard modal still visible, reload to clear it
+  const wizardModal = page.locator('.sw-first-run-wizard, [class*="first-run-wizard"], .sw-modal:has-text("Willkommen")')
+  if (await wizardModal.isVisible({ timeout: 2_000 }).catch(() => false)) {
+    await page.reload({ waitUntil: 'networkidle' })
+    await page.waitForSelector('.sw-admin-menu', { timeout: 15_000 })
+    const updateBtn2 = page.locator('button:has-text("Abbrechen"), button:has-text("Cancel")').first()
+    if (await updateBtn2.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      await updateBtn2.click()
+      await page.waitForTimeout(500)
+    }
+  }
 }
 
 export async function getMonduPaymentMethodIds(ctx: any, token: string): Promise<Record<string, string>> {
@@ -75,84 +113,203 @@ export function generateEmail(): string {
   return `ac.good.${rand}@example.com`
 }
 
-export async function registerAndCheckout(page: Page, email: string, paymentMethodName: RegExp): Promise<string> {
-  await page.goto(`${SHOP_URL}/account/register`)
-  await page.waitForSelector('select[name="accountType"]', { timeout: 15_000 })
+async function getStoreApiKey(): Promise<string> {
+  if (STORE_API_KEY) return STORE_API_KEY
+  const { token, ctx } = await getAdminToken()
+  const res = await ctx.post(`${SHOP_URL}/api/search/sales-channel`, {
+    headers: adminHeaders(token),
+    data: { filter: [{ type: 'equals', field: 'active', value: true }], limit: 5 },
+  })
+  const body = await res.json()
+  for (const sc of body.data || []) {
+    if (sc.accessKey) return sc.accessKey
+  }
+  throw new Error('No active sales channel found')
+}
 
-  const cookieBtn = page.locator('.cookie-permission-container .btn-primary, button:has-text("Only technically required"), button:has-text("Nur technisch erforderliche")')
+function storeApiHeaders(key: string) {
+  return { 'sw-access-key': key, Accept: 'application/json', 'Content-Type': 'application/json' }
+}
+
+export async function registerAndCheckout(page: Page, email: string, paymentMethodName: RegExp, countryIso: string = 'DE'): Promise<string> {
+  const apiKey = await getStoreApiKey()
+  const ctx = await playwrightRequest.newContext()
+
+  // Fetch salutation and country IDs via Store API
+  const [salRes, countryRes] = await Promise.all([
+    ctx.get(`${SHOP_URL}/store-api/salutation`, { headers: storeApiHeaders(apiKey) }),
+    ctx.post(`${SHOP_URL}/store-api/country`, {
+      headers: storeApiHeaders(apiKey),
+      data: { filter: [{ type: 'equals', field: 'iso', value: countryIso }], limit: 1 },
+    }),
+  ])
+  const salutations = (await salRes.json()).elements || []
+  const salutationId = salutations.find((s: any) => s.salutationKey !== 'not_specified')?.id || salutations[0]?.id
+  const countries = (await countryRes.json()).elements || []
+  const countryId = countries[0]?.id
+  if (!salutationId || !countryId) throw new Error(`Could not fetch salutation or country ID (${countryIso}) from Store API`)
+
+  // Register customer via Store API
+  const regRes = await ctx.post(`${SHOP_URL}/store-api/account/register`, {
+    headers: storeApiHeaders(apiKey),
+    data: {
+      email,
+      password: 'Shopware123!',
+      salutationId,
+      firstName: CUSTOMER_FIRST,
+      lastName: CUSTOMER_LAST,
+      storefrontUrl: SHOP_URL,
+      accountType: 'business',
+      billingAddress: {
+        salutationId,
+        firstName: CUSTOMER_FIRST,
+        lastName: CUSTOMER_LAST,
+        company: CUSTOMER_COMPANY,
+        street: CUSTOMER_STREET,
+        zipcode: CUSTOMER_ZIP,
+        city: CUSTOMER_CITY,
+        countryId,
+      },
+    },
+  })
+  if (!regRes.ok()) {
+    const body = await regRes.json().catch(() => ({}))
+    throw new Error(`Store API registration failed: ${JSON.stringify(body)}`)
+  }
+  await ctx.dispose()
+
+  // Log in via browser
+  await page.goto(`${SHOP_URL}/account/login`)
+  await page.waitForSelector('input[name="email"]', { timeout: 15_000 })
+
+  const cookieBtn = page.locator('button:has-text("Only technically required"), button:has-text("Nur technisch erforderliche")')
   if (await cookieBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
     await cookieBtn.click()
     await page.waitForTimeout(500)
   }
 
-  const registerForm = page.locator('.register-form, form[action*="register"]').last()
-  await registerForm.locator('select[name="accountType"]').selectOption('business')
-  await page.waitForTimeout(500)
+  await page.locator('#loginMail, input[name="email"]').first().fill(email)
+  await page.locator('#loginPassword, input[name="password"]').first().fill('Shopware123!')
+  await page.locator('form[action*="login"] button[type="submit"], .login-submit .btn-primary').first().click()
+  await page.waitForURL(/\/account/, { timeout: 30_000 })
 
-  const salutationSelect = registerForm.locator('select[name="salutationId"]')
-  if (await salutationSelect.isVisible({ timeout: 2_000 }).catch(() => false)) {
-    await salutationSelect.selectOption({ index: 1 })
+  if (page.url().includes('/account/login')) {
+    throw new Error(`Login failed for ${email}. URL: ${page.url()}`)
   }
 
-  const fnField = registerForm.locator('[name="firstName"], [name="billingAddress[firstName]"]').first()
-  await fnField.fill(CUSTOMER_FIRST)
-  const lnField = registerForm.locator('[name="lastName"], [name="billingAddress[lastName]"]').first()
-  await lnField.fill(CUSTOMER_LAST)
-
-  const companyField = registerForm.locator('[name="billingAddress[company]"]')
-  if (await companyField.isVisible({ timeout: 2_000 }).catch(() => false)) {
-    await companyField.fill(CUSTOMER_COMPANY)
-  }
-
-  const emailField = registerForm.locator('[name="email"]').last()
-  await emailField.fill(email)
-  await registerForm.locator('#personalPassword, [name="password"][autocomplete="new-password"], .register-form [name="password"]').last().fill('Shopware123!')
-
-  await registerForm.locator('[name="billingAddress[street]"]').fill(CUSTOMER_STREET)
-  await registerForm.locator('[name="billingAddress[zipcode]"]').fill(CUSTOMER_ZIP)
-  await registerForm.locator('[name="billingAddress[city]"]').fill(CUSTOMER_CITY)
-
-  const countrySelect = registerForm.locator('select[name="billingAddress[countryId]"]')
-  const options = countrySelect.locator('option')
-  const count = await options.count()
-  for (let i = 0; i < count; i++) {
-    const text = await options.nth(i).textContent()
-    if (text?.includes('Deutschland') || text?.includes('Germany')) {
-      await countrySelect.selectOption({ index: i })
-      break
-    }
-  }
-
-  await registerForm.locator('.register-submit button[type="submit"], .register-submit .btn-primary, button[type="submit"]:has-text("Continue")').click()
-  await page.waitForURL(/\/(account|checkout)/, { timeout: 30_000 })
-
+  // Add product to cart
   await page.goto(`${SHOP_URL}${PRODUCT_URL}`)
   await page.waitForSelector('.product-detail-buy', { timeout: 15_000 })
   await page.locator('.btn-buy').click()
-
   await page.waitForTimeout(2_000)
 
-  await page.goto(`${SHOP_URL}/checkout/confirm`)
+  // Navigate through checkout flow to initialize session
+  // Go to /checkout/register first (SW6 checkout identity step)
+  await page.goto(`${SHOP_URL}/checkout/register`)
   await page.waitForTimeout(2_000)
 
-  if (page.url().includes('/checkout/cart')) {
-    const checkoutLink = page.locator('a.begin-checkout-btn, a.btn-primary[href*="confirm"]').first()
-    if (await checkoutLink.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await checkoutLink.click()
+  // For a logged-in customer with billing address, /checkout/register should show
+  // the address confirmation step with a link to /checkout/confirm
+  if (page.url().includes('/checkout/register')) {
+    // Look for the direct link to confirm page
+    const confirmLink = page.locator('a[href*="/checkout/confirm"]').first()
+    const hasConfirmLink = await confirmLink.isVisible({ timeout: 8_000 }).catch(() => false)
+    if (hasConfirmLink) {
+      await confirmLink.click()
       await page.waitForURL('**/checkout/confirm**', { timeout: 15_000 })
+      await page.waitForTimeout(1_500)
+    } else {
+      // Fallback: navigate directly to confirm
+      await page.goto(`${SHOP_URL}/checkout/confirm`)
+      await page.waitForTimeout(2_000)
     }
   }
 
-  if (page.url().includes('/account/login') || page.url().includes('/account/register')) {
-    throw new Error(`Redirected to login — registration may have failed. URL: ${page.url()}`)
+  if (!page.url().includes('/checkout/confirm')) {
+    throw new Error(`Expected checkout/confirm, got: ${page.url()}`)
   }
 
   await page.waitForSelector('.confirm-main, .confirm-product-item, .checkout-container', { timeout: 15_000 })
 
-  const paymentOption = page.locator('.payment-method-input, .payment-method-radio').locator('..').locator('..').filter({ hasText: paymentMethodName })
-  if (await paymentOption.count() > 0) {
-    await paymentOption.first().locator('label, .payment-method-label').first().click()
-    await page.waitForTimeout(2_000)
+  // Debug: print all payment method labels visible on the page
+  const pmInputs = page.locator('input[name="paymentMethodId"], .payment-method-input, .payment-method-radio')
+  const pmCount = await pmInputs.count()
+  console.log(`Payment method inputs found: ${pmCount}`)
+  if (pmCount > 0) {
+    const pmLabels = await page.locator('.payment-method-label-name, .payment-method-label, label[for*="payment"]').allTextContents()
+    console.log('Payment method labels:', pmLabels)
+  }
+
+  // Switch payment method via Store API (browser context shares session cookie)
+  const switched = await page.evaluate(async (params: { shopUrl: string; apiKey: string; methodName: string }) => {
+    // Fetch available payment methods
+    const pmRes = await fetch(`${params.shopUrl}/store-api/payment-method?onlyAvailable=true`, {
+      headers: { 'sw-access-key': params.apiKey, 'Content-Type': 'application/json' },
+    }).catch(() => null)
+    if (!pmRes) return { ok: false, error: 'fetch failed', methods: [] }
+    const pmData = await pmRes.json().catch(() => ({}))
+    const methods = (pmData.elements || []).map((m: any) => ({ id: m.id, name: m.name, shortName: m.shortName || '' }))
+    console.log('Store API payment methods:', JSON.stringify(methods))
+
+    // Find Mondu invoice method (shortName: "mondu_handler", name: "Rechnungskauf (30 Tage)")
+    const monduMethod = methods.find((m: any) =>
+      m.shortName === 'mondu_handler' ||
+      /Rechnungskauf|Business net 30|Invoice.*Mondu/i.test(m.name)
+    )
+    if (!monduMethod) return { ok: false, error: 'Mondu invoice method not found', methods }
+
+    // Switch payment method
+    const switchRes = await fetch(`${params.shopUrl}/store-api/context`, {
+      method: 'PATCH',
+      headers: { 'sw-access-key': params.apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paymentMethodId: monduMethod.id }),
+    }).catch(() => null)
+    if (!switchRes) return { ok: false, error: 'context patch failed', methods }
+    const switchData = await switchRes.json().catch(() => ({}))
+    return { ok: switchRes.ok, status: switchRes.status, switchData, monduId: monduMethod.id, methods }
+  }, { shopUrl: SHOP_URL, apiKey: apiKey, methodName: 'Mondu' })
+
+  console.log('Payment method switch result:', JSON.stringify(switched))
+
+  const monduMethodId = (switched as any).ok ? (switched as any).monduId : null
+
+  if ((switched as any).ok) {
+    // Reload confirm page to get a fresh hash for the current cart state
+    await page.reload({ waitUntil: 'networkidle' })
+    await page.waitForSelector('.confirm-main, .confirm-product-item, .checkout-container', { timeout: 15_000 })
+  }
+
+  // SW6: payment method is changed via "changePaymentForm" (separate from the order submit form).
+  // We must select the Mondu radio and SUBMIT changePaymentForm, which updates the cart and regenerates the hash.
+  if (monduMethodId) {
+    const radioByValue = page.locator(`#changePaymentForm input[name="paymentMethodId"][value="${monduMethodId}"]`)
+    if (await radioByValue.count() > 0) {
+      // Select the Mondu radio
+      await radioByValue.first().click({ force: true })
+      // Find and submit the changePaymentForm
+      const changeFormSubmit = page.locator('#changePaymentForm button[type="submit"], #changePaymentForm [type="submit"]').first()
+      if (await changeFormSubmit.count() > 0) {
+        console.log('Submitting changePaymentForm to switch to Mondu')
+        await changeFormSubmit.click({ force: true })
+      } else {
+        // Fallback: submit the form programmatically
+        console.log('No submit button in changePaymentForm — submitting programmatically')
+        await page.evaluate((id: string) => {
+          const form = document.getElementById('changePaymentForm') as HTMLFormElement | null
+          if (form) {
+            const radio = form.querySelector(`input[value="${id}"]`) as HTMLInputElement | null
+            if (radio) radio.checked = true
+            form.submit()
+          }
+        }, monduMethodId)
+      }
+      // Wait for redirect back to /checkout/confirm with new hash
+      await page.waitForURL('**/checkout/confirm**', { timeout: 20_000 }).catch(() => {})
+      await page.waitForSelector('.confirm-main, .confirm-product-item, .checkout-container', { timeout: 15_000 })
+      console.log(`After payment switch, URL: ${page.url()}`)
+    } else {
+      console.log(`changePaymentForm radio not found for id=${monduMethodId}`)
+    }
   }
 
   const tosCheckbox = page.locator('#tos, input[name="tos"]')
