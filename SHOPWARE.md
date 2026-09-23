@@ -319,13 +319,11 @@ Visit [nginx localhost](http://www:localhost:80) it should open php version and 
 - If you want to change sandbox from demo to stage
 In file src/Components/PluginConfig/Service/ConfigService.php modify
 ```php
-const  SANDBOX_API_URL  =  'https://api.demo.mondu.ai/api/v1';
-const  SANDBOX_WIDGET_URL  =  'https://checkout.demo.mondu.ai/widget.js';
+public const SANDBOX_API_URL = 'https://api.demo.mondu.ai/api/v1';
 ```
 to
 ```php
-const  SANDBOX_API_URL  =  'https://api.demo.mondu.ai/api/v1';
-const  SANDBOX_WIDGET_URL  =  'https://checkout.demo.mondu.ai/widget.js';
+public const SANDBOX_API_URL = 'https://api.stage.mondu.ai/api/v1';
 ```
 - Create a release which needs uploaded to shopware
 ```bash

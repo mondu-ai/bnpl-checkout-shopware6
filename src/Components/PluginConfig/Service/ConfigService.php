@@ -14,9 +14,7 @@ use Shopware\Core\Framework\Api\Context\SystemSource;
 class ConfigService
 {
     public const API_URL = 'https://api.mondu.ai/api/v1';
-    public const WIDGET_URL = 'https://checkout.mondu.ai/widget.js';
     public const SANDBOX_API_URL = 'https://api.demo.mondu.ai/api/v1';
-    public const SANDBOX_WIDGET_URL = 'https://checkout.demo.mondu.ai/widget.js';
 
     /**
      * @var string|null
@@ -82,14 +80,6 @@ class ConfigService
     public function getBaseApiUrl(): string
     {
         return $this->isSandbox() ? self::SANDBOX_API_URL : self::API_URL;
-    }
-
-    /**
-     * @return string
-     */
-    public function getWidgetUrl(): string
-    {
-        return $this->isSandbox() ? self::SANDBOX_WIDGET_URL : self::WIDGET_URL;
     }
 
     /**
