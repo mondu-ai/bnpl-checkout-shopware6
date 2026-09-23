@@ -20,18 +20,32 @@ class CheckoutSubscriber implements EventSubscriberInterface
     public static function getSubscribedEvents(): array
     {
         return [
-            CheckoutConfirmPageLoadedEvent::class => 'addWidgetData',
-            AccountEditOrderPageLoadedEvent::class => 'addWidgetData'
+            CheckoutConfirmPageLoadedEvent::class => 'onPageLoaded',
+            AccountEditOrderPageLoadedEvent::class => 'onPageLoaded'
         ];
     }
 
-    public function addWidgetData(PageLoadedEvent $event): void
+    /**
+     * Guards the event type, then hands off to the payment-method filter.
+     *
+     * @throws \RuntimeException when dispatched for an unsupported event
+     */
+    public function onPageLoaded(PageLoadedEvent $event): void
     {
         if ($event instanceof CheckoutConfirmPageLoadedEvent === false && $event instanceof AccountEditOrderPageLoadedEvent === false) {
-            throw new \RuntimeException('method ' . __CLASS__ . '::' . __METHOD__ . ' does not supports a parameter of type' . get_class($event));
+            throw new \RuntimeException(__METHOD__ . ' does not support a parameter of type ' . get_class($event));
         }
 
         $this->filterPaymentMethods($event);
+    }
+
+    /**
+     * @deprecated Renamed to onPageLoaded(); kept so a container compiled before
+     *             the rename still resolves. Remove in the next major.
+     */
+    public function addWidgetData(PageLoadedEvent $event): void
+    {
+        $this->onPageLoaded($event);
     }
 
     public function filterPaymentMethods(PageLoadedEvent $event): void
