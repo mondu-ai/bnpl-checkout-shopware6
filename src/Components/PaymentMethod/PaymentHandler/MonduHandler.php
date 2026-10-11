@@ -27,6 +27,8 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\NotFilter;
 use Psr\Log\LoggerInterface;
+use Mondu\MonduPayment\Util\AddressLines;
+use Mondu\MonduPayment\Components\AsyncOrder\AsyncOrderStates;
 
 class MonduHandler extends AbstractPaymentHandler
 {
@@ -280,6 +282,8 @@ class MonduHandler extends AbstractPaymentHandler
 
     private function createOrder(PaymentTransactionStruct $transaction, Context $context): string
     {
+        $this->assertNotAsyncOrder($transaction, $context);
+
         $orderData = $this->getOrderData($transaction, $context);
         $orderTransaction = $this->getOrderTransaction($transaction->getOrderTransactionId(), $context);
         $order = $orderTransaction->getOrder();
@@ -368,23 +372,7 @@ class MonduHandler extends AbstractPaymentHandler
         $addressAdditionHandling2 = $this->configService->getHandlingAddressAdditionalField2();
 
         $billingAddress = $order->getBillingAddress();
-        $addressAddition1 = $billingAddress->getAdditionalAddressLine1();
-        $addressAddition2 = $billingAddress->getAdditionalAddressLine2();
-        $addressLine1 = $billingAddress->getStreet();
-        $addressLine2 = null;
-        $shippingAddressLine2 = null;
-
-        if ($addressAdditionHandling1 === 'addtoaddressline1' && !empty($addressAddition1)) {
-            $addressLine1 .= ' ' . $addressAddition1;
-        } elseif ($addressAdditionHandling1 === 'addtoaddressline2' && !empty($addressAddition1)) {
-            $addressLine2 = $addressAddition1;
-        }
-
-        if ($addressAdditionHandling2 === 'addtoaddressline2' && !empty($addressAddition2)) {
-            $addressLine2 .= ' ' . $addressAddition2;
-        } elseif ($addressAdditionHandling2 === 'addtoaddressline1' && !empty($addressAddition2)) {
-            $addressLine1 .= ' ' . $addressAddition2;
-        }
+        [$addressLine1, $addressLine2] = AddressLines::build($billingAddress, $addressAdditionHandling1, $addressAdditionHandling2);
 
         $shippingAddress = $order->getDeliveries()->first()?->getShippingOrderAddress();
         // Use billing address as fallback if shipping address is not available
@@ -406,21 +394,7 @@ class MonduHandler extends AbstractPaymentHandler
                     && $addressForShipping->getZipCode() === $billingAddress->getZipCode(),
             ]);
         }
-        $shippingAddressLine1 = $addressForShipping->getStreet();
-        $shippingAddressAddition1 = $addressForShipping->getAdditionalAddressLine1();
-        $shippingAddressAddition2 = $addressForShipping->getAdditionalAddressLine2();
-
-        if ($addressAdditionHandling1 === 'addtoaddressline1' && !empty($shippingAddressAddition1)) {
-            $shippingAddressLine1 .= ' ' . $shippingAddressAddition1;
-        } elseif ($addressAdditionHandling1 === 'addtoaddressline2' && !empty($shippingAddressAddition1)) {
-            $shippingAddressLine2 = $shippingAddressAddition1;
-        }
-
-        if ($addressAdditionHandling2 === 'addtoaddressline2' && !empty($shippingAddressAddition2)) {
-            $shippingAddressLine2 .= ' ' . $shippingAddressAddition2;
-        } elseif ($addressAdditionHandling2 === 'addtoaddressline1' && !empty($shippingAddressAddition2)) {
-            $shippingAddressLine1 .= ' ' . $shippingAddressAddition2;
-        }
+        [$shippingAddressLine1, $shippingAddressLine2] = AddressLines::build($addressForShipping, $addressAdditionHandling1, $addressAdditionHandling2);
 
         $orderData = [
             'currency' => $order->getCurrency()->getIsoCode(),
@@ -582,6 +556,25 @@ class MonduHandler extends AbstractPaymentHandler
     protected function isOrderConfirmed($confirmResponseState)
     {
         return in_array($confirmResponseState, [self::RESPONSE_STATE_CONFIRMED, self::RESPONSE_STATE_PENDING]);
+    }
+
+    /**
+     * An order created in the admin already went to Mondu through the async API, and Mondu
+     * asks the buyer to confirm it by email. Paying it again from the customer account
+     * (the order allows payment after placement) would create a second Mondu order.
+     */
+    private function assertNotAsyncOrder(PaymentTransactionStruct $transaction, Context $context): void
+    {
+        $criteria = new Criteria();
+        $criteria->addFilter(new EqualsFilter('order.transactions.id', $transaction->getOrderTransactionId()));
+        $criteria->addFilter(new EqualsFilter('orderFlow', AsyncOrderStates::FLOW_ASYNC));
+
+        if ($this->orderDataRepository->searchIds($criteria, $context)->getTotal() > 0) {
+            throw PaymentException::asyncProcessInterrupted(
+                $transaction->getOrderTransactionId(),
+                'This order was created in the admin and is already with Mondu. The buyer confirms it through the email Mondu sent.'
+            );
+        }
     }
 
     private function getOrderTransaction(string $transactionId, Context $context)
