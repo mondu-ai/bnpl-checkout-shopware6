@@ -1,15 +1,17 @@
 import template from './sw-order-detail-general.html.twig';
 
 const { Component } = Shopware;
+const { Criteria } = Shopware.Data;
 
 Component.override('sw-order-detail-general', {
     template,
-    inject: ['invoiceApiService'],
+    inject: ['invoiceApiService', 'repositoryFactory'],
     data() {
         return {
             monduAmountCents: null,
             monduCurrency: null,
             monduAmountLoading: false,
+            monduPaymentTerm: null,
         };
     },
     computed: {
@@ -38,11 +40,27 @@ Component.override('sw-order-detail-general', {
             handler(orderId) {
                 if (orderId && this.isMonduOrder) {
                     this.loadMonduAmount(orderId);
+                    this.loadMonduPaymentTerm(orderId);
                 }
             }
         }
     },
     methods: {
+        /**
+         * The net term Mondu authorized for the order, as stored from Mondu's answer.
+         */
+        loadMonduPaymentTerm(orderId) {
+            const criteria = new Criteria(1, 1);
+            criteria.addFilter(Criteria.equals('orderId', orderId));
+
+            this.repositoryFactory.create('mondu_order_data').search(criteria).then((result) => {
+                const duration = result.first()?.duration;
+                this.monduPaymentTerm = duration > 0 ? duration : null;
+            }).catch(() => {
+                this.monduPaymentTerm = null;
+            });
+        },
+
         loadMonduAmount(orderId) {
             this.monduAmountLoading = true;
             this.invoiceApiService.getMonduAmount(orderId).then((data) => {
