@@ -24,6 +24,8 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\NotFilter;
 use Mondu\MonduPayment\Components\PaymentMethod\Util\MethodHelper;
 use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 use Psr\Log\LoggerInterface;
+use Mondu\MonduPayment\Util\AddressLines;
+use Mondu\MonduPayment\Components\AsyncOrder\AsyncOrderStates;
 use Shopware\Core\System\Locale\LanguageLocaleCodeProvider;
 
 class MonduHandler implements AsynchronousPaymentHandlerInterface
@@ -272,6 +274,8 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
 
     private function createOrder(AsyncPaymentTransactionStruct $transaction, SalesChannelContext $salesChannelContext): string
     {
+        $this->assertNotAsyncOrder($transaction, $salesChannelContext);
+
         $orderData = $this->getOrderData($transaction, $salesChannelContext);
         $monduOrder = $this->monduClient->setSalesChannelId($salesChannelContext->getSalesChannelId())->createOrder($orderData);
 
@@ -291,6 +295,24 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         $this->saveEarlyOrderData($transaction, $monduOrder, $salesChannelContext);
 
         return $monduOrder['hosted_checkout_url'];
+    }
+
+    /**
+     * An order created in the admin already went to Mondu through the async API, and Mondu
+     * asks the buyer to confirm it by email. Paying it again from the customer account
+     * (the order allows payment after placement) would create a second Mondu order.
+     */
+    private function assertNotAsyncOrder(AsyncPaymentTransactionStruct $transaction, SalesChannelContext $salesChannelContext): void
+    {
+        $criteria = new Criteria();
+        $criteria->addFilter(new EqualsFilter('orderId', $transaction->getOrder()->getId()));
+        $criteria->addFilter(new EqualsFilter('orderFlow', AsyncOrderStates::FLOW_ASYNC));
+
+        if ($this->orderDataRepository->searchIds($criteria, $salesChannelContext->getContext())->getTotal() > 0) {
+            throw new \RuntimeException(
+                'This order was created in the admin and is already with Mondu. The buyer confirms it through the email Mondu sent.'
+            );
+        }
     }
 
     private function saveEarlyOrderData($transaction, $monduOrder, $salesChannelContext): void
@@ -360,40 +382,10 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         $addressAdditionHandling2 = $this->configService->getHandlingAddressAdditionalField2();
 
         $billingAddress = $order->getBillingAddress();
-        $addressAddition1 = $billingAddress->getAdditionalAddressLine1();
-        $addressAddition2 = $billingAddress->getAdditionalAddressLine2();   
-        $addressLine1 = $billingAddress->getStreet();
-        $addressLine2 = null;
-        $shippingAddressLine2 = null;
-
-        if ($addressAdditionHandling1 === 'addtoaddressline1' && !empty($addressAddition1)) {
-            $addressLine1 .= ' ' . $addressAddition1;
-        } elseif ($addressAdditionHandling1 === 'addtoaddressline2' && !empty($addressAddition1)) {
-            $addressLine2 = $addressAddition1;
-        }
-
-        if ($addressAdditionHandling2 === 'addtoaddressline2' && !empty($addressAddition2)) {
-            $addressLine2 .= ' ' . $addressAddition2;
-        } elseif ($addressAdditionHandling2 === 'addtoaddressline1' && !empty($addressAddition2)) {
-            $addressLine1 .= ' ' . $addressAddition2;
-        }
+        [$addressLine1, $addressLine2] = AddressLines::build($billingAddress, $addressAdditionHandling1, $addressAdditionHandling2);
 
         $shippingAddress = $order->getDeliveries()->getShippingAddress()->first();
-        $shippingAddressLine1 = $shippingAddress->getStreet();
-        $shippingAddressAddition1 = $shippingAddress->getAdditionalAddressLine1();
-        $shippingAddressAddition2 = $shippingAddress->getAdditionalAddressLine2();
-
-        if ($addressAdditionHandling1 === 'addtoaddressline1' && !empty($shippingAddressAddition1)) {
-            $shippingAddressLine1 .= ' ' . $shippingAddressAddition1;
-        } elseif ($addressAdditionHandling1 === 'addtoaddressline2' && !empty($shippingAddressAddition1)) {
-            $shippingAddressLine2 = $shippingAddressAddition1;
-        }
-
-        if ($addressAdditionHandling2 === 'addtoaddressline2' && !empty($shippingAddressAddition2)) {
-            $shippingAddressLine2 .= ' ' . $shippingAddressAddition2;
-        } elseif ($addressAdditionHandling2 === 'addtoaddressline1' && !empty($shippingAddressAddition2)) {
-            $shippingAddressLine1 .= ' ' . $shippingAddressAddition2;
-        }
+        [$shippingAddressLine1, $shippingAddressLine2] = AddressLines::build($shippingAddress, $addressAdditionHandling1, $addressAdditionHandling2);
 
         $orderData = [
             'currency' => $order->getCurrency()->getIsoCode(),

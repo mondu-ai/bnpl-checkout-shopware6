@@ -194,6 +194,20 @@
         </input-field>
 
         <input-field type="bool">
+            <name>backendOrdersEnabled</name>
+            <label>Enable orders created in the admin</label>
+            <label lang="de-DE">In der Administration erstellte Bestellungen aktivieren</label>
+            <label lang="nl-NL">In de beheeromgeving aangemaakte bestellingen inschakelen</label>
+            <label lang="fr-FR">Activer les commandes créées dans l'administration</label>
+
+            <defaultValue>0</defaultValue>
+            <helpText>Lets you pick a Mondu payment method when creating an order in the admin. Mondu assesses the order right away and asks the buyer to confirm it by email. Requires the async order source to be enabled for your Mondu account; if it is not, the methods stay hidden in the admin regardless of this setting.</helpText>
+            <helpText lang="de-DE">Ermöglicht die Auswahl einer Mondu-Zahlungsart beim Anlegen einer Bestellung in der Administration. Mondu prüft die Bestellung sofort und bittet den Käufer per E-Mail um Bestätigung. Dafür muss die Async-Bestellquelle in Ihrem Mondu-Konto aktiviert sein; andernfalls bleiben die Zahlungsarten in der Administration unabhängig von dieser Einstellung ausgeblendet.</helpText>
+            <helpText lang="nl-NL">Hiermee kunt u een Mondu-betaalmethode kiezen bij het aanmaken van een bestelling in de beheeromgeving. Mondu beoordeelt de bestelling direct en vraagt de koper deze per e-mail te bevestigen. Hiervoor moet de async-bestelbron in uw Mondu-account zijn ingeschakeld; anders blijven de betaalmethoden in de beheeromgeving verborgen, ongeacht deze instelling.</helpText>
+            <helpText lang="fr-FR">Permet de choisir un moyen de paiement Mondu lors de la création d'une commande dans l'administration. Mondu évalue la commande immédiatement et demande à l'acheteur de la confirmer par e-mail. La source de commande async doit être activée sur votre compte Mondu ; sinon, les moyens de paiement restent masqués dans l'administration quel que soit ce réglage.</helpText>
+        </input-field>
+
+        <input-field type="bool">
             <name>hideMonduForB2C</name>
             <label>Hide Mondu for B2C</label>
             <label lang="de-DE">Mondu für B2C ausblenden</label>

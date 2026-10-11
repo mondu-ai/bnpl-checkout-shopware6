@@ -323,6 +323,16 @@ class ConfigService
     }
 
     /**
+     * Whether the merchant switched on Mondu payment methods for orders created in the admin.
+     */
+    public function isBackendOrdersEnabled(): bool
+    {
+        $config = $this->getPluginConfiguration();
+
+        return (bool) ($config['backendOrdersEnabled'] ?? false);
+    }
+
+    /**
      * Whether to hide Mondu payment methods for private (B2C) customers when account type selection is available.
      */
     public function isHideMonduForB2CEnabled(): bool

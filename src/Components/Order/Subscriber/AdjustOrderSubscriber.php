@@ -94,6 +94,12 @@ class AdjustOrderSubscriber implements EventSubscriberInterface
                     return;
                 }
 
+                // An order created in the admin is written together with its Mondu data, and
+                // Mondu got exactly these amounts a moment ago: there is nothing to adjust.
+                if ($monduOrderEntity->isAsyncFlow()) {
+                    return;
+                }
+
                 if ($this->hasInvoices($orderId, $context)) {
                     return;
                 }
