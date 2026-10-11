@@ -1,0 +1,110 @@
+{% block mondu_async_order_fields %}
+<sw-card
+    class="mondu-async-order-fields"
+    position-identifier="mondu-async-order-fields"
+    :title="$tc('sw-order-mondu.asyncOrder.title')"
+>
+    <p class="mondu-async-order-fields__description">
+        {{ $tc('sw-order-mondu.asyncOrder.description') }}
+    </p>
+
+    <sw-alert
+        v-if="showNoNetTerms"
+        variant="error"
+        class="mondu-async-order-fields__no-net-terms"
+    >
+        {{ $tc('sw-order-mondu.asyncOrder.noNetTerms') }}
+    </sw-alert>
+
+    <sw-container
+        columns="1fr 1fr"
+        gap="0px 30px"
+    >
+        <sw-single-select
+            v-if="isVisible('net_term') && netTermOptions.length"
+            class="mondu-async-order-fields__net-term"
+            :value="values.net_term"
+            :options="netTermOptions"
+            :label="$tc('sw-order-mondu.asyncOrder.labelNetTerm')"
+            :required="isRequired('net_term')"
+            @update:value="onChange('net_term', $event)"
+        />
+
+        <sw-single-select
+            v-if="isVisible('number_of_installments')"
+            class="mondu-async-order-fields__number-of-installments"
+            :value="values.number_of_installments"
+            :options="installmentOptions"
+            :label="$tc('sw-order-mondu.asyncOrder.labelNumberOfInstallments')"
+            :required="isRequired('number_of_installments')"
+            @update:value="onChange('number_of_installments', $event)"
+        />
+
+        <sw-text-field
+            v-if="isVisible('iban')"
+            class="mondu-async-order-fields__iban"
+            :value="values.iban"
+            :label="$tc('sw-order-mondu.asyncOrder.labelIban')"
+            :required="isRequired('iban')"
+            @update:value="onChange('iban', $event)"
+        />
+
+        <sw-text-field
+            v-if="isVisible('account_holder')"
+            class="mondu-async-order-fields__account-holder"
+            :value="values.account_holder"
+            :label="$tc('sw-order-mondu.asyncOrder.labelAccountHolder')"
+            :required="isRequired('account_holder')"
+            @update:value="onChange('account_holder', $event)"
+        />
+
+        <sw-text-field
+            v-if="isVisible('registration_id')"
+            class="mondu-async-order-fields__registration-id"
+            :value="values.registration_id"
+            :label="$tc('sw-order-mondu.asyncOrder.labelRegistrationId')"
+            :help-text="config.registrationIdHint || null"
+            :required="isRequired('registration_id')"
+            @update:value="onChange('registration_id', $event)"
+        />
+
+        <sw-single-select
+            v-if="isVisible('legal_form_category')"
+            class="mondu-async-order-fields__legal-form-category"
+            :value="values.legal_form_category"
+            :options="legalFormCategoryOptions"
+            :label="$tc('sw-order-mondu.asyncOrder.labelLegalFormCategory')"
+            :required="isRequired('legal_form_category')"
+            @update:value="onChange('legal_form_category', $event)"
+        />
+
+        <sw-text-field
+            v-if="isVisible('owner_first_name')"
+            class="mondu-async-order-fields__owner-first-name"
+            :value="values.owner_first_name"
+            :label="$tc('sw-order-mondu.asyncOrder.labelOwnerFirstName')"
+            :required="isRequired('owner_first_name')"
+            @update:value="onChange('owner_first_name', $event)"
+        />
+
+        <sw-text-field
+            v-if="isVisible('owner_last_name')"
+            class="mondu-async-order-fields__owner-last-name"
+            :value="values.owner_last_name"
+            :label="$tc('sw-order-mondu.asyncOrder.labelOwnerLastName')"
+            :required="isRequired('owner_last_name')"
+            @update:value="onChange('owner_last_name', $event)"
+        />
+
+        <sw-datepicker
+            v-if="isVisible('owner_birth_date')"
+            class="mondu-async-order-fields__owner-birth-date"
+            date-type="date"
+            :value="values.owner_birth_date || null"
+            :label="$tc('sw-order-mondu.asyncOrder.labelOwnerBirthDate')"
+            :required="isRequired('owner_birth_date')"
+            @update:value="onBirthDateChange"
+        />
+    </sw-container>
+</sw-card>
+{% endblock %}
