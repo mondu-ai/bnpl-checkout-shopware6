@@ -10,7 +10,9 @@ const { Component } = Shopware;
 Component.override('sw-order-create', {
   methods: {
     async onSaveOrder() {
-      if (asyncOrderState.pendingSave) {
+      if (asyncOrderState.flush) {
+        await asyncOrderState.flush();
+      } else if (asyncOrderState.pendingSave) {
         await asyncOrderState.pendingSave;
       }
 

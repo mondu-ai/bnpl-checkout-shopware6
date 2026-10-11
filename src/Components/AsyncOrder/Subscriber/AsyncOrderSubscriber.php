@@ -125,7 +125,9 @@ class AsyncOrderSubscriber implements EventSubscriberInterface
                 'response' => $result['body'],
             ]);
 
-            throw new MonduException(AsyncOrderErrorFormatter::format($result['body']));
+            throw new MonduException($result['status'] === 0
+                ? AsyncOrderErrorFormatter::UNREACHABLE
+                : AsyncOrderErrorFormatter::format($result['body']));
         }
 
         $this->logger->info('mondu.INFO: Mondu async order created for an order created in the admin', [

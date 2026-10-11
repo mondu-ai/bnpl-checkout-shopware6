@@ -12,6 +12,11 @@ namespace Mondu\MonduPayment\Components\AsyncOrder;
  */
 final class AsyncOrderErrorFormatter
 {
+    /**
+     * Shown when Mondu did not answer at all (no HTTP status).
+     */
+    public const UNREACHABLE = 'Mondu: the payment service could not be reached. The order was not created, please try again.';
+
     private const FIELD_LABELS = [
         'net_term' => 'Net term (days)',
         'number_of_installments' => 'Number of installments',

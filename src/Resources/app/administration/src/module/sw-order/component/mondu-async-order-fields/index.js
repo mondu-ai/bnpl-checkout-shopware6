@@ -102,8 +102,19 @@ Component.register('mondu-async-order-fields', {
     },
   },
 
+  created() {
+    this.flushHandler = () => this.flush();
+    asyncOrderState.flush = this.flushHandler;
+  },
+
   beforeUnmount() {
-    this.flush();
+    clearTimeout(this.saveTimer);
+
+    // The values were saved as they changed. A form that goes away (another payment method was
+    // picked) must not save again, it would overwrite what the new form holds.
+    if (asyncOrderState.flush === this.flushHandler) {
+      asyncOrderState.flush = null;
+    }
   },
 
   methods: {
@@ -121,7 +132,12 @@ Component.register('mondu-async-order-fields', {
      * the buyer is a sole trader.
      */
     applyDefaults() {
-      const values = { ...(this.config.values || {}), ...this.values };
+      if (asyncOrderState.contextToken !== this.contextToken) {
+        asyncOrderState.contextToken = this.contextToken;
+        asyncOrderState.values = {};
+      }
+
+      const values = { ...(this.config.values || {}), ...asyncOrderState.values, ...this.values };
 
       const netTerms = (this.config.netTerms || []).map(String);
       if (this.isVisible('net_term') && !netTerms.includes(values.net_term) && this.config.defaultNetTerm) {
@@ -130,7 +146,7 @@ Component.register('mondu-async-order-fields', {
 
       this.values = values;
       this.fillOwnerName();
-      this.scheduleSave(0);
+      this.flush();
     },
 
     fillOwnerName() {
@@ -147,6 +163,7 @@ Component.register('mondu-async-order-fields', {
 
     onChange(field, value) {
       this.values = { ...this.values, [field]: value ?? '' };
+      asyncOrderState.values = { ...asyncOrderState.values, [field]: value ?? '' };
 
       if (field === 'legal_form_category') {
         this.fillOwnerName();
