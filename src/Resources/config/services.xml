@@ -140,6 +140,23 @@
             <argument type="service" id="monolog.logger.mondu"/>
         </service>
 
+        <service id="Mondu\MonduPayment\Components\Order\Service\PaymentChangeLock">
+            <argument type="service" id="order.repository"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\Order\Decorator\SetPaymentOrderRouteDecorator"
+                 decorates="Shopware\Core\Checkout\Order\SalesChannel\SetPaymentOrderRoute">
+            <argument type="service" id="Mondu\MonduPayment\Components\Order\Decorator\SetPaymentOrderRouteDecorator.inner"/>
+            <argument type="service" id="Mondu\MonduPayment\Components\Order\Service\PaymentChangeLock"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\Order\Decorator\OrderRouteDecorator"
+                 decorates="Shopware\Core\Checkout\Order\SalesChannel\OrderRoute">
+            <argument type="service" id="Mondu\MonduPayment\Components\Order\Decorator\OrderRouteDecorator.inner"/>
+            <argument type="service" id="Mondu\MonduPayment\Components\Order\Service\PaymentChangeLock"/>
+        </service>
+
+
         <service id="Mondu\MonduPayment\Components\Order\Subscriber\AdjustOrderSubscriber" >
             <tag name="kernel.event_subscriber" />
             <argument key="$stateMachineRegistry" type="service" id="Shopware\Core\System\StateMachine\StateMachineRegistry"/>
