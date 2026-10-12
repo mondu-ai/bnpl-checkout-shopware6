@@ -1,6 +1,6 @@
 import { test, expect, request as playwrightRequest, type Page, type Locator } from '@playwright/test'
 import { createHmac, randomUUID } from 'node:crypto'
-import { SHOP_URL, getAdminToken, adminHeaders, adminLogin } from './helpers'
+import { SHOP_URL, getAdminToken, adminHeaders, adminLogin, registerAndCheckout } from './helpers'
 
 /**
  * PT-5129: orders the merchant creates in the admin go to Mondu through the async API.
@@ -222,6 +222,38 @@ async function payFromAccount(a: Api, store: Record<string, string>, id: string)
   return String((await pay.json()).redirectUrl ?? '')
 }
 
+/**
+ * What the buyer's account says about changing the payment method of an order: whether the
+ * order list marks it changeable, and the answer to an actual change to the given method.
+ */
+async function tryPaymentChange(
+  a: Api,
+  store: Record<string, string>,
+  id: string,
+  paymentMethodId: string,
+): Promise<{ changeable: boolean; status: number; body: string }> {
+  const orders = await a.ctx.post(`${SHOP_URL}/store-api/order?checkPromotion=true`, {
+    headers: store,
+    data: { filter: [{ type: 'equals', field: 'id', value: id }], checkPromotion: true },
+  })
+  expect(orders.status(), await orders.text()).toBe(200)
+  const changeable = (await orders.json()).paymentChangeable?.[id] ?? true
+
+  const change = await a.ctx.post(`${SHOP_URL}/store-api/order/payment`, {
+    headers: store,
+    data: { orderId: id, paymentMethodId },
+  })
+  return { changeable, status: change.status(), body: await change.text() }
+}
+
+async function monduInvoiceMethodId(a: Api): Promise<string> {
+  const [invoice] = await search(a, 'payment-method', {
+    filter: [{ type: 'suffix', field: 'handlerIdentifier', value: '\\MonduHandler' }],
+    limit: 1,
+  })
+  return invoice.id
+}
+
 /** Opens the order-create page for the customer with the payment method chosen in the start dialog. */
 async function startAdminOrder(page: Page, customerNumber: string, paymentMethod: RegExp | null): Promise<string[]> {
   await page.goto(`${SHOP_URL}/admin#/sw/order/create/initial`)
@@ -407,6 +439,8 @@ test.describe.serial('PT-5129 — Mondu orders created in the admin (async API)'
   let uuid = ''
   let email = ''
   let declinedOrderId = ''
+  let sepaOrderId = ''
+  let sepaBuyer = ''
 
   test.beforeAll(async () => {
     a = await api()
@@ -583,6 +617,8 @@ test.describe.serial('PT-5129 — Mondu orders created in the admin (async API)'
     await saveOrder(page)
 
     const order = await findOrder(a, buyer)
+    sepaOrderId = order.id
+    sepaBuyer = buyer
     const monduOrder = await getMonduOrder(a, (await monduData(a, order.id)).referenceId)
     expect(monduOrder.payment_method).toBe('direct_debit')
     expect(monduOrder.buyer.iban).toBe('DE02120300000000202051')
@@ -590,6 +626,61 @@ test.describe.serial('PT-5129 — Mondu orders created in the admin (async API)'
 
     await openOrder(page, order.id)
     await expect(page.getByText(/Zahlungsprüfung \(Mondu\)|Payment review \(Mondu\)/).first()).toBeVisible({ timeout: 30_000 })
+  })
+
+  test('the buyer cannot switch the payment method of an order Mondu has not decided on', async () => {
+    expect(sepaOrderId, 'needs the order of the previous test').toBeTruthy()
+    const store = await storeLogin(a, sepaBuyer)
+    const invoiceId = await monduInvoiceMethodId(a)
+
+    // In "Payment review" Shopware itself refuses the change.
+    const review = await tryPaymentChange(a, store, sepaOrderId, invoiceId)
+    expect(review.changeable).toBe(false)
+    expect(review.status, review.body).toBe(403)
+
+    // Open again (as before Mondu's first answer), Shopware alone would allow it; the plugin does not.
+    const reopen = await transition(a, 'order_transaction', (await findOrder(a, sepaBuyer)).transactions[0].id, 'reopen')
+    expect(reopen.status, reopen.body).toBe(200)
+    expect((await orderStates(a, sepaOrderId)).transaction).toBe('open')
+
+    const open = await tryPaymentChange(a, store, sepaOrderId, invoiceId)
+    expect(open.changeable).toBe(false)
+    expect(open.status, open.body).toBe(403)
+    expect(open.body).toMatch(/CHECKOUT__ORDER_PAYMENT_METHOD_NOT_CHANGEABLE/)
+    expect((await orderStates(a, sepaOrderId)).transaction).toBe('open')
+  })
+
+  test('while Mondu reviews a storefront order the buyer cannot switch its payment method', async ({ page }) => {
+    test.setTimeout(240_000)
+    const buyer = `pending.good.${Date.now()}@example.com`
+    await registerAndCheckout(page, buyer, INVOICE)
+
+    const order = await findOrder(a, buyer)
+    expect(order, 'the storefront order was placed').toBeTruthy()
+    expect((await monduData(a, order.id)).orderFlow).not.toBe('async')
+    await expect.poll(async () => (await orderStates(a, order.id)).transaction, { timeout: 60_000 }).toBe('unconfirmed')
+
+    // Shopware allows changing an unconfirmed payment; for a Mondu order under review it is refused.
+    const salesChannel = await storefrontChannel(a)
+    const login = await a.ctx.post(`${SHOP_URL}/store-api/account/login`, {
+      headers: { 'sw-access-key': salesChannel.accessKey, Accept: 'application/json', 'Content-Type': 'application/json' },
+      data: { username: buyer, password: 'Shopware123!' },
+    })
+    expect(login.status(), await login.text()).toBe(200)
+    const store = {
+      'sw-access-key': salesChannel.accessKey,
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'sw-context-token': login.headers()['sw-context-token'],
+    }
+    const change = await tryPaymentChange(a, store, order.id, await monduInvoiceMethodId(a))
+    expect(change.changeable).toBe(false)
+    expect(change.status, change.body).toBe(403)
+
+    // The account page says so instead of offering the payment methods.
+    await page.goto(`${SHOP_URL}/account/order/edit/${order.id}`)
+    await expect(page.getByText(/bereits bearbeitet|already being processed/).first()).toBeVisible({ timeout: 30_000 })
+    expect((await orderStates(a, order.id)).transaction).toBe('unconfirmed')
   })
 
   test('an installment order goes to Mondu with the chosen plan and bank account', async ({ page }) => {
@@ -800,13 +891,9 @@ test.describe.serial('PT-5129 — Mondu orders created in the admin (async API)'
     const store = await storeLogin(a, 'declined@example.com')
 
     // A failed payment may be retried: the buyer picks a method again, and Shopware runs it.
-    const [invoice] = await search(a, 'payment-method', {
-      filter: [{ type: 'suffix', field: 'handlerIdentifier', value: '\\MonduHandler' }],
-      limit: 1,
-    })
     const change = await a.ctx.post(`${SHOP_URL}/store-api/order/payment`, {
       headers: store,
-      data: { orderId: declinedOrderId, paymentMethodId: invoice.id },
+      data: { orderId: declinedOrderId, paymentMethodId: await monduInvoiceMethodId(a) },
     })
     expect(change.status(), await change.text()).toBe(200)
 
