@@ -29,6 +29,10 @@ class AsyncOrderErrorFormatterTest extends TestCase
             'net term is not available',
             AsyncOrderErrorFormatter::format(['errors' => [['name' => 'net_term', 'details' => 'net term not available']]])
         );
+        static::assertStringContainsString(
+            'number of installments is not available for this buyer',
+            AsyncOrderErrorFormatter::format(['errors' => [['name' => 'number_of_installments', 'details' => 'is invalid']]])
+        );
     }
 
     public function testUnknownErrorsArePassedOnAndAnEmptyAnswerStillSaysSomething(): void
