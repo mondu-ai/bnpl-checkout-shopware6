@@ -87,6 +87,11 @@ final class AsyncOrderErrorFormatter
         if ($name === 'net_term' && str_contains($details, 'not available')) {
             return 'The selected net term is not available for this buyer. Please choose a different one.';
         }
+        // The plan exists (other counts get "must be one of: ..."), but not for this buyer:
+        // Mondu answers that for a country the merchant has no installments for.
+        if ($name === 'number_of_installments' && $details === 'is invalid') {
+            return 'The selected number of installments is not available for this buyer. Please choose a different one or another payment method.';
+        }
         if ($name === 'currency' && str_contains($details, 'not supported')) {
             return 'The order currency is not supported by Mondu.';
         }

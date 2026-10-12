@@ -309,6 +309,11 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         $criteria->addFilter(new EqualsFilter('orderFlow', AsyncOrderStates::FLOW_ASYNC));
 
         if ($this->orderDataRepository->searchIds($criteria, $salesChannelContext->getContext())->getTotal() > 0) {
+            $this->logger->warning('mondu.WARNING: Payment of an order created in the admin refused, the order is already with Mondu', [
+                'order_id' => $transaction->getOrder()->getId(),
+                'order_number' => $transaction->getOrder()->getOrderNumber(),
+            ]);
+
             throw new \RuntimeException(
                 'This order was created in the admin and is already with Mondu. The buyer confirms it through the email Mondu sent.'
             );
