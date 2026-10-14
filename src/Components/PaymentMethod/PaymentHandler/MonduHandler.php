@@ -21,9 +21,12 @@ use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\NotFilter;
+use Mondu\MonduPayment\Components\Checkout\Service\NetTermOfferService;
 use Mondu\MonduPayment\Components\PaymentMethod\Util\MethodHelper;
 use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 use Psr\Log\LoggerInterface;
+use Mondu\MonduPayment\Util\AddressLines;
+use Mondu\MonduPayment\Components\AsyncOrder\AsyncOrderStates;
 use Shopware\Core\System\Locale\LanguageLocaleCodeProvider;
 
 class MonduHandler implements AsynchronousPaymentHandlerInterface
@@ -41,6 +44,11 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
      */
     const SUPPORTED_LANGUAGES = ['de', 'en', 'nl', 'fr', 'el'];
 
+    /**
+     * Checkout form field carrying the net term the buyer picked.
+     */
+    public const NET_TERM_FIELD = 'monduNetTerm';
+
     public function __construct(
         private readonly OrderTransactionStateHandler $transactionStateHandler,
         private readonly MonduClient $monduClient,
@@ -50,7 +58,8 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         private readonly AbstractOrderLinesService $orderLinesService,
         private readonly LoggerInterface $logger,
         private readonly EventDispatcherInterface $eventDispatcher,
-        private readonly LanguageLocaleCodeProvider $languageLocaleProvider
+        private readonly LanguageLocaleCodeProvider $languageLocaleProvider,
+        private readonly NetTermOfferService $netTermOfferService
     ) {}
 
     /**
@@ -59,7 +68,7 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
     public function pay(AsyncPaymentTransactionStruct $transaction, RequestDataBag $dataBag, SalesChannelContext $salesChannelContext): RedirectResponse
     {
         try {
-            $redirectUrl = $this->createOrder($transaction, $salesChannelContext);
+            $redirectUrl = $this->createOrder($transaction, $salesChannelContext, $dataBag->get(self::NET_TERM_FIELD));
         } catch (\Exception $e) {
             throw new AsyncPaymentProcessException(
                 $transaction->getOrderTransaction()->getId(),
@@ -270,9 +279,11 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         }
     }
 
-    private function createOrder(AsyncPaymentTransactionStruct $transaction, SalesChannelContext $salesChannelContext): string
+    private function createOrder(AsyncPaymentTransactionStruct $transaction, SalesChannelContext $salesChannelContext, mixed $requestedNetTerm = null): string
     {
-        $orderData = $this->getOrderData($transaction, $salesChannelContext);
+        $this->assertNotAsyncOrder($transaction, $salesChannelContext);
+
+        $orderData = $this->getOrderData($transaction, $salesChannelContext, $requestedNetTerm);
         $monduOrder = $this->monduClient->setSalesChannelId($salesChannelContext->getSalesChannelId())->createOrder($orderData);
 
         if ($monduOrder === null || !isset($monduOrder['hosted_checkout_url'])) {
@@ -288,12 +299,38 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
             );
         }
 
-        $this->saveEarlyOrderData($transaction, $monduOrder, $salesChannelContext);
+        $this->saveEarlyOrderData($transaction, $monduOrder, $salesChannelContext, $orderData['net_term'] ?? 0);
 
         return $monduOrder['hosted_checkout_url'];
     }
 
-    private function saveEarlyOrderData($transaction, $monduOrder, $salesChannelContext): void
+    /**
+     * An order created in the admin already went to Mondu through the async API, and Mondu
+     * asks the buyer to confirm it by email. Paying it again from the customer account
+     * (the order allows payment after placement) would create a second Mondu order.
+     */
+    private function assertNotAsyncOrder(AsyncPaymentTransactionStruct $transaction, SalesChannelContext $salesChannelContext): void
+    {
+        $criteria = new Criteria();
+        $criteria->addFilter(new EqualsFilter('orderId', $transaction->getOrder()->getId()));
+        $criteria->addFilter(new EqualsFilter('orderFlow', AsyncOrderStates::FLOW_ASYNC));
+
+        if ($this->orderDataRepository->searchIds($criteria, $salesChannelContext->getContext())->getTotal() > 0) {
+            $this->logger->warning('mondu.WARNING: Payment of an order created in the admin refused, the order is already with Mondu', [
+                'order_id' => $transaction->getOrder()->getId(),
+                'order_number' => $transaction->getOrder()->getOrderNumber(),
+            ]);
+
+            throw new \RuntimeException(
+                'This order was created in the admin and is already with Mondu. The buyer confirms it through the email Mondu sent.'
+            );
+        }
+    }
+
+    /**
+     * @param int $netTerm The term the buyer picked, shown to the merchant until Mondu authorizes one.
+     */
+    private function saveEarlyOrderData($transaction, $monduOrder, $salesChannelContext, int $netTerm = 0): void
     {
         try {
             $order = $transaction->getOrder();
@@ -315,7 +352,7 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
                     OrderDataEntity::FIELD_EXTERNAL_REFERENCE_ID => $monduOrder['external_reference_id'] ?? null,
                     OrderDataEntity::FIELD_ORDER_STATE => $monduOrder['state'] ?? 'pending',
                     OrderDataEntity::FIELD_VIBAN => null,
-                    OrderDataEntity::FIELD_DURATION => 0,
+                    OrderDataEntity::FIELD_DURATION => $netTerm,
                     OrderDataEntity::FIELD_IS_SUCCESSFUL => false,
                 ]
             ], $salesChannelContext->getContext());
@@ -335,7 +372,7 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         }
     }
 
-    protected function getOrderData(AsyncPaymentTransactionStruct $transaction, SalesChannelContext $salesChannelContext)
+    protected function getOrderData(AsyncPaymentTransactionStruct $transaction, SalesChannelContext $salesChannelContext, mixed $requestedNetTerm = null)
     {
         $order = $transaction->getOrder();
         $returnUrl = $transaction->getReturnUrl();
@@ -360,40 +397,10 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         $addressAdditionHandling2 = $this->configService->getHandlingAddressAdditionalField2();
 
         $billingAddress = $order->getBillingAddress();
-        $addressAddition1 = $billingAddress->getAdditionalAddressLine1();
-        $addressAddition2 = $billingAddress->getAdditionalAddressLine2();   
-        $addressLine1 = $billingAddress->getStreet();
-        $addressLine2 = null;
-        $shippingAddressLine2 = null;
-
-        if ($addressAdditionHandling1 === 'addtoaddressline1' && !empty($addressAddition1)) {
-            $addressLine1 .= ' ' . $addressAddition1;
-        } elseif ($addressAdditionHandling1 === 'addtoaddressline2' && !empty($addressAddition1)) {
-            $addressLine2 = $addressAddition1;
-        }
-
-        if ($addressAdditionHandling2 === 'addtoaddressline2' && !empty($addressAddition2)) {
-            $addressLine2 .= ' ' . $addressAddition2;
-        } elseif ($addressAdditionHandling2 === 'addtoaddressline1' && !empty($addressAddition2)) {
-            $addressLine1 .= ' ' . $addressAddition2;
-        }
+        [$addressLine1, $addressLine2] = AddressLines::build($billingAddress, $addressAdditionHandling1, $addressAdditionHandling2);
 
         $shippingAddress = $order->getDeliveries()->getShippingAddress()->first();
-        $shippingAddressLine1 = $shippingAddress->getStreet();
-        $shippingAddressAddition1 = $shippingAddress->getAdditionalAddressLine1();
-        $shippingAddressAddition2 = $shippingAddress->getAdditionalAddressLine2();
-
-        if ($addressAdditionHandling1 === 'addtoaddressline1' && !empty($shippingAddressAddition1)) {
-            $shippingAddressLine1 .= ' ' . $shippingAddressAddition1;
-        } elseif ($addressAdditionHandling1 === 'addtoaddressline2' && !empty($shippingAddressAddition1)) {
-            $shippingAddressLine2 = $shippingAddressAddition1;
-        }
-
-        if ($addressAdditionHandling2 === 'addtoaddressline2' && !empty($shippingAddressAddition2)) {
-            $shippingAddressLine2 .= ' ' . $shippingAddressAddition2;
-        } elseif ($addressAdditionHandling2 === 'addtoaddressline1' && !empty($shippingAddressAddition2)) {
-            $shippingAddressLine1 .= ' ' . $shippingAddressAddition2;
-        }
+        [$shippingAddressLine1, $shippingAddressLine2] = AddressLines::build($shippingAddress, $addressAdditionHandling1, $addressAdditionHandling2);
 
         $orderData = [
             'currency' => $order->getCurrency()->getIsoCode(),
@@ -421,6 +428,17 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
             ],
             'lines' => $this->orderLinesService->getLines($order, $salesChannelContext->getContext())
         ];
+
+        $netTerm = $this->netTermOfferService->resolve(
+            $salesChannelContext->getSalesChannelId(),
+            $paymentMethod,
+            $billingAddress->getCountry()?->getIso(),
+            $requestedNetTerm
+        );
+
+        if ($netTerm !== null) {
+            $orderData['net_term'] = $netTerm;
+        }
 
         $language = $this->resolveLanguageCode($order);
 
