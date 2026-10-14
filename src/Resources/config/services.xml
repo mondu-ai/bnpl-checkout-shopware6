@@ -30,6 +30,7 @@
             <argument key="$orderTransactionRepository" type="service" id="order_transaction.repository"/>
             <argument key="$logger" type="service" id="monolog.logger.mondu"/>
             <argument key="$eventDispatcher" type="service" id="event_dispatcher"/>
+            <argument key="$netTermOfferService" type="service" id="Mondu\MonduPayment\Components\Checkout\Service\NetTermOfferService"/>
             <tag name="shopware.payment.method" />
         </service>
 
@@ -44,6 +45,7 @@
             <argument key="$orderTransactionRepository" type="service" id="order_transaction.repository"/>
             <argument key="$logger" type="service" id="monolog.logger.mondu"/>
             <argument key="$eventDispatcher" type="service" id="event_dispatcher"/>
+            <argument key="$netTermOfferService" type="service" id="Mondu\MonduPayment\Components\Checkout\Service\NetTermOfferService"/>
             <tag name="shopware.payment.method" />
         </service>
 
@@ -58,6 +60,7 @@
             <argument key="$orderTransactionRepository" type="service" id="order_transaction.repository"/>
             <argument key="$logger" type="service" id="monolog.logger.mondu"/>
             <argument key="$eventDispatcher" type="service" id="event_dispatcher"/>
+            <argument key="$netTermOfferService" type="service" id="Mondu\MonduPayment\Components\Checkout\Service\NetTermOfferService"/>
             <tag name="shopware.payment.method" />
         </service>
 
@@ -72,6 +75,7 @@
             <argument key="$orderTransactionRepository" type="service" id="order_transaction.repository"/>
             <argument key="$logger" type="service" id="monolog.logger.mondu"/>
             <argument key="$eventDispatcher" type="service" id="event_dispatcher"/>
+            <argument key="$netTermOfferService" type="service" id="Mondu\MonduPayment\Components\Checkout\Service\NetTermOfferService"/>
             <tag name="shopware.payment.method" />
         </service>
 
@@ -86,6 +90,7 @@
             <argument key="$orderTransactionRepository" type="service" id="order_transaction.repository"/>
             <argument key="$logger" type="service" id="monolog.logger.mondu"/>
             <argument key="$eventDispatcher" type="service" id="event_dispatcher"/>
+            <argument key="$netTermOfferService" type="service" id="Mondu\MonduPayment\Components\Checkout\Service\NetTermOfferService"/>
             <tag name="shopware.payment.method" />
         </service>
 
@@ -119,9 +124,15 @@
             <argument key="$logger" type="service" id="monolog.logger.mondu"/>
         </service>
 
+        <service id="Mondu\MonduPayment\Components\Checkout\Service\NetTermOfferService">
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
+            <argument key="$paymentTermsService" type="service" id="Mondu\MonduPayment\Components\AsyncOrder\Service\PaymentTermsService"/>
+        </service>
+
         <service id="Mondu\MonduPayment\Components\Checkout\Subscriber\CheckoutSubscriber" >
             <tag name="kernel.event_subscriber" />
             <argument key="$paymentMethodFilterService" type="service" id="Mondu\MonduPayment\Components\Checkout\Service\PaymentMethodFilterService"/>
+            <argument key="$netTermOfferService" type="service" id="Mondu\MonduPayment\Components\Checkout\Service\NetTermOfferService"/>
         </service>
 
         <service id="Mondu\MonduPayment\Components\Checkout\Decorator\CheckoutGatewayRouteDecorator"

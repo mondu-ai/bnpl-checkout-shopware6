@@ -15,6 +15,12 @@
     "mondu": {
         "account": {
             "externalPaymentDeclined": "We have received your order, but the payment was declined. Please change your payment method or try again."
+        },
+        "checkout": {
+            "netTerm": {
+                "label": "Payment term",
+                "days": "%days% days"
+            }
         }
     }
 }

@@ -130,6 +130,15 @@ final class AsyncOrderFields
     ];
 
     /**
+     * Mondu payment methods an order can carry a net term for.
+     *
+     * Kept apart from REQUIRED_BY_METHOD: that lists what the async API demands, and
+     * pay now does not demand a term but does accept one (3 days on the test account).
+     * Both installment methods refuse any term with a 422.
+     */
+    public const NET_TERM_METHODS = ['invoice', 'direct_debit', 'pay_now'];
+
+    /**
      * Payment methods the admin may not create an order with.
      *
      * Pay now is left out of admin orders, as in the Magento module.

@@ -9,17 +9,27 @@ use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 use Psr\Cache\CacheItemPoolInterface;
 
 /**
- * Net terms the merchant may offer on an order created in the admin.
+ * Net terms the merchant may offer, read from GET /api/v1/payment_terms.
  *
- * Read from GET /api/v1/payment_terms?source=async. Without the source the API merges
- * the terms of every order source the merchant has, and the admin would offer a term
- * the merchant only holds for the storefront, which Mondu then refuses with
- * "net term not available". The list is narrowed to the buyer's country here, the
- * same way the Magento module does it.
+ * The read is always scoped to one order source. Without it the API merges the terms
+ * of every order source the merchant has, and a form would offer a term the merchant
+ * only holds for another flow, which Mondu then refuses with "net term not available".
+ * The payment method narrows it further: the terms differ per method, and order
+ * creation validates the term against the source, the method and the buyer's country.
+ * The country is narrowed here, the same way the Magento module does it.
  */
 class PaymentTermsService
 {
+    /**
+     * Orders created in the admin, through POST /orders/create_async.
+     */
     public const SOURCE_ASYNC = 'async';
+
+    /**
+     * Storefront checkout. The API has no separate "hosted" source: a hosted checkout
+     * order is looked up as a widget order.
+     */
+    public const SOURCE_WIDGET = 'widget';
 
     /**
      * Preselected whenever the merchant may use it.
@@ -42,13 +52,20 @@ class PaymentTermsService
      * terms of other countries: the API validates the term against the buyer's country,
      * so offering another country's term only produces a 422 later on.
      *
+     * @param string $source One of SOURCE_ASYNC, SOURCE_WIDGET
+     * @param string|null $paymentMethod Mondu payment method, e.g. "invoice"
+     *
      * @return int[]
      */
-    public function getNetTerms(?string $salesChannelId, ?string $countryCode): array
-    {
+    public function getNetTerms(
+        ?string $salesChannelId,
+        ?string $countryCode,
+        string $source = self::SOURCE_ASYNC,
+        ?string $paymentMethod = null
+    ): array {
         $netTerms = [];
 
-        foreach ($this->getPaymentTerms($salesChannelId) as $term) {
+        foreach ($this->getPaymentTerms($salesChannelId, $source, $paymentMethod) as $term) {
             if (!isset($term['net_term'])) {
                 continue;
             }
@@ -97,20 +114,31 @@ class PaymentTermsService
     /**
      * @return array<int, array{net_term?: int, country_code?: string}>
      */
-    private function getPaymentTerms(?string $salesChannelId): array
+    private function getPaymentTerms(?string $salesChannelId, string $source, ?string $paymentMethod): array
     {
         $config = $this->configService->setSalesChannelId($salesChannelId);
-        $item = $this->cache->getItem(
-            self::CACHE_KEY_PREFIX . md5(($salesChannelId ?? 'default') . '|' . $config->getApiToken() . '|' . (int) $config->isSandbox())
-        );
+        // The source and the method are part of the key: the admin and the storefront read
+        // the same endpoint, and their answers must not overwrite each other.
+        $item = $this->cache->getItem(self::CACHE_KEY_PREFIX . md5(implode('|', [
+            $salesChannelId ?? 'default',
+            $config->getApiToken(),
+            (int) $config->isSandbox(),
+            $source,
+            $paymentMethod ?? 'any',
+        ])));
 
         if ($item->isHit()) {
             return $item->get();
         }
 
+        $filters = ['source' => $source];
+        if ($paymentMethod !== null && $paymentMethod !== '') {
+            $filters['payment_method'] = $paymentMethod;
+        }
+
         $terms = $this->monduClient
             ->setSalesChannelId($salesChannelId)
-            ->getPaymentTerms(['source' => self::SOURCE_ASYNC]);
+            ->getPaymentTerms($filters);
 
         // Do not cache a failed read, the next form load tries again.
         if ($terms === null) {

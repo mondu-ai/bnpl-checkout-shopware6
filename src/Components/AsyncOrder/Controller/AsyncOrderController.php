@@ -78,7 +78,12 @@ class AsyncOrderController extends AbstractController
         }
 
         $countryCode = $this->getCountryCode($billingAddressId, $context);
-        $netTerms = $this->paymentTermsService->getNetTerms($salesChannelId, $countryCode);
+        $netTerms = $this->paymentTermsService->getNetTerms(
+            $salesChannelId,
+            $countryCode,
+            PaymentTermsService::SOURCE_ASYNC,
+            $method
+        );
 
         return new JsonResponse($data + [
             'countryCode' => $countryCode,

@@ -18,6 +18,7 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
+use Mondu\MonduPayment\Components\Checkout\Service\NetTermOfferService;
 use Mondu\MonduPayment\Components\PaymentMethod\Util\MethodHelper;
 use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 use Shopware\Core\Checkout\Cart\Cart;
@@ -45,6 +46,11 @@ class MonduHandler extends AbstractPaymentHandler
      */
     const SUPPORTED_LANGUAGES = ['de', 'en', 'nl', 'fr', 'el'];
 
+    /**
+     * Checkout form field carrying the net term the buyer picked.
+     */
+    public const NET_TERM_FIELD = 'monduNetTerm';
+
     public function __construct(
         private readonly OrderTransactionStateHandler $transactionStateHandler,
         private readonly MonduClient $monduClient,
@@ -55,7 +61,8 @@ class MonduHandler extends AbstractPaymentHandler
         private readonly EntityRepository $orderRepository,
         private readonly EntityRepository $orderTransactionRepository,
         private readonly LoggerInterface $logger,
-        private readonly EventDispatcherInterface $eventDispatcher
+        private readonly EventDispatcherInterface $eventDispatcher,
+        private readonly NetTermOfferService $netTermOfferService
     ) {}
 
     public function supports(
@@ -73,7 +80,7 @@ class MonduHandler extends AbstractPaymentHandler
         ?Struct $validateStruct
     ): ?RedirectResponse {
         try {
-            $redirectUrl = $this->createOrder($transaction, $context);
+            $redirectUrl = $this->createOrder($transaction, $context, $request->request->get(self::NET_TERM_FIELD));
         } catch (\Exception $e) {
             throw PaymentException::asyncProcessInterrupted(
                 $transaction->getOrderTransaction()->getId(),
@@ -280,11 +287,11 @@ class MonduHandler extends AbstractPaymentHandler
         }
     }
 
-    private function createOrder(PaymentTransactionStruct $transaction, Context $context): string
+    private function createOrder(PaymentTransactionStruct $transaction, Context $context, mixed $requestedNetTerm = null): string
     {
         $this->assertNotAsyncOrder($transaction, $context);
 
-        $orderData = $this->getOrderData($transaction, $context);
+        $orderData = $this->getOrderData($transaction, $context, $requestedNetTerm);
         $orderTransaction = $this->getOrderTransaction($transaction->getOrderTransactionId(), $context);
         $order = $orderTransaction->getOrder();
         $salesChannelId = $order->getSalesChannelId();
@@ -302,12 +309,15 @@ class MonduHandler extends AbstractPaymentHandler
             );
         }
 
-        $this->saveEarlyOrderData($order, $monduOrder, $context);
+        $this->saveEarlyOrderData($order, $monduOrder, $context, $orderData['net_term'] ?? 0);
 
         return $monduOrder['hosted_checkout_url'];
     }
 
-    private function saveEarlyOrderData($order, $monduOrder, Context $context): void
+    /**
+     * @param int $netTerm The term the buyer picked, shown to the merchant until Mondu authorizes one.
+     */
+    private function saveEarlyOrderData($order, $monduOrder, Context $context, int $netTerm = 0): void
     {
         try {
             if ($monduOrder === null || !isset($monduOrder['uuid'])) {
@@ -327,7 +337,7 @@ class MonduHandler extends AbstractPaymentHandler
                     OrderDataEntity::FIELD_EXTERNAL_REFERENCE_ID => $monduOrder['external_reference_id'] ?? null,
                     OrderDataEntity::FIELD_ORDER_STATE => $monduOrder['state'] ?? 'pending',
                     OrderDataEntity::FIELD_VIBAN => null,
-                    OrderDataEntity::FIELD_DURATION => 0,
+                    OrderDataEntity::FIELD_DURATION => $netTerm,
                     OrderDataEntity::FIELD_IS_SUCCESSFUL => false,
                 ]
             ], $context);
@@ -347,7 +357,7 @@ class MonduHandler extends AbstractPaymentHandler
         }
     }
 
-    protected function getOrderData(PaymentTransactionStruct $transaction, Context $context)
+    protected function getOrderData(PaymentTransactionStruct $transaction, Context $context, mixed $requestedNetTerm = null)
     {
         $orderTransaction = $this->getOrderTransaction($transaction->getOrderTransactionId(), $context);
         $order = $orderTransaction->getOrder();
@@ -422,6 +432,17 @@ class MonduHandler extends AbstractPaymentHandler
             ],
             'lines' => $this->orderLinesService->getLines($order, $context)
         ];
+
+        $netTerm = $this->netTermOfferService->resolve(
+            $salesChannelId,
+            $paymentMethod,
+            $billingAddress->getCountry()?->getIso(),
+            $requestedNetTerm
+        );
+
+        if ($netTerm !== null) {
+            $orderData['net_term'] = $netTerm;
+        }
 
         $language = $this->resolveLanguageCode($order);
 
