@@ -31,6 +31,28 @@ class PaymentTermsServiceTest extends TestCase
         static::assertSame([], $service->getNetTerms(null, 'BE'));
     }
 
+    public function testEachSourceAndMethodIsReadAndCachedOnItsOwn(): void
+    {
+        $client = $this->createMock(MonduClient::class);
+        $client->method('setSalesChannelId')->willReturnSelf();
+        $client->expects(static::exactly(3))->method('getPaymentTerms')->willReturnCallback(
+            static fn (array $filters) => match ($filters) {
+                ['source' => 'async', 'payment_method' => 'invoice'] => [['net_term' => 30, 'country_code' => 'DE']],
+                ['source' => 'widget', 'payment_method' => 'invoice'] => [['net_term' => 60, 'country_code' => 'DE'], ['net_term' => 14, 'country_code' => 'DE']],
+                ['source' => 'widget', 'payment_method' => 'pay_now'] => [['net_term' => 3, 'country_code' => 'DE']],
+            }
+        );
+
+        $service = new PaymentTermsService($this->config(), $client, new ArrayAdapter());
+
+        static::assertSame([30], $service->getNetTerms(null, 'DE', 'async', 'invoice'));
+        static::assertSame([14, 60], $service->getNetTerms(null, 'DE', 'widget', 'invoice'));
+        static::assertSame([3], $service->getNetTerms(null, 'DE', 'widget', 'pay_now'));
+        // Served from the cache, each answer under its own key.
+        static::assertSame([30], $service->getNetTerms(null, 'DE', 'async', 'invoice'));
+        static::assertSame([14, 60], $service->getNetTerms(null, 'DE', 'widget', 'invoice'));
+    }
+
     public function testThirtyDaysOrTheClosestTermIsPreselected(): void
     {
         $service = new PaymentTermsService($this->config(), $this->client([]), new ArrayAdapter());

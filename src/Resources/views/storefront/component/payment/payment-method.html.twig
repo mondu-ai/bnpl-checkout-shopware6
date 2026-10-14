@@ -55,3 +55,33 @@
         {{ parent() }}
     {% endif %}
 {% endblock %}
+
+{% block component_payment_method_control %}
+    {{ parent() }}
+
+    {# Net terms the buyer may choose from, see CheckoutSubscriber::addNetTerms(). #}
+    {% set monduNetTermOffer = page.extensions.monduNetTerms is defined ? page.extensions.monduNetTerms.get(payment.id) : null %}
+    {% if monduNetTermOffer and payment.id is same as(selectedPaymentMethodId) %}
+        <div class="mondu-net-term mt-2">
+            {% if monduNetTermOffer.netTerms|length > 1 %}
+                <label class="form-label" for="monduNetTerm{{ payment.id }}">{{ "mondu.checkout.netTerm.label"|trans|sw_sanitize }}</label>
+                <select class="form-select mondu-net-term-select"
+                        id="monduNetTerm{{ payment.id }}"
+                        name="monduNetTerm"
+                        form="confirmOrderForm">
+                    {% for days in monduNetTermOffer.netTerms %}
+                        <option value="{{ days }}"{% if days == monduNetTermOffer.default %} selected="selected"{% endif %}>
+                            {{ "mondu.checkout.netTerm.days"|trans({ '%days%': days })|sw_sanitize }}
+                        </option>
+                    {% endfor %}
+                </select>
+            {% else %}
+                {% set days = monduNetTermOffer.netTerms|first %}
+                <p class="mondu-net-term-single mb-0">
+                    {{ "mondu.checkout.netTerm.label"|trans|sw_sanitize }}: {{ "mondu.checkout.netTerm.days"|trans({ '%days%': days })|sw_sanitize }}
+                </p>
+                <input type="hidden" name="monduNetTerm" value="{{ days }}" form="confirmOrderForm">
+            {% endif %}
+        </div>
+    {% endif %}
+{% endblock %}

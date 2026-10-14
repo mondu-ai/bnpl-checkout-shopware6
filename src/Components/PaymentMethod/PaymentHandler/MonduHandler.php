@@ -21,6 +21,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\NotFilter;
+use Mondu\MonduPayment\Components\Checkout\Service\NetTermOfferService;
 use Mondu\MonduPayment\Components\PaymentMethod\Util\MethodHelper;
 use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 use Psr\Log\LoggerInterface;
@@ -43,6 +44,11 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
      */
     const SUPPORTED_LANGUAGES = ['de', 'en', 'nl', 'fr', 'el'];
 
+    /**
+     * Checkout form field carrying the net term the buyer picked.
+     */
+    public const NET_TERM_FIELD = 'monduNetTerm';
+
     public function __construct(
         private readonly OrderTransactionStateHandler $transactionStateHandler,
         private readonly MonduClient $monduClient,
@@ -52,7 +58,8 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         private readonly AbstractOrderLinesService $orderLinesService,
         private readonly LoggerInterface $logger,
         private readonly EventDispatcherInterface $eventDispatcher,
-        private readonly LanguageLocaleCodeProvider $languageLocaleProvider
+        private readonly LanguageLocaleCodeProvider $languageLocaleProvider,
+        private readonly NetTermOfferService $netTermOfferService
     ) {}
 
     /**
@@ -61,7 +68,7 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
     public function pay(AsyncPaymentTransactionStruct $transaction, RequestDataBag $dataBag, SalesChannelContext $salesChannelContext): RedirectResponse
     {
         try {
-            $redirectUrl = $this->createOrder($transaction, $salesChannelContext);
+            $redirectUrl = $this->createOrder($transaction, $salesChannelContext, $dataBag->get(self::NET_TERM_FIELD));
         } catch (\Exception $e) {
             throw new AsyncPaymentProcessException(
                 $transaction->getOrderTransaction()->getId(),
@@ -272,11 +279,11 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         }
     }
 
-    private function createOrder(AsyncPaymentTransactionStruct $transaction, SalesChannelContext $salesChannelContext): string
+    private function createOrder(AsyncPaymentTransactionStruct $transaction, SalesChannelContext $salesChannelContext, mixed $requestedNetTerm = null): string
     {
         $this->assertNotAsyncOrder($transaction, $salesChannelContext);
 
-        $orderData = $this->getOrderData($transaction, $salesChannelContext);
+        $orderData = $this->getOrderData($transaction, $salesChannelContext, $requestedNetTerm);
         $monduOrder = $this->monduClient->setSalesChannelId($salesChannelContext->getSalesChannelId())->createOrder($orderData);
 
         if ($monduOrder === null || !isset($monduOrder['hosted_checkout_url'])) {
@@ -292,7 +299,7 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
             );
         }
 
-        $this->saveEarlyOrderData($transaction, $monduOrder, $salesChannelContext);
+        $this->saveEarlyOrderData($transaction, $monduOrder, $salesChannelContext, $orderData['net_term'] ?? 0);
 
         return $monduOrder['hosted_checkout_url'];
     }
@@ -320,7 +327,10 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         }
     }
 
-    private function saveEarlyOrderData($transaction, $monduOrder, $salesChannelContext): void
+    /**
+     * @param int $netTerm The term the buyer picked, shown to the merchant until Mondu authorizes one.
+     */
+    private function saveEarlyOrderData($transaction, $monduOrder, $salesChannelContext, int $netTerm = 0): void
     {
         try {
             $order = $transaction->getOrder();
@@ -342,7 +352,7 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
                     OrderDataEntity::FIELD_EXTERNAL_REFERENCE_ID => $monduOrder['external_reference_id'] ?? null,
                     OrderDataEntity::FIELD_ORDER_STATE => $monduOrder['state'] ?? 'pending',
                     OrderDataEntity::FIELD_VIBAN => null,
-                    OrderDataEntity::FIELD_DURATION => 0,
+                    OrderDataEntity::FIELD_DURATION => $netTerm,
                     OrderDataEntity::FIELD_IS_SUCCESSFUL => false,
                 ]
             ], $salesChannelContext->getContext());
@@ -362,7 +372,7 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
         }
     }
 
-    protected function getOrderData(AsyncPaymentTransactionStruct $transaction, SalesChannelContext $salesChannelContext)
+    protected function getOrderData(AsyncPaymentTransactionStruct $transaction, SalesChannelContext $salesChannelContext, mixed $requestedNetTerm = null)
     {
         $order = $transaction->getOrder();
         $returnUrl = $transaction->getReturnUrl();
@@ -418,6 +428,17 @@ class MonduHandler implements AsynchronousPaymentHandlerInterface
             ],
             'lines' => $this->orderLinesService->getLines($order, $salesChannelContext->getContext())
         ];
+
+        $netTerm = $this->netTermOfferService->resolve(
+            $salesChannelContext->getSalesChannelId(),
+            $paymentMethod,
+            $billingAddress->getCountry()?->getIso(),
+            $requestedNetTerm
+        );
+
+        if ($netTerm !== null) {
+            $orderData['net_term'] = $netTerm;
+        }
 
         $language = $this->resolveLanguageCode($order);
 
