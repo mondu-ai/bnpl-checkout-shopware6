@@ -1,0 +1,20 @@
+<?xml version="1.0" ?>
+<container xmlns="http://symfony.com/schema/dic/services"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+    <services>
+        <defaults autowire="true">
+            <tag name="kernel.event_subscriber"/>
+        </defaults>
+
+        <service id="Mondu\MonduPayment\Components\AsyncOrder\Subscriber\AsyncOrderSubscriber">
+            <argument key="$backendOrdersService" type="service" id="Mondu\MonduPayment\Components\AsyncOrder\Service\BackendOrdersService"/>
+            <argument key="$fieldStorage" type="service" id="Mondu\MonduPayment\Components\AsyncOrder\Service\AsyncOrderFieldStorage"/>
+            <argument key="$payloadBuilder" type="service" id="Mondu\MonduPayment\Components\AsyncOrder\Service\AsyncOrderPayloadBuilder"/>
+            <argument key="$monduClient" type="service" id="mondu.mondu_api"/>
+            <argument key="$stateSync" type="service" id="Mondu\MonduPayment\Components\AsyncOrder\Service\AsyncOrderStateSync"/>
+            <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+        </service>
+    </services>
+</container>

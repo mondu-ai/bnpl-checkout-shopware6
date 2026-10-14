@@ -47,6 +47,28 @@
     },
     "summary": {
       "monduAmountLabel": "Montant de la créance chez Mondu"
+    },
+    "asyncOrder": {
+      "title": "Mondu",
+      "description": "Mondu évalue la commande lors de l'enregistrement et demande à l'acheteur de la confirmer par e-mail. Le statut du paiement suit la décision de Mondu.",
+      "labelNetTerm": "Délai de paiement",
+      "netTermDays": "{days} jours",
+      "noNetTerms": "Votre compte Mondu n'a aucun délai de paiement pour le pays de l'acheteur, ce moyen de paiement ne peut donc pas être utilisé pour cet acheteur.",
+      "labelNumberOfInstallments": "Nombre d'échéances",
+      "labelIban": "IBAN",
+      "labelAccountHolder": "Titulaire du compte",
+      "labelRegistrationId": "Numéro d'immatriculation",
+      "labelLegalFormCategory": "Forme juridique",
+      "labelOwnerFirstName": "Prénom du propriétaire",
+      "labelOwnerLastName": "Nom du propriétaire",
+      "labelOwnerBirthDate": "Date de naissance du propriétaire",
+      "legalFormCategory": {
+        "einzelunternehmen": "Entreprise individuelle",
+        "kapital_und_personen_gesellschaft": "Société de capitaux ou de personnes",
+        "offentliche_auftraggeber_einrichtung": "Autorité ou institution publique",
+        "andere_gesellschaftsform": "Autre forme juridique"
+      },
+      "summaryPaymentTerm": "Délai de paiement Mondu"
     }
   },
   "sw-mondu-config": {

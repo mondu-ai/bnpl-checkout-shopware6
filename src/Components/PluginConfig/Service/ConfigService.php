@@ -245,6 +245,46 @@ class ConfigService
     /**
      * Whether to hide Mondu payment methods for private (B2C) customers when account type selection is available.
      */
+    /**
+     * Whether the merchant switched on Mondu payment methods for orders created in the admin.
+     */
+    public function isBackendOrdersEnabled(): bool
+    {
+        $config = $this->getPluginConfiguration();
+
+        return (bool) ($config['backendOrdersEnabled'] ?? false);
+    }
+
+    /**
+     * Plugin setting holding the net terms a buyer may choose from, per Mondu payment method.
+     */
+    public const AVAILABLE_NET_TERMS_KEYS = [
+        'invoice' => 'availableNetTermsInvoice',
+        'direct_debit' => 'availableNetTermsDirectDebit',
+        'pay_now' => 'availableNetTermsPayNow',
+    ];
+
+    /**
+     * Net terms the merchant enabled for the storefront checkout of one Mondu payment method.
+     * None means the checkout shows no term and Mondu applies the account default.
+     *
+     * @return int[]
+     */
+    public function getAvailableNetTerms(string $monduPaymentMethod): array
+    {
+        $key = self::AVAILABLE_NET_TERMS_KEYS[$monduPaymentMethod] ?? null;
+        if ($key === null) {
+            return [];
+        }
+
+        $configured = $this->getPluginConfiguration()[$key] ?? [];
+        $netTerms = array_filter(array_map('intval', is_array($configured) ? $configured : []), static fn (int $days) => $days > 0);
+        $netTerms = array_values(array_unique($netTerms));
+        sort($netTerms);
+
+        return $netTerms;
+    }
+
     public function isHideMonduForB2CEnabled(): bool
     {
         $config = $this->getPluginConfiguration();

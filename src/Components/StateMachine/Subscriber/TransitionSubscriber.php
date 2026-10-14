@@ -85,6 +85,12 @@ class TransitionSubscriber implements EventSubscriberInterface
 
             switch ($event->getToPlace()->getTechnicalName()) {
                 case 'cancelled':
+                    // Mondu declined or cancelled the order itself and the webhook is cancelling
+                    // it here: asking Mondu to cancel it once more would only fail.
+                    if (in_array($monduOrder->getOrderState(), ['declined', 'canceled'], true)) {
+                        break;
+                    }
+
                     try {
                         $state = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->cancelOrder($monduOrder->getReferenceId());
                         if ($state) {
