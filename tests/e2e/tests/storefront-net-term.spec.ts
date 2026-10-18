@@ -8,6 +8,7 @@ import { SHOP_URL, getAdminToken, adminHeaders, registerAndCheckout } from './he
  * offers those the Mondu account holds for the buyer's country (GET /payment_terms with
  * source=widget and the payment method). Several terms give a select, a single one is shown
  * as text, none shows nothing. The term goes to Mondu with the order and is checked there.
+ * The payment method name carries the terms on offer, and once the order is placed its term.
  * Runs against the sandbox account, which holds 14, 30, 45, 60 and 90 days for invoice in DE
  * and no 7 days.
  */
@@ -91,8 +92,14 @@ test.describe.serial('Storefront net term', () => {
       await expect(select).toBeVisible()
       await expect(select.locator('option')).toHaveText([/30/, /60/])
       await expect(select).toHaveValue('30')
+      await expect(checkout.locator('.payment-method-description strong', { hasText: 'Rechnungskauf' })).toHaveText('Rechnungskauf (30/60 Tage)')
       await select.selectOption('60')
     })
+
+    // The finish page and the order history name the term the order was placed with.
+    await expect(page.getByText('Rechnungskauf (60 Tage)').first()).toBeVisible()
+    await page.goto(`${SHOP_URL}/account/order`)
+    await expect(page.getByText('Rechnungskauf (60 Tage)').first()).toBeVisible()
 
     const { order, duration } = await monduOrderOf(a, buyer)
     expect(order.authorized_net_term).toBe(60)
@@ -107,6 +114,7 @@ test.describe.serial('Storefront net term', () => {
     await registerAndCheckout(page, buyer, INVOICE, 'DE', async (checkout: Page) => {
       await expect(checkout.locator('select[name="monduNetTerm"]')).toHaveCount(0)
       await expect(checkout.locator('.mondu-net-term-single')).toHaveText(/Zahlungsziel: 45 Tage|Payment term: 45 days/)
+      await expect(checkout.locator('.payment-method-description strong', { hasText: 'Rechnungskauf' })).toHaveText('Rechnungskauf (45 Tage)')
     })
 
     expect((await monduOrderOf(a, buyer)).order.authorized_net_term).toBe(45)
@@ -119,6 +127,7 @@ test.describe.serial('Storefront net term', () => {
 
     await registerAndCheckout(page, buyer, INVOICE, 'DE', async (checkout: Page) => {
       await expect(checkout.locator('.mondu-net-term')).toHaveCount(0)
+      await expect(checkout.locator('.payment-method-description strong', { hasText: 'Rechnungskauf' })).toHaveText('Rechnungskauf (30 Tage)')
     })
 
     expect((await monduOrderOf(a, buyer)).order.authorized_net_term).toBe(30)

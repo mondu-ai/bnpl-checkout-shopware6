@@ -1,0 +1,23 @@
+{
+    "Confirmed": "Confirmé",
+    "Cancelled": "Annulé",
+    "Pending": "En attente",
+    "Declined": "Refusé",
+    "Approved": "Approuvé",
+    "sw-flow-custom-event": {
+        "flow-list": {
+            "Mondu Payments_order_Cancelled": "Mondu : Commande annulée",
+            "Mondu Payments_order_Declined": "Mondu : Commande refusée",
+            "Mondu Payments_order_Pending": "Mondu : Commande en attente",
+            "Mondu Payments_order_Confirmed": "Mondu : Commande confirmée"
+        }
+    },
+    "mondu": {
+        "checkout": {
+            "netTerm": {
+                "label": "Délai de paiement",
+                "days": "%days% jours"
+            }
+        }
+    }
+}

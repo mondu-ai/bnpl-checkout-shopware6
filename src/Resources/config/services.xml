@@ -134,6 +134,7 @@
             <tag name="kernel.event_subscriber" />
             <argument key="$paymentMethodFilterService" type="service" id="Mondu\MonduPayment\Components\Checkout\Service\PaymentMethodFilterService"/>
             <argument key="$netTermOfferService" type="service" id="Mondu\MonduPayment\Components\Checkout\Service\NetTermOfferService"/>
+            <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
         </service>
 
         <service id="Mondu\MonduPayment\Components\Checkout\Decorator\CheckoutGatewayRouteDecorator"
