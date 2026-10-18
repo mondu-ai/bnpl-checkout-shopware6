@@ -11,6 +11,7 @@ use Mondu\MonduPayment\Components\AsyncOrder\Service\AsyncOrderFieldStorage;
 use Mondu\MonduPayment\Components\AsyncOrder\Service\AsyncOrderPayloadBuilder;
 use Mondu\MonduPayment\Components\AsyncOrder\Service\AsyncOrderStateSync;
 use Mondu\MonduPayment\Components\AsyncOrder\Service\BackendOrdersService;
+use Mondu\MonduPayment\Components\AsyncOrder\Service\PaymentTermsService;
 use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
 use Mondu\MonduPayment\Components\Order\Model\Extension\OrderExtension;
 use Mondu\MonduPayment\Components\Order\Model\OrderDataEntity;
@@ -48,7 +49,8 @@ class AsyncOrderSubscriber implements EventSubscriberInterface
         private readonly MonduClient $monduClient,
         private readonly AsyncOrderStateSync $stateSync,
         private readonly EntityRepository $orderDataRepository,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        private readonly PaymentTermsService $paymentTermsService
     ) {}
 
     public static function getSubscribedEvents(): array
@@ -92,6 +94,7 @@ class AsyncOrderSubscriber implements EventSubscriberInterface
         $fields = $this->fieldStorage->load($salesChannelContext->getToken());
         $countryCode = $salesChannelContext->getCustomer()?->getActiveBillingAddress()?->getCountry()?->getIso();
 
+        $fields = $this->withDefaultNetTerm($fields, $method, $salesChannelId, $countryCode);
         $this->validate($method, $countryCode, $fields);
 
         // Mondu treats the reference of an async order as its key and hands back the order it
@@ -182,6 +185,38 @@ class AsyncOrderSubscriber implements EventSubscriberInterface
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * The term the form preselects, when the merchant left it as it was.
+     *
+     * The form saves its fields in the background, and an order saved while a save is still
+     * on its way arrived without the preselected term although the form showed it. The term
+     * the form preselects is known here as well, so it is applied the same way.
+     *
+     * @param array<string, string> $fields
+     * @return array<string, string>
+     */
+    private function withDefaultNetTerm(array $fields, string $method, string $salesChannelId, ?string $countryCode): array
+    {
+        if (isset($fields[AsyncOrderFields::FIELD_NET_TERM])
+            || !in_array(AsyncOrderFields::FIELD_NET_TERM, AsyncOrderFields::requiredFor($method), true)
+        ) {
+            return $fields;
+        }
+
+        $default = $this->paymentTermsService->pickDefault($this->paymentTermsService->getNetTerms(
+            $salesChannelId,
+            $countryCode,
+            PaymentTermsService::SOURCE_ASYNC,
+            $method
+        ));
+
+        if ($default !== null) {
+            $fields[AsyncOrderFields::FIELD_NET_TERM] = (string) $default;
+        }
+
+        return $fields;
     }
 
     /**

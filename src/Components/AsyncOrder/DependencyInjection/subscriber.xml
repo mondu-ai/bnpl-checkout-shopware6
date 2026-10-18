@@ -15,6 +15,7 @@
             <argument key="$stateSync" type="service" id="Mondu\MonduPayment\Components\AsyncOrder\Service\AsyncOrderStateSync"/>
             <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
             <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+            <argument key="$paymentTermsService" type="service" id="Mondu\MonduPayment\Components\AsyncOrder\Service\PaymentTermsService"/>
         </service>
     </services>
 </container>
