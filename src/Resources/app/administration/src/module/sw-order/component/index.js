@@ -1,4 +1,7 @@
 import './sw-order-document-card';
+import './mondu-async-order-fields';
+import './mondu-async-order-card';
+import './sw-order-create-options';
 
 const { Component } = Shopware;
 

@@ -1,0 +1,21 @@
+<?xml version="1.0" ?>
+<container xmlns="http://symfony.com/schema/dic/services"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://symfony.com/schema/dic/services https://symfony.com/schema/dic/services/services-1.0.xsd">
+    <services>
+        <defaults autowire="true">
+            <tag name="controller.service_arguments"/>
+        </defaults>
+
+        <service id="Mondu\MonduPayment\Components\AsyncOrder\Controller\AsyncOrderController" public="true">
+            <argument key="$backendOrdersService" type="service" id="Mondu\MonduPayment\Components\AsyncOrder\Service\BackendOrdersService"/>
+            <argument key="$paymentTermsService" type="service" id="Mondu\MonduPayment\Components\AsyncOrder\Service\PaymentTermsService"/>
+            <argument key="$fieldStorage" type="service" id="Mondu\MonduPayment\Components\AsyncOrder\Service\AsyncOrderFieldStorage"/>
+            <argument key="$paymentMethodRepository" type="service" id="payment_method.repository"/>
+            <argument key="$customerAddressRepository" type="service" id="customer_address.repository"/>
+            <call method="setContainer">
+                <argument id="service_container" type="service"/>
+            </call>
+        </service>
+    </services>
+</container>
