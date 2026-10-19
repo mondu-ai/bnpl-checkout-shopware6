@@ -10,4 +10,9 @@
             </strong>
         </dd>
     </template>
+
+    <template v-if="isMonduOrder && monduPaymentTerm">
+        <dt>{{ $tc('sw-order-mondu.asyncOrder.summaryPaymentTerm') }}</dt>
+        <dd>{{ $t('sw-order-mondu.asyncOrder.netTermDays', { days: monduPaymentTerm }) }}</dd>
+    </template>
 {% endblock %}

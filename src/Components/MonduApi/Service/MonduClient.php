@@ -115,6 +115,46 @@ class MonduClient
         return $this->sendRequest('orders/'. $orderUuid.'/update_external_info', 'POST', $body);
     }
 
+    /**
+     * Creates an order the merchant entered in the admin (POST /orders/create_async, answers 202).
+     *
+     * Unlike sendRequest() this keeps the error body, because the admin shows the merchant
+     * which field Mondu refused.
+     *
+     * @return array{status: int, body: array|null}
+     */
+    public function createAsyncOrder(array $body): array
+    {
+        return $this->sendRawRequest('orders/create_async', 'POST', $body, true);
+    }
+
+    /**
+     * Tells whether POST /orders/create_async is enabled for the merchant account.
+     *
+     * Mondu has no capability endpoint, so the endpoint itself answers: an empty payload
+     * comes back as 422 (validation reached, the source is on) when the account has it,
+     * and as 401/403/404 when it does not. The empty payload creates nothing.
+     *
+     * @return int|null HTTP status, null when Mondu could not be reached
+     */
+    public function probeAsyncOrders(): ?int
+    {
+        return $this->sendRawRequest('orders/create_async', 'POST', [], false, '{}')['status'] ?: null;
+    }
+
+    /**
+     * Net terms the merchant holds, e.g. ['source' => 'async'] for admin orders.
+     *
+     * @return array<int, array{net_term?: int, country_code?: string}>|null
+     */
+    public function getPaymentTerms(array $filters = []): ?array
+    {
+        $url = 'payment_terms' . ($filters ? '?' . http_build_query($filters) : '');
+        $response = $this->sendRequest($url);
+
+        return $response['payment_terms'] ?? null;
+    }
+
     public function cancelInvoice($orderUuid, $invoiceUuid): ?array
     {
         return $this->sendRequest('orders/'. $orderUuid.'/invoices/' . $invoiceUuid . '/cancel', 'POST');
@@ -335,6 +375,45 @@ class MonduClient
             $this->logEvent($eventLog);
 
             return null;
+        }
+    }
+
+    /**
+     * Sends a request and returns the HTTP status with the decoded body, error or not.
+     *
+     * @return array{status: int, body: array|null}
+     */
+    private function sendRawRequest(string $url, string $method, array $body, bool $logErrors, ?string $rawBody = null): array
+    {
+        $request = $this->getRequestObject($url, $method, $body);
+        if ($rawBody !== null) {
+            $request = $request->withBody(\GuzzleHttp\Psr7\Utils::streamFor($rawBody));
+        }
+
+        try {
+            $response = $this->restClient->send($request);
+
+            return [
+                'status' => $response->getStatusCode(),
+                'body' => json_decode($response->getBody()->getContents(), true),
+            ];
+        } catch (GuzzleException $e) {
+            $response = method_exists($e, 'getResponse') ? $e->getResponse() : null;
+            $responseBody = $response ? json_decode($response->getBody()->getContents(), true) : null;
+
+            if ($logErrors) {
+                $this->logger->warning("mondu.WARNING: MonduClient [{$method} {$url}]: Failed with an exception message: {$e->getMessage()}");
+                $this->logEvent(array_filter([
+                    'response_status' => strval($e->getCode()),
+                    'origin_event' => $request->getUri()->getPath(),
+                    'response_body' => $responseBody,
+                ]));
+            }
+
+            return [
+                'status' => $response ? $response->getStatusCode() : 0,
+                'body' => is_array($responseBody) ? $responseBody : null,
+            ];
         }
     }
 

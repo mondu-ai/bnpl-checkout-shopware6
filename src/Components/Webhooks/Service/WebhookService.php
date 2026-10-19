@@ -26,6 +26,9 @@ use Mondu\MonduPayment\Components\Events\MonduOrderPendingEvent;
 use Mondu\MonduPayment\Components\Events\MonduOrderConfirmedEvent;
 use Mondu\MonduPayment\Components\Events\MonduOrderDeclinedEvent;
 use Mondu\MonduPayment\Components\Events\MonduOrderCancelledEvent;
+use Mondu\MonduPayment\Components\AsyncOrder\AsyncOrderStates;
+use Mondu\MonduPayment\Components\Order\Model\OrderDataEntity;
+use Shopware\Core\Framework\Context;
 
 class WebhookService
 {
@@ -112,6 +115,14 @@ class WebhookService
                 ], $context);
             }
 
+            // An order created in the admin is final only now, once the buyer confirmed it by
+            // email. Mondu still carries the reference sent at creation, so the order number
+            // goes out once more through update_external_info (no confirm call in this flow).
+            $asyncOrderData = $this->findAsyncOrderData($monduId, $context);
+            if ($asyncOrderData !== null) {
+                $this->confirmAsyncOrder($asyncOrderData, $monduId, $context);
+            }
+
             // Only transition order state if autoTransitionOrderState is enabled
             if ($this->configService->setSalesChannelId($this->salesChannelId)->isAutoTransitionOrderStateEnabled()) {
                 $this->transitionOrderState($externalReferenceId, 'process', $context, $monduId);
@@ -185,9 +196,18 @@ class WebhookService
                 if ($this->configService->setSalesChannelId($this->salesChannelId)->isAutoTransitionOrderStateEnabled()) {
                     $this->transitionOrderState($externalReferenceId, 'process', $context, $monduId);
                 }
+
+                // An order created in the admin goes to "Payment review" while Mondu checks it.
+                $asyncOrderData = $this->findAsyncOrderData($monduId, $context);
+                if ($asyncOrderData !== null) {
+                    $this->updateOrderData($asyncOrderData, [OrderDataEntity::FIELD_ORDER_STATE => 'pending'], $context);
+                }
+
                 $transitionResult = $this->transitionTransactionState(
                     $externalReferenceId,
-                    StateMachineTransitionActions::ACTION_PROCESS_UNCONFIRMED,
+                    $asyncOrderData !== null
+                        ? AsyncOrderStates::STATE_PAYMENT_REVIEW
+                        : StateMachineTransitionActions::ACTION_PROCESS_UNCONFIRMED,
                     $context,
                     $monduId
                 );
@@ -224,6 +244,115 @@ class WebhookService
         }
     }
 
+    /**
+     * order/authorized: Mondu approved an order created in the admin and asked the buyer to
+     * confirm it by email. The payment waits in "Pending buyer confirmation" until the
+     * order/confirmed webhook.
+     *
+     * A hosted checkout order passes through authorized as well, while the buyer is still
+     * on the way back to the shop and finalize() handles it. Those are left alone.
+     */
+    public function handleAuthorized($params, $context): array
+    {
+        try {
+            $externalReferenceId = $params['external_reference_id'] ?? null;
+            $monduId = $params['order_uuid'] ?? null;
+
+            if (!$externalReferenceId || !$monduId) {
+                throw new MonduException('Required params missing');
+            }
+
+            $asyncOrderData = $this->findAsyncOrderData($monduId, $context);
+            if ($asyncOrderData === null) {
+                return [[ 'message' => 'Not an order created in the admin, nothing to do', 'code' => Response::HTTP_OK ], Response::HTTP_OK];
+            }
+
+            $this->updateOrderData($asyncOrderData, [
+                OrderDataEntity::FIELD_ORDER_STATE => 'authorized',
+            ] + $this->readAuthorizedNetTerm($asyncOrderData, $monduId), $context);
+
+            $transitionResult = $this->transitionTransactionState(
+                $externalReferenceId,
+                AsyncOrderStates::STATE_PENDING_BUYER_CONFIRMATION,
+                $context,
+                $monduId
+            );
+
+            return [[ 'message' => $transitionResult->last()?->getTechnicalName() ?? 'ok', 'code' => Response::HTTP_OK ], Response::HTTP_OK];
+        } catch (MonduException $e) {
+            $this->log('handleAuthorized Webhook Failed', [$params], $e);
+            return [[ 'message' => $e->getMessage(), 'code' => $e->getStatusCode() ], $e->getStatusCode()];
+        }
+    }
+
+    /**
+     * The Mondu data of an order created in the admin, or null for any other order.
+     */
+    protected function findAsyncOrderData(string $monduId, Context $context): ?OrderDataEntity
+    {
+        $criteria = new Criteria();
+        $criteria->addFilter(new EqualsFilter('referenceId', $monduId));
+        $criteria->addFilter(new EqualsFilter('orderFlow', AsyncOrderStates::FLOW_ASYNC));
+        $criteria->addAssociation('order');
+
+        /** @var OrderDataEntity|null $orderData */
+        $orderData = $this->orderDataRepository->search($criteria, $context)->first();
+
+        return $orderData;
+    }
+
+    /**
+     * Sends the final order number to Mondu and records the confirmation.
+     *
+     * A failed call fails the webhook, so Mondu retries it, the same as in the Magento module.
+     */
+    private function confirmAsyncOrder(OrderDataEntity $orderData, string $monduId, Context $context): void
+    {
+        $order = $orderData->getOrder();
+        $response = $this->monduClient
+            ->setSalesChannelId($order->getSalesChannelId())
+            ->updateExternalInfo($monduId, ['external_reference_id' => $order->getOrderNumber()]);
+
+        if ($response === null) {
+            throw new MonduException('Could not send the order number to Mondu (update_external_info).', Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+
+        $this->updateOrderData($orderData, [
+            OrderDataEntity::FIELD_ORDER_STATE => 'confirmed',
+            OrderDataEntity::FIELD_IS_SUCCESSFUL => true,
+            OrderDataEntity::FIELD_EXTERNAL_REFERENCE_ID => $order->getOrderNumber(),
+        ] + $this->readAuthorizedNetTerm($orderData, $monduId), $context);
+    }
+
+    /**
+     * The net term Mondu authorized, which the create_async answer does not carry yet.
+     *
+     * @return array<string, int>
+     */
+    private function readAuthorizedNetTerm(OrderDataEntity $orderData, string $monduId): array
+    {
+        if ((int) $orderData->getDuration() > 0) {
+            return [];
+        }
+
+        $monduOrder = $this->monduClient
+            ->setSalesChannelId($orderData->getOrder()->getSalesChannelId())
+            ->getMonduOrder($monduId);
+        $netTerm = (int) ($monduOrder['authorized_net_term'] ?? 0);
+
+        return $netTerm > 0 ? [OrderDataEntity::FIELD_DURATION => $netTerm] : [];
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function updateOrderData(OrderDataEntity $orderData, array $data, Context $context): void
+    {
+        $this->orderDataRepository->update([
+            [OrderDataEntity::FIELD_ID => $orderData->getId()] + $data,
+        ], $context);
+    }
+
     public function handleDeclinedOrCanceled($params, $context): array
     {
         try {
@@ -253,10 +382,21 @@ class WebhookService
             $transaction = $orderEntity->getTransactions()->last();
             $currentTransactionState = $transaction ? $transaction->getStateMachineState()->getTechnicalName() : null;
 
-            $isCheckoutDecline = ($isDeclined && $currentTransactionState === 'open');
-            $isCheckoutCancellation = ($isCanceled && $currentTransactionState === 'open');
-            $isWebhookDecline = ($isDeclined && ($currentTransactionState === 'in_progress' || $currentTransactionState === 'unconfirmed'));
-            $isWebhookCancellation = ($isCanceled && ($currentTransactionState === 'in_progress' || $currentTransactionState === 'unconfirmed'));
+            // An order created in the admin never passes the hosted checkout, so the transaction
+            // state says nothing about where the decline came from: such an order is always
+            // cancelled. Its Mondu state is recorded first, so that the cancellation is not
+            // sent back to Mondu (see TransitionSubscriber).
+            $asyncOrderData = $this->findAsyncOrderData($monduId, $context);
+            if ($asyncOrderData !== null) {
+                $this->updateOrderData($asyncOrderData, [
+                    OrderDataEntity::FIELD_ORDER_STATE => $isDeclined ? 'declined' : 'canceled',
+                ], $context);
+            }
+
+            $isCheckoutDecline = $asyncOrderData === null && ($isDeclined && $currentTransactionState === 'open');
+            $isCheckoutCancellation = $asyncOrderData === null && ($isCanceled && $currentTransactionState === 'open');
+            $isWebhookDecline = $isDeclined && ($asyncOrderData !== null || $currentTransactionState === 'in_progress' || $currentTransactionState === 'unconfirmed');
+            $isWebhookCancellation = $isCanceled && ($asyncOrderData !== null || $currentTransactionState === 'in_progress' || $currentTransactionState === 'unconfirmed');
 
             if ($this->configService->isExtendedLogsEnabled()) {
                 $this->logger->info('mondu.INFO: Webhook - analyzing decline/cancellation type', [
@@ -276,7 +416,7 @@ class WebhookService
                 ->setSalesChannelId($this->salesChannelId)
                 ->isAutoTransitionOrderStateEnabled();
 
-            if ($autoTransitionEnabled && ($isWebhookCancellation || $isWebhookDecline)) {
+            if (($autoTransitionEnabled || $asyncOrderData !== null) && ($isWebhookCancellation || $isWebhookDecline)) {
                 try {
                     $this->transitionOrderState($externalReferenceId, 'cancel', $context, $monduId);
                 } catch (\Exception $e) {
@@ -457,6 +597,8 @@ class WebhookService
             'in_progress' => 1,
             'unconfirmed' => 1,
             'process_unconfirmed' => 1,
+            AsyncOrderStates::STATE_PAYMENT_REVIEW => 1,
+            AsyncOrderStates::STATE_PENDING_BUYER_CONFIRMATION => 1,
             'remind' => 1,
             'authorized' => 2,
             'paid' => 3,

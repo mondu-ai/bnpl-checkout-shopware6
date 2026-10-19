@@ -15,6 +15,12 @@
     "mondu": {
         "account": {
             "externalPaymentDeclined": "Wir haben Ihre Bestellung erhalten, aber die Zahlung wurde abgelehnt. Bitte ändern Sie Ihre Zahlungsmethode oder versuchen Sie es erneut."
+        },
+        "checkout": {
+            "netTerm": {
+                "label": "Zahlungsziel",
+                "days": "%days% Tage"
+            }
         }
     }
 }
