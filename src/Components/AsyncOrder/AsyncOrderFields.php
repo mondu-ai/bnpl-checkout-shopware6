@@ -226,6 +226,34 @@ final class AsyncOrderFields
     }
 
     /**
+     * Whether the value is a well formed IBAN: country code, check digits, account part
+     * of the right length, and the mod-97 checksum. Expects the sanitized form, upper
+     * case without spaces (see sanitize()).
+     *
+     * Mondu accepts an order with a malformed IBAN and then never decides on it, so the
+     * order would wait without an answer instead of being refused with a reason.
+     */
+    public static function isValidIban(string $iban): bool
+    {
+        if (!preg_match('/^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/', $iban)) {
+            return false;
+        }
+
+        // Country code and check digits go to the end, letters become 10..35.
+        $digits = '';
+        foreach (str_split(substr($iban, 4) . substr($iban, 0, 4)) as $char) {
+            $digits .= ctype_alpha($char) ? (string) (ord($char) - 55) : $char;
+        }
+
+        $remainder = 0;
+        foreach (str_split($digits, 7) as $chunk) {
+            $remainder = (int) ($remainder . $chunk) % 97;
+        }
+
+        return $remainder === 1;
+    }
+
+    /**
      * Keeps the known fields only, trimmed, with empty values dropped.
      *
      * @param array<string, mixed> $input

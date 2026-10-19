@@ -915,6 +915,24 @@ test.describe.serial('PT-5129 — Mondu orders created in the admin (async API)'
     await expectRefused(page, buyer, /please fill the following required fields: IBAN, Account holder/)
   })
 
+  test('a malformed IBAN stops the order before it reaches Mondu', async ({ page }) => {
+    test.setTimeout(180_000)
+    const buyer = `ac.good.${Date.now()}@example.com`
+    const customer = await createCustomer(a, buyer)
+
+    await adminLogin(page)
+    await startAdminOrder(page, customer.customerNumber, SEPA)
+    await addProduct(page, product)
+
+    // Mondu accepts such an order and then never decides on it.
+    const card = page.locator('.mondu-async-order-fields')
+    await expect(card).toBeVisible({ timeout: 20_000 })
+    await fillField(card.locator('.mondu-async-order-fields__iban'), '123123123123')
+    await fillField(card.locator('.mondu-async-order-fields__account-holder'), 'Mondu GmbH')
+
+    await expectRefused(page, buyer, /the IBAN is not valid/)
+  })
+
   test('with admin orders switched off the admin offers no Mondu method', async ({ page }) => {
     test.setTimeout(180_000)
     await setConfig(a, { 'Mond1SW6.config.backendOrdersEnabled': false })
