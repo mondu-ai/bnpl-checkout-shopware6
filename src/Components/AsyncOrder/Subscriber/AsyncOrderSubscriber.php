@@ -243,6 +243,11 @@ class AsyncOrderSubscriber implements EventSubscriberInterface
             throw new MonduException('Mondu: please fill the following required fields: ' . implode(', ', $missing));
         }
 
+        $iban = $fields[AsyncOrderFields::FIELD_IBAN] ?? null;
+        if ($iban !== null && !AsyncOrderFields::isValidIban($iban)) {
+            throw new MonduException('Mondu: the IBAN is not valid. Please check it, e.g. DE02 1203 0000 0000 2020 51.');
+        }
+
         $birthDate = $fields[AsyncOrderFields::FIELD_OWNER_BIRTH_DATE] ?? null;
         if ($birthDate !== null) {
             $parsed = \DateTimeImmutable::createFromFormat('!Y-m-d', $birthDate);

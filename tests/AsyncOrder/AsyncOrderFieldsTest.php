@@ -29,6 +29,22 @@ class AsyncOrderFieldsTest extends TestCase
         static::assertNotContains('registration_id', AsyncOrderFields::requiredForOrder('invoice', null, null));
     }
 
+    public function testOnlyAWellFormedIbanPasses(): void
+    {
+        static::assertTrue(AsyncOrderFields::isValidIban('DE02120300000000202051'));
+        static::assertTrue(AsyncOrderFields::isValidIban('NL91ABNA0417164300'));
+        static::assertTrue(AsyncOrderFields::isValidIban('GB29NWBK60161331926819'));
+        // What the sanitizer makes of a spaced, lower case entry.
+        static::assertTrue(AsyncOrderFields::isValidIban(AsyncOrderFields::sanitize(['iban' => 'de02 1203 0000 0000 2020 51'])['iban']));
+
+        // Digits only, as typed into the admin form.
+        static::assertFalse(AsyncOrderFields::isValidIban('123123123123'));
+        // One digit off: the checksum fails.
+        static::assertFalse(AsyncOrderFields::isValidIban('DE02120300000000202052'));
+        // Too short.
+        static::assertFalse(AsyncOrderFields::isValidIban('DE0212030000'));
+    }
+
     public function testOwnerDetailsAreRequiredForSoleTradersOnly(): void
     {
         $soleTrader = AsyncOrderFields::requiredForOrder('invoice', 'DE', 'einzelunternehmen');
