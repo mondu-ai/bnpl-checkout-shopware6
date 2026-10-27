@@ -66,16 +66,9 @@ class TransitionSubscriber implements EventSubscriberInterface
                 return;
             }
 
-            if ($order->getStateMachineState()->getTechnicalName() === 'cancelled' &&
-                $event->getToPlace()->getTechnicalName() === 'cancelled') {
-                if ($this->configService->isExtendedLogsEnabled()) {
-                    $this->logger->info('mondu.INFO: Order already cancelled, skipping transition subscriber', [
-                        'order_id' => $order->getId(),
-                        'order_number' => $order->getOrderNumber()
-                    ]);
-                }
-                return;
-            }
+            // Shopware saves the new state before it fires this event, so the order always looks
+            // cancelled here when its own state is being cancelled. A second cancellation, e.g. the
+            // order and then its delivery, is stopped by the Mondu state check below.
 
             $monduOrder = $this->getMonduDataFromOrder($order);
 
@@ -85,6 +78,12 @@ class TransitionSubscriber implements EventSubscriberInterface
 
             switch ($event->getToPlace()->getTechnicalName()) {
                 case 'cancelled':
+                    // Mondu declined or cancelled the order itself and the webhook is cancelling
+                    // it here: asking Mondu to cancel it once more would only fail.
+                    if (in_array($monduOrder->getOrderState(), ['declined', 'canceled'], true)) {
+                        break;
+                    }
+
                     try {
                         $state = $this->monduClient->setSalesChannelId($order->getSalesChannelId())->cancelOrder($monduOrder->getReferenceId());
                         if ($state) {
