@@ -1,0 +1,9 @@
+{% block mondu_net_term_select %}
+<sw-multi-select
+    v-bind="$attrs"
+    :value="selected"
+    :options="options"
+    :is-loading="isLoading"
+    @update:value="onUpdate"
+/>
+{% endblock %}

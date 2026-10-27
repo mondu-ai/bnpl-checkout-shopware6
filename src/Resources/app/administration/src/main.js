@@ -4,6 +4,7 @@ import './init/credit_note-service.init';
 import './init/mondu-config-service.init';
 import './init/mondu-async-order-service.init';
 import './module/sw-mondu-test-api-button';
+import './module/mondu-net-term-select';
 
 // Import decorator to fix ZUGFeRD invoice filtering in Credit Note modal
 import './decorator/sw-order-document-settings-credit-note-modal';
