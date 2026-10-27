@@ -471,6 +471,19 @@ class WebhookService
                 ]);
             }
 
+            // Store Mondu's state before the order is cancelled below, so that TransitionSubscriber
+            // does not ask Mondu to cancel an order Mondu declined or cancelled itself.
+            $criteria = new Criteria();
+            $criteria->addFilter(new EqualsFilter('referenceId', $monduId));
+            $orderDataIds = $this->orderDataRepository->searchIds($criteria, $context)->getIds();
+
+            if ($orderDataIds !== []) {
+                $this->orderDataRepository->update(array_map(static fn ($id) => [
+                    'id' => $id,
+                    'orderState' => $isDeclined ? 'declined' : 'canceled'
+                ], $orderDataIds), $context);
+            }
+
             $autoTransitionEnabled = $this->configService
                 ->setSalesChannelId($this->salesChannelId)
                 ->isAutoTransitionOrderStateEnabled();
