@@ -81,5 +81,9 @@
       "apiConfigurationFailureMessage": "API Credentials zijn ongeldig.",
       "testApiConfiguration": "API-referenties testen"
     }
+  },
+  "mondu-net-term-select": {
+    "days": "dagen",
+    "notOffered": "niet aangeboden door Mondu"
   }
 }

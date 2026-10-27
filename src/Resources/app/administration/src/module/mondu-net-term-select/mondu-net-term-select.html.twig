@@ -1,0 +1,10 @@
+{% block mondu_net_term_select %}
+<mt-select
+    v-bind="$attrs"
+    :model-value="selected"
+    :options="options"
+    :is-loading="isLoading"
+    enable-multi-selection
+    @update:model-value="onUpdate"
+/>
+{% endblock %}

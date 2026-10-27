@@ -75,6 +75,33 @@ class PaymentTermsServiceTest extends TestCase
         static::assertSame([], $service->getNetTerms(null, 'DE'));
     }
 
+    public function testTheConfigIsOfferedTheCheckoutTermsOfAllCountries(): void
+    {
+        $client = $this->client([
+            ['net_term' => 60, 'country_code' => 'DE'],
+            ['net_term' => 30, 'country_code' => 'DE'],
+            ['net_term' => 14, 'country_code' => 'NL'],
+            ['net_term' => 30, 'country_code' => 'NL'],
+        ]);
+        $client->expects(static::once())->method('getPaymentTerms')->with(['source' => 'widget', 'payment_method' => 'invoice']);
+
+        $service = new PaymentTermsService($this->config(), $client, new ArrayAdapter());
+
+        static::assertSame([14, 30, 60], $service->getCheckoutNetTermOptions(null, 'invoice'));
+    }
+
+    public function testWithoutAnAnswerTheConfigGetsNoTerms(): void
+    {
+        $client = $this->createMock(MonduClient::class);
+        $client->method('setSalesChannelId')->willReturnSelf();
+        $client->method('getPaymentTerms')->willReturn(null);
+
+        $service = new PaymentTermsService($this->config(), $client, new ArrayAdapter());
+
+        // null, not []: the config falls back to its fixed list instead of offering nothing.
+        static::assertNull($service->getCheckoutNetTermOptions(null, 'invoice'));
+    }
+
     private function client(array $terms): MonduClient
     {
         $client = $this->createMock(MonduClient::class);

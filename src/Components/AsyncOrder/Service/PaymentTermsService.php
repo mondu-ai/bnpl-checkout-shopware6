@@ -65,7 +65,7 @@ class PaymentTermsService
     ): array {
         $netTerms = [];
 
-        foreach ($this->getPaymentTerms($salesChannelId, $source, $paymentMethod) as $term) {
+        foreach ($this->getPaymentTerms($salesChannelId, $source, $paymentMethod) ?? [] as $term) {
             if (!isset($term['net_term'])) {
                 continue;
             }
@@ -83,6 +83,22 @@ class PaymentTermsService
         sort($netTerms);
 
         return $netTerms;
+    }
+
+    /**
+     * Sorted, unique net terms the merchant holds for checkout orders with this method, in
+     * any country. These are the terms the plugin config offers to choose from.
+     *
+     * @return int[]|null null when Mondu could not be asked
+     */
+    public function getCheckoutNetTermOptions(?string $salesChannelId, string $paymentMethod): ?array
+    {
+        $terms = $this->getPaymentTerms($salesChannelId, self::SOURCE_WIDGET, $paymentMethod);
+        if ($terms === null) {
+            return null;
+        }
+
+        return $this->getNetTerms($salesChannelId, null, self::SOURCE_WIDGET, $paymentMethod);
     }
 
     /**
@@ -112,9 +128,9 @@ class PaymentTermsService
     }
 
     /**
-     * @return array<int, array{net_term?: int, country_code?: string}>
+     * @return array<int, array{net_term?: int, country_code?: string}>|null null when the read failed
      */
-    private function getPaymentTerms(?string $salesChannelId, string $source, ?string $paymentMethod): array
+    private function getPaymentTerms(?string $salesChannelId, string $source, ?string $paymentMethod): ?array
     {
         $config = $this->configService->setSalesChannelId($salesChannelId);
         // The source and the method are part of the key: the admin and the storefront read
@@ -142,7 +158,7 @@ class PaymentTermsService
 
         // Do not cache a failed read, the next form load tries again.
         if ($terms === null) {
-            return [];
+            return null;
         }
 
         $item->set($terms);

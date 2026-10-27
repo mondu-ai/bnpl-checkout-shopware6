@@ -81,5 +81,9 @@
       "apiConfigurationFailureMessage": "Les informations d'identification de l'API ne sont pas valides",
       "testApiConfiguration": "Tester les informations d'identification de l'API"
     }
+  },
+  "mondu-net-term-select": {
+    "days": "jours",
+    "notOffered": "non proposé par Mondu"
   }
 }

@@ -91,5 +91,9 @@
       "apiConfigurationFailureMessage": "API Zugangsdaten sind ungültig.",
       "testApiConfiguration": "API Zugangsdaten testen"
     }
+  },
+  "mondu-net-term-select": {
+    "days": "Tage",
+    "notOffered": "von Mondu nicht angeboten"
   }
 }

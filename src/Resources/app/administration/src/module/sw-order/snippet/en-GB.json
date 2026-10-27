@@ -89,5 +89,9 @@
       "apiConfigurationFailureMessage": "API Credentials are invalid.",
       "testApiConfiguration": "Test API Credentials"
     }
+  },
+  "mondu-net-term-select": {
+    "days": "days",
+    "notOffered": "not offered by Mondu"
   }
 }
