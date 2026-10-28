@@ -63,6 +63,8 @@
       "description": "Mondu prüft die Bestellung beim Speichern und bittet den Käufer per E-Mail um Bestätigung. Der Zahlungsstatus folgt der Entscheidung von Mondu.",
       "labelNetTerm": "Zahlungsziel",
       "netTermDays": "{days} Tage",
+      "labelCompany": "Firma",
+      "noCompany": "Der Kunde hat keinen Firmennamen. Mondu nimmt nur Bestellungen von Unternehmen an, bitte ergänzen Sie die Firma in der Rechnungsadresse oder beim Kunden.",
       "noNetTerms": "Ihr Mondu-Konto hat kein Zahlungsziel für das Land des Käufers, daher kann diese Zahlungsart für diesen Käufer nicht verwendet werden.",
       "labelNumberOfInstallments": "Anzahl der Raten",
       "labelIban": "IBAN",

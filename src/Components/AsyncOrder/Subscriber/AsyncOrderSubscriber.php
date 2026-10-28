@@ -97,6 +97,12 @@ class AsyncOrderSubscriber implements EventSubscriberInterface
         $fields = $this->withDefaultNetTerm($fields, $method, $salesChannelId, $countryCode);
         $this->validate($method, $countryCode, $fields);
 
+        $customer = $salesChannelContext->getCustomer();
+        if (AsyncOrderFields::companyName($customer?->getCompany(), $customer?->getActiveBillingAddress()?->getCompany()) === null) {
+            // Mondu answers with "company name is required" and an unrelated legal form error.
+            throw new MonduException('Mondu: the customer has no company name. Mondu only accepts orders from companies, please add the company to the billing address or the customer.');
+        }
+
         // Mondu treats the reference of an async order as its key and hands back the order it
         // already holds under a reference it has seen. Order numbers are not unique enough for
         // that (each sales channel may count on its own, a shop may reset its numbers), so the

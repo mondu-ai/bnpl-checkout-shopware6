@@ -77,7 +77,8 @@ class AsyncOrderController extends AbstractController
             return new JsonResponse($data);
         }
 
-        $countryCode = $this->getCountryCode($billingAddressId, $context);
+        $billingAddress = $this->getBillingAddress($billingAddressId, $context);
+        $countryCode = $billingAddress?->getCountry()?->getIso();
         $netTerms = $this->paymentTermsService->getNetTerms(
             $salesChannelId,
             $countryCode,
@@ -87,6 +88,10 @@ class AsyncOrderController extends AbstractController
 
         return new JsonResponse($data + [
             'countryCode' => $countryCode,
+            // Shown in the form, so a missing company is seen before the order is saved.
+            'company' => $billingAddress === null ? null : [
+                'name' => AsyncOrderFields::companyName($billingAddress->getCustomer()?->getCompany(), $billingAddress->getCompany()),
+            ],
             'visibleFields' => AsyncOrderFields::visibleFor($method),
             'requiredFields' => AsyncOrderFields::requiredFor($method),
             'ownerFields' => AsyncOrderFields::OWNER_FIELDS,
@@ -133,7 +138,7 @@ class AsyncOrderController extends AbstractController
         return $methods->filter(static fn (PaymentMethodEntity $method) => MethodHelper::isMonduPayment($method));
     }
 
-    private function getCountryCode(?string $billingAddressId, Context $context): ?string
+    private function getBillingAddress(?string $billingAddressId, Context $context): ?CustomerAddressEntity
     {
         if ($billingAddressId === null) {
             return null;
@@ -141,10 +146,11 @@ class AsyncOrderController extends AbstractController
 
         $criteria = new Criteria([$billingAddressId]);
         $criteria->addAssociation('country');
+        $criteria->addAssociation('customer');
 
         /** @var CustomerAddressEntity|null $address */
         $address = $this->customerAddressRepository->search($criteria, $context)->first();
 
-        return $address?->getCountry()?->getIso();
+        return $address;
     }
 }
