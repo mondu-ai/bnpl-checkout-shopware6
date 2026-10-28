@@ -123,7 +123,7 @@ class AsyncOrderPayloadBuilder
             'first_name' => $customer->getFirstName(),
             'last_name' => $customer->getLastName(),
             // The same source as the hosted checkout (order customer company), the address as fallback.
-            'company_name' => $customer->getCompany() ?: $billingAddress->getCompany(),
+            'company_name' => AsyncOrderFields::companyName($customer->getCompany(), $billingAddress->getCompany()),
             'phone' => $billingAddress->getPhoneNumber(),
             'address_line1' => $addressLine1,
             'address_line2' => $addressLine2,

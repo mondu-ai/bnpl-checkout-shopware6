@@ -50,6 +50,8 @@
       "description": "Mondu évalue la commande lors de l'enregistrement et demande à l'acheteur de la confirmer par e-mail. Le statut du paiement suit la décision de Mondu.",
       "labelNetTerm": "Délai de paiement",
       "netTermDays": "{days} jours",
+      "labelCompany": "Entreprise",
+      "noCompany": "Le client n'a pas de nom d'entreprise. Mondu n'accepte que les commandes d'entreprises, veuillez ajouter l'entreprise à l'adresse de facturation ou au client.",
       "noNetTerms": "Votre compte Mondu n'a aucun délai de paiement pour le pays de l'acheteur, ce moyen de paiement ne peut donc pas être utilisé pour cet acheteur.",
       "labelNumberOfInstallments": "Nombre d'échéances",
       "labelIban": "IBAN",

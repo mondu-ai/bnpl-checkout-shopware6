@@ -9,6 +9,20 @@
     </p>
 
     <sw-alert
+        v-if="config.company && !config.company.name"
+        variant="error"
+        class="mondu-async-order-fields__no-company"
+    >
+        {{ $tc('sw-order-mondu.asyncOrder.noCompany') }}
+    </sw-alert>
+    <p
+        v-else-if="config.company"
+        class="mondu-async-order-fields__company"
+    >
+        {{ $tc('sw-order-mondu.asyncOrder.labelCompany') }}: <strong>{{ config.company.name }}</strong>
+    </p>
+
+    <sw-alert
         v-if="showNoNetTerms"
         variant="error"
         class="mondu-async-order-fields__no-net-terms"

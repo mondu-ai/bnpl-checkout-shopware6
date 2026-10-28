@@ -226,6 +226,22 @@ final class AsyncOrderFields
     }
 
     /**
+     * The buyer's company: the customer's, the billing address's as fallback, the same
+     * source the hosted checkout uses. Mondu refuses an order without one.
+     */
+    public static function companyName(?string $customerCompany, ?string $addressCompany): ?string
+    {
+        foreach ([$customerCompany, $addressCompany] as $company) {
+            $company = trim((string) $company);
+            if ($company !== '') {
+                return $company;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Whether the value is a well formed IBAN: country code, check digits, account part
      * of the right length, and the mod-97 checksum. Expects the sanitized form, upper
      * case without spaces (see sanitize()).

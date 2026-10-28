@@ -60,6 +60,7 @@ async function createCustomer(
   a: Api,
   email: string,
   countryIso = 'DE',
+  company = 'Mondu GmbH',
 ): Promise<{ id: string; salesChannelId: string; customerNumber: string }> {
   const [country] = await search(a, 'country', { filter: [{ type: 'equals', field: 'iso', value: countryIso }], limit: 1 })
   const [salutation] = await search(a, 'salutation', { filter: [{ type: 'equals', field: 'salutationKey', value: 'mr' }], limit: 1 })
@@ -91,8 +92,8 @@ async function createCustomer(
       password: CUSTOMER_PASSWORD,
       firstName: 'Test',
       lastName: 'Mondu',
-      company: 'Mondu GmbH',
-      accountType: 'business',
+      company,
+      accountType: company ? 'business' : 'private',
       salutationId: salutation.id,
       groupId: group.id,
       salesChannelId: salesChannel.id,
@@ -105,7 +106,7 @@ async function createCustomer(
         id: addressId,
         firstName: 'Test',
         lastName: 'Mondu',
-        company: 'Mondu GmbH',
+        company,
         ...address,
         countryId: country.id,
         salutationId: salutation.id,
@@ -508,6 +509,8 @@ test.describe.serial('PT-5129 — Mondu orders created in the admin (async API)'
     await expect(card).toBeVisible({ timeout: 20_000 })
     // The net term the account holds for DE is preselected.
     await expect.poll(() => shownValue(card.locator('.mondu-async-order-fields__net-term'))).toMatch(/30 (Tage|days)/)
+    // The buyer's company, so the merchant can tell the legal form.
+    await expect(card.locator('.mondu-async-order-fields__company')).toContainText('Mondu GmbH')
     await expect(card.locator('.mondu-async-order-fields__registration-id')).toBeVisible()
     await expect(card.locator('.mondu-async-order-fields__iban')).toHaveCount(0)
 
@@ -931,6 +934,23 @@ test.describe.serial('PT-5129 — Mondu orders created in the admin (async API)'
     await fillField(card.locator('.mondu-async-order-fields__account-holder'), 'Mondu GmbH')
 
     await expectRefused(page, buyer, /the IBAN is not valid/)
+  })
+
+  test('a customer without a company is flagged and the order stops before it reaches Mondu', async ({ page }) => {
+    test.setTimeout(180_000)
+    const buyer = `ac.good.${Date.now()}@example.com`
+    const customer = await createCustomer(a, buyer, 'DE', '')
+
+    await adminLogin(page)
+    await startAdminOrder(page, customer.customerNumber, INVOICE)
+    await addProduct(page, product)
+
+    // Mondu would answer "company name is required" and an unrelated legal form error.
+    const card = page.locator('.mondu-async-order-fields')
+    await expect(card.locator('.mondu-async-order-fields__no-company')).toBeVisible({ timeout: 20_000 })
+    await expect(card.locator('.mondu-async-order-fields__company')).toHaveCount(0)
+
+    await expectRefused(page, buyer, /the customer has no company name/)
   })
 
   test('with admin orders switched off the admin offers no Mondu method', async ({ page }) => {
