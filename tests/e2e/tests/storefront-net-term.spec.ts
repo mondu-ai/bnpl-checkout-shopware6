@@ -8,14 +8,12 @@ import { SHOP_URL, getAdminToken, adminHeaders, registerAndCheckout } from './he
  * offers those the Mondu account holds for the buyer's country (GET /payment_terms with
  * source=widget and the payment method). Several terms give a select, a single one is shown
  * as text, none shows nothing. The term goes to Mondu with the order and is checked there.
- * The payment method name carries the terms on offer, and once the order is placed its term.
+ * The payment method name stays plain ("Rechnungskauf"), the term is chosen next to it.
  * Runs against the sandbox account, which holds 14, 30, 45, 60 and 90 days for invoice in DE
  * and no 7 days.
  */
 
 const MONDU_API = 'https://api.demo.mondu.ai/api/v1'
-// Mailpit catching the test stands' mail.
-const MAILPIT_URL = process.env.MAILPIT_URL || 'https://webmail.warden.test'
 const CONFIG_KEYS = [
   'Mond1SW6.config.availableNetTermsInvoice',
   'Mond1SW6.config.availableNetTermsDirectDebit',
@@ -66,32 +64,6 @@ async function monduOrderOf(a: Api, email: string): Promise<{ order: any; durati
   return { order: (await res.json()).order, duration: data.duration }
 }
 
-/**
- * The payment method line of the order confirmation the buyer got, or null when the shop's
- * template does not print the payment method (the 6.6 test stand's one does not).
- */
-async function confirmationPaymentLine(a: Api, email: string): Promise<string | null> {
-  let id = ''
-  await expect.poll(async () => {
-    // Shopware sends mail through the message queue; the admin works it off the same way.
-    await a.ctx.post(`${SHOP_URL}/api/_action/message-queue/consume`, {
-      headers: adminHeaders(a.token),
-      data: { receiver: 'async' },
-    })
-    const res = await a.ctx.get(`${MAILPIT_URL}/api/v1/search?query=${encodeURIComponent(`to:"${email}"`)}`)
-    const messages = (await res.json()).messages || []
-    id = messages.find((m: any) => /Bestellbestätigung|Order confirmation/i.test(m.Subject))?.ID || ''
-    return id
-  }, { timeout: 60_000 }).not.toBe('')
-  const res = await a.ctx.get(`${MAILPIT_URL}/api/v1/message/${id}`)
-  const text = (await res.json()).Text as string
-  const line = text.split('\n').find(l => /Gewählte Zahlungsart|Selected payment type/.test(l)) ?? null
-  if (line === null) {
-    test.info().annotations.push({ type: 'note', description: 'the order confirmation template does not print the payment method' })
-  }
-  return line
-}
-
 const INVOICE = /Rechnungskauf|Business net|Invoice/i
 
 test.describe.serial('Storefront net term', () => {
@@ -120,20 +92,9 @@ test.describe.serial('Storefront net term', () => {
       await expect(select).toBeVisible()
       await expect(select.locator('option')).toHaveText([/30/, /60/])
       await expect(select).toHaveValue('30')
-      await expect(checkout.locator('.payment-method-description strong', { hasText: 'Rechnungskauf' })).toHaveText('Rechnungskauf (30/60 Tage)')
+      await expect(checkout.locator('.payment-method-description strong', { hasText: 'Rechnungskauf' })).toHaveText('Rechnungskauf')
       await select.selectOption('60')
     })
-
-    // The finish page and the order history name the term the order was placed with.
-    await expect(page.getByText('Rechnungskauf (60 Tage)').first()).toBeVisible()
-    await page.goto(`${SHOP_URL}/account/order`)
-    await expect(page.getByText('Rechnungskauf (60 Tage)').first()).toBeVisible()
-
-    // The order confirmation is sent before the term reaches Mondu, it comes from the form.
-    const paymentLine = await confirmationPaymentLine(a, buyer)
-    if (paymentLine !== null) {
-      expect(paymentLine).toContain('Rechnungskauf (60 Tage)')
-    }
 
     const { order, duration } = await monduOrderOf(a, buyer)
     expect(order.authorized_net_term).toBe(60)
@@ -148,7 +109,7 @@ test.describe.serial('Storefront net term', () => {
     await registerAndCheckout(page, buyer, INVOICE, 'DE', async (checkout: Page) => {
       await expect(checkout.locator('select[name="monduNetTerm"]')).toHaveCount(0)
       await expect(checkout.locator('.mondu-net-term-single')).toHaveText(/Zahlungsziel: 45 Tage|Payment term: 45 days/)
-      await expect(checkout.locator('.payment-method-description strong', { hasText: 'Rechnungskauf' })).toHaveText('Rechnungskauf (45 Tage)')
+      await expect(checkout.locator('.payment-method-description strong', { hasText: 'Rechnungskauf' })).toHaveText('Rechnungskauf')
     })
 
     expect((await monduOrderOf(a, buyer)).order.authorized_net_term).toBe(45)
@@ -161,13 +122,9 @@ test.describe.serial('Storefront net term', () => {
 
     await registerAndCheckout(page, buyer, INVOICE, 'DE', async (checkout: Page) => {
       await expect(checkout.locator('.mondu-net-term')).toHaveCount(0)
-      await expect(checkout.locator('.payment-method-description strong', { hasText: 'Rechnungskauf' })).toHaveText('Rechnungskauf (30 Tage)')
+      await expect(checkout.locator('.payment-method-description strong', { hasText: 'Rechnungskauf' })).toHaveText('Rechnungskauf')
     })
 
     expect((await monduOrderOf(a, buyer)).order.authorized_net_term).toBe(30)
-    const paymentLine = await confirmationPaymentLine(a, buyer)
-    if (paymentLine !== null) {
-      expect(paymentLine).toContain('Rechnungskauf (30 Tage)')
-    }
   })
 })

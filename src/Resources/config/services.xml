@@ -130,18 +130,11 @@
             <argument key="$paymentTermsService" type="service" id="Mondu\MonduPayment\Components\AsyncOrder\Service\PaymentTermsService"/>
         </service>
 
-        <service id="Mondu\MonduPayment\Components\Checkout\Subscriber\MailNetTermSubscriber">
-            <tag name="kernel.event_subscriber" />
-            <argument key="$netTermOfferService" type="service" id="Mondu\MonduPayment\Components\Checkout\Service\NetTermOfferService"/>
-            <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
-            <argument key="$requestStack" type="service" id="request_stack"/>
-        </service>
 
         <service id="Mondu\MonduPayment\Components\Checkout\Subscriber\CheckoutSubscriber" >
             <tag name="kernel.event_subscriber" />
             <argument key="$paymentMethodFilterService" type="service" id="Mondu\MonduPayment\Components\Checkout\Service\PaymentMethodFilterService"/>
             <argument key="$netTermOfferService" type="service" id="Mondu\MonduPayment\Components\Checkout\Service\NetTermOfferService"/>
-            <argument key="$orderDataRepository" type="service" id="mondu_order_data.repository"/>
         </service>
 
         <service id="Mondu\MonduPayment\Components\Checkout\Decorator\CheckoutGatewayRouteDecorator"

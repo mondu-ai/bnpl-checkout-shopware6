@@ -6,16 +6,7 @@ namespace Mondu\MonduPayment\Components\Checkout\Subscriber;
 
 use Mondu\MonduPayment\Components\Checkout\Service\NetTermOfferService;
 use Mondu\MonduPayment\Components\Checkout\Service\PaymentMethodFilterService;
-use Mondu\MonduPayment\Components\Order\Model\OrderDataEntity;
 use Mondu\MonduPayment\Components\PaymentMethod\Util\MethodHelper;
-use Mondu\MonduPayment\Util\NetTermName;
-use Shopware\Core\Checkout\Order\OrderCollection;
-use Shopware\Core\Framework\Context;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsAnyFilter;
-use Shopware\Storefront\Page\Account\Order\AccountOrderPageLoadedEvent;
-use Shopware\Storefront\Page\Checkout\Finish\CheckoutFinishPageLoadedEvent;
 use Shopware\Core\Framework\Struct\ArrayStruct;
 use Shopware\Storefront\Page\Account\Order\AccountEditOrderPageLoadedEvent;
 use Shopware\Storefront\Page\Checkout\Confirm\CheckoutConfirmPageLoadedEvent;
@@ -32,17 +23,14 @@ class CheckoutSubscriber implements EventSubscriberInterface
 
     public function __construct(
         private readonly PaymentMethodFilterService $paymentMethodFilterService,
-        private readonly NetTermOfferService $netTermOfferService,
-        private readonly EntityRepository $orderDataRepository
+        private readonly NetTermOfferService $netTermOfferService
     ) {}
 
     public static function getSubscribedEvents(): array
     {
         return [
             CheckoutConfirmPageLoadedEvent::class => 'onPageLoaded',
-            AccountEditOrderPageLoadedEvent::class => 'onPageLoaded',
-            CheckoutFinishPageLoadedEvent::class => 'onFinishPageLoaded',
-            AccountOrderPageLoadedEvent::class => 'onOrderListLoaded',
+            AccountEditOrderPageLoadedEvent::class => 'onPageLoaded'
         ];
     }
 
@@ -102,7 +90,6 @@ class CheckoutSubscriber implements EventSubscriberInterface
             : $salesChannelContext->getCustomer()?->getActiveBillingAddress()?->getCountry()?->getIso();
 
         $offers = [];
-        $contextMethod = $salesChannelContext->getPaymentMethod();
         foreach ($page->getPaymentMethods() as $paymentMethod) {
             if (!MethodHelper::isMonduPayment($paymentMethod)) {
                 continue;
@@ -115,11 +102,6 @@ class CheckoutSubscriber implements EventSubscriberInterface
             );
 
             if ($netTerms !== []) {
-                NetTermName::apply($paymentMethod, $netTerms);
-                if ($contextMethod->getId() === $paymentMethod->getId()) {
-                    NetTermName::apply($contextMethod, $netTerms);
-                }
-
                 $offers[$paymentMethod->getId()] = [
                     'netTerms' => $netTerms,
                     'default' => $this->netTermOfferService->pickDefault($netTerms),
@@ -130,61 +112,4 @@ class CheckoutSubscriber implements EventSubscriberInterface
         $page->addExtension(self::NET_TERMS_EXTENSION, new ArrayStruct($offers));
     }
 
-    /**
-     * The order just placed, named with the term it went to Mondu with.
-     */
-    public function onFinishPageLoaded(CheckoutFinishPageLoadedEvent $event): void
-    {
-        $this->nameOrdersWithTheirTerm(new OrderCollection([$event->getPage()->getOrder()]), $event->getContext());
-    }
-
-    /**
-     * The account's order history, each order named with its own term.
-     */
-    public function onOrderListLoaded(AccountOrderPageLoadedEvent $event): void
-    {
-        $orders = $event->getPage()->getOrders()->getEntities();
-        if ($orders instanceof OrderCollection && $orders->count() > 0) {
-            $this->nameOrdersWithTheirTerm($orders, $event->getContext());
-        }
-    }
-
-    /**
-     * The term of a placed order is the one Mondu authorized, or the one the buyer picked
-     * until Mondu decided (see MonduHandler::saveEarlyOrderData()).
-     */
-    private function nameOrdersWithTheirTerm(OrderCollection $orders, Context $context): void
-    {
-        $criteria = new Criteria();
-        $criteria->addFilter(new EqualsAnyFilter(OrderDataEntity::FIELD_ORDER_ID, array_values($orders->getIds())));
-
-        $terms = [];
-        /** @var OrderDataEntity $data */
-        foreach ($this->orderDataRepository->search($criteria, $context) as $data) {
-            if ((int) $data->getDuration() > 0) {
-                $terms[$data->getOrderId()] = [(int) $data->getDuration()];
-            }
-        }
-
-        foreach ($orders as $order) {
-            if (!isset($terms[$order->getId()])) {
-                continue;
-            }
-
-            $transactions = $order->getTransactions()?->getElements() ?? [];
-            if (method_exists($order, 'getPrimaryOrderTransaction') && $order->getPrimaryOrderTransaction() !== null) {
-                $transactions[] = $order->getPrimaryOrderTransaction();
-            }
-
-            foreach ($transactions as $transaction) {
-                $paymentMethod = $transaction->getPaymentMethod();
-                if ($paymentMethod !== null && MethodHelper::isMonduPayment($paymentMethod)) {
-                    // Orders may share one hydrated payment method, so each gets its own copy.
-                    $paymentMethod = clone $paymentMethod;
-                    NetTermName::apply($paymentMethod, $terms[$order->getId()]);
-                    $transaction->setPaymentMethod($paymentMethod);
-                }
-            }
-        }
-    }
 }
