@@ -7,6 +7,7 @@ namespace Mondu\MonduPayment\Components\StateMachine\Subscriber;
 use Mondu\MonduPayment\Components\MonduApi\Service\MonduClient;
 use Mondu\MonduPayment\Components\Order\Model\Extension\OrderExtension;
 use Mondu\MonduPayment\Components\Order\Model\OrderDataEntity;
+use Mondu\MonduPayment\Components\PaymentMethod\Util\MethodHelper;
 use Mondu\MonduPayment\Components\Order\Util\DocumentUrlHelper;
 use Mondu\MonduPayment\Components\PluginConfig\Service\ConfigService;
 use Mondu\MonduPayment\Components\StateMachine\Exception\MonduException;
@@ -15,10 +16,12 @@ use Mondu\MonduPayment\Services\InvoiceServices\AbstractInvoiceDataService;
 use Mondu\MonduPayment\Util\CriteriaHelper;
 use Psr\Log\LoggerInterface;
 use Shopware\Core\Checkout\Order\Aggregate\OrderDelivery\OrderDeliveryDefinition;
+use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionDefinition;
 use Shopware\Core\Checkout\Order\OrderDefinition;
 use Shopware\Core\Checkout\Order\OrderEntity;
 use Shopware\Core\Framework\Struct\Struct;
 use Shopware\Core\Framework\Context;
+use Shopware\Core\Framework\Api\Context\AdminApiSource;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
@@ -62,6 +65,11 @@ class TransitionSubscriber implements EventSubscriberInterface
                 $order = $this->getOrder($orderDelivery->getOrderId(), $event->getContext());
             } elseif ($eventName === OrderDefinition::ENTITY_NAME) {
                 $order = $this->getOrder($event->getEntityId(), $event->getContext());
+            } elseif ($eventName === OrderTransactionDefinition::ENTITY_NAME) {
+                $order = $this->getOrderOfCancelledPayment($event);
+                if ($order === null) {
+                    return;
+                }
             } else {
                 return;
             }
@@ -129,6 +137,46 @@ class TransitionSubscriber implements EventSubscriberInterface
 
             throw $e;
         }
+    }
+
+    /**
+     * The order whose Mondu payment the merchant cancelled, or null when the cancellation
+     * must not reach Mondu.
+     *
+     * Shopware cancels payments by itself too: when the buyer leaves the Mondu checkout or
+     * switches the payment method, and when Mondu's webhook cancels the order. The buyer may
+     * pay again under a new Mondu order then, so only a payment the merchant cancels, in the
+     * admin or through an integration such as an ERP, cancels the Mondu order.
+     */
+    private function getOrderOfCancelledPayment(StateMachineTransitionEvent $event): ?OrderEntity
+    {
+        if ($event->getToPlace()->getTechnicalName() !== 'cancelled'
+            || !$event->getContext()->getSource() instanceof AdminApiSource
+        ) {
+            return null;
+        }
+
+        $criteria = new Criteria();
+        $criteria->addFilter(new EqualsFilter('transactions.id', $event->getEntityId()));
+        $orderId = $this->orderRepository->searchIds($criteria, $event->getContext())->firstId();
+        if ($orderId === null) {
+            return null;
+        }
+
+        $order = $this->getOrder($orderId, $event->getContext());
+
+        // Only the current payment: cancelling an earlier attempt must not cancel the Mondu
+        // order the buyer paid with afterwards. Transactions come sorted by creation.
+        $current = $order->getTransactions()?->last();
+        if ($current === null
+            || $current->getId() !== $event->getEntityId()
+            || $current->getPaymentMethod() === null
+            || !MethodHelper::isMonduPayment($current->getPaymentMethod())
+        ) {
+            return null;
+        }
+
+        return $order;
     }
 
     protected function getOrder(string $orderId, Context $context): OrderEntity
