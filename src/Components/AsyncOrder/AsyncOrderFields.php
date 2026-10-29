@@ -227,7 +227,7 @@ final class AsyncOrderFields
 
     /**
      * The buyer's company: the customer's, the billing address's as fallback, the same
-     * source the hosted checkout uses. Mondu refuses an order without one.
+     * source the hosted checkout uses. A sole trader may have none.
      */
     public static function companyName(?string $customerCompany, ?string $addressCompany): ?string
     {

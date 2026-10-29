@@ -10,7 +10,7 @@
 
     <mt-banner
         v-if="config.company && !config.company.name"
-        variant="critical"
+        variant="attention"
         class="mondu-async-order-fields__no-company"
     >
         {{ $t('sw-order-mondu.asyncOrder.noCompany') }}
@@ -18,6 +18,7 @@
     <p
         v-else-if="config.company"
         class="mondu-async-order-fields__company"
+        style="margin-bottom: 24px;"
     >
         {{ $t('sw-order-mondu.asyncOrder.labelCompany') }}: <strong>{{ config.company.name }}</strong>
     </p>
