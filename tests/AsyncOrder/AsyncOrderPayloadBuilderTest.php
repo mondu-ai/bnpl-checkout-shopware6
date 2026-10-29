@@ -121,7 +121,33 @@ class AsyncOrderPayloadBuilderTest extends TestCase
         ];
     }
 
-    private function salesChannelContext(): SalesChannelContext
+    public function testASoleTraderWithoutACompanyGoesOutUnderTheOwnersName(): void
+    {
+        $owner = [
+            'legal_form_category' => 'einzelunternehmen',
+            'owner_first_name' => 'Erika',
+            'owner_last_name' => 'Muster',
+            'owner_birth_date' => '1980-02-03',
+        ];
+
+        $buyer = fn (array $fields, ?string $company) => $this->builder()->build(
+            $this->convertedCart(),
+            new Cart('token'),
+            $this->salesChannelContext($company),
+            'invoice',
+            'M_SW6_reference',
+            ['net_term' => '30'] + $fields
+        )['buyer'];
+
+        // Mondu requires a company name, a sole trader trades under their own name.
+        static::assertSame('Erika Muster', $buyer($owner, null)['company_name']);
+        // A company the customer has wins.
+        static::assertSame('Mondu GmbH', $buyer($owner, 'Mondu GmbH')['company_name']);
+        // Without the legal form nothing is made up: Mondu answers with what is missing.
+        static::assertNull($buyer([], null)['company_name']);
+    }
+
+    private function salesChannelContext(?string $company = 'Mondu GmbH'): SalesChannelContext
     {
         $country = new CountryEntity();
         $country->setId('country-id');
@@ -140,7 +166,9 @@ class AsyncOrderPayloadBuilderTest extends TestCase
         $customer->setEmail('buyer@example.com');
         $customer->setFirstName('Erika');
         $customer->setLastName('Muster');
-        $customer->setCompany('Mondu GmbH');
+        if ($company !== null) {
+            $customer->setCompany($company);
+        }
         $customer->setGuest(false);
         $customer->setCustomerNumber('10001');
         $customer->setVatIds(['DE123456789']);

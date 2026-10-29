@@ -79,7 +79,7 @@ class AsyncOrderFieldsTest extends TestCase
         static::assertSame('Mondu GmbH', AsyncOrderFields::companyName('Mondu GmbH', 'Other GmbH'));
         static::assertSame('Other GmbH', AsyncOrderFields::companyName('', 'Other GmbH'));
         static::assertSame('Other GmbH', AsyncOrderFields::companyName('  ', ' Other GmbH '));
-        // No company at all: the order is refused before it reaches Mondu.
+        // No company at all, e.g. a sole trader.
         static::assertNull(AsyncOrderFields::companyName(null, ''));
     }
 }

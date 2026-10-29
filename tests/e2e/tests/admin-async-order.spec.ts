@@ -936,8 +936,8 @@ test.describe.serial('PT-5129 — Mondu orders created in the admin (async API)'
     await expectRefused(page, buyer, /the IBAN is not valid/)
   })
 
-  test('a customer without a company is flagged and the order stops before it reaches Mondu', async ({ page }) => {
-    test.setTimeout(180_000)
+  test('a sole trader without a company is flagged but the order goes to Mondu', async ({ page }) => {
+    test.setTimeout(240_000)
     const buyer = `ac.good.${Date.now()}@example.com`
     const customer = await createCustomer(a, buyer, 'DE', '')
 
@@ -945,12 +945,20 @@ test.describe.serial('PT-5129 — Mondu orders created in the admin (async API)'
     await startAdminOrder(page, customer.customerNumber, INVOICE)
     await addProduct(page, product)
 
-    // Mondu would answer "company name is required" and an unrelated legal form error.
+    // A hint only: a sole trader may have no company name.
     const card = page.locator('.mondu-async-order-fields')
     await expect(card.locator('.mondu-async-order-fields__no-company')).toBeVisible({ timeout: 20_000 })
     await expect(card.locator('.mondu-async-order-fields__company')).toHaveCount(0)
 
-    await expectRefused(page, buyer, /the customer has no company name/)
+    await chooseOption(page, card.locator('.mondu-async-order-fields__legal-form-category'), /Einzelunternehmen|Sole trader|Sole proprietorship/i)
+    await pickDate(page, card.locator('.mondu-async-order-fields__owner-birth-date'), '1980-05-17')
+    await page.waitForTimeout(1_000)
+    await saveOrder(page)
+
+    const order = await findOrder(a, buyer)
+    expect(order, 'the order was created').toBeTruthy()
+    const data = await monduData(a, order.id)
+    expect((await getMonduOrder(a, data.referenceId)).payment_method).toBe('invoice')
   })
 
   test('with admin orders switched off the admin offers no Mondu method', async ({ page }) => {

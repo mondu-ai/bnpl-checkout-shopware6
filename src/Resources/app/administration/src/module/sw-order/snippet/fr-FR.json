@@ -51,7 +51,7 @@
       "labelNetTerm": "Délai de paiement",
       "netTermDays": "{days} jours",
       "labelCompany": "Entreprise",
-      "noCompany": "Le client n'a pas de nom d'entreprise. Mondu n'accepte que les commandes d'entreprises, veuillez ajouter l'entreprise à l'adresse de facturation ou au client.",
+      "noCompany": "Le client n'a pas de nom d'entreprise, requis par Mondu. Pour un entrepreneur individuel, choisissez la forme juridique « Entreprise individuelle » : le nom du titulaire est alors transmis comme nom d'entreprise.",
       "noNetTerms": "Votre compte Mondu n'a aucun délai de paiement pour le pays de l'acheteur, ce moyen de paiement ne peut donc pas être utilisé pour cet acheteur.",
       "labelNumberOfInstallments": "Nombre d'échéances",
       "labelIban": "IBAN",
