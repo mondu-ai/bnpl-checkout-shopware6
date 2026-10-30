@@ -54,7 +54,7 @@
       "labelNetTerm": "Betalingstermijn",
       "netTermDays": "{days} dagen",
       "labelCompany": "Bedrijf",
-      "noCompany": "De klant heeft geen bedrijfsnaam. De bestelling wordt zonder bedrijfsnaam naar Mondu verzonden; Mondu weigert in de beheeromgeving aangemaakte bestellingen zonder bedrijfsnaam momenteel.",
+      "noCompany": "De klant heeft geen bedrijfsnaam, die Mondu nodig heeft. Kies voor een eenmanszaak de rechtsvorm \"Eenmanszaak\": dan wordt de naam van de eigenaar als bedrijfsnaam verzonden.",
       "noNetTerms": "Uw Mondu-account heeft geen betalingstermijn voor het land van de koper, daarom kan deze betaalmethode voor deze koper niet worden gebruikt.",
       "labelNumberOfInstallments": "Aantal termijnen",
       "labelIban": "IBAN",
