@@ -44,6 +44,30 @@
     },
     "summary": {
       "monduAmountLabel": "Vorderingsbedrag bij Mondu"
+    },
+    "asyncOrder": {
+      "title": "Mondu",
+      "description": "Mondu beoordeelt de bestelling bij het opslaan en vraagt de koper deze per e-mail te bevestigen. De betaalstatus volgt de beslissing van Mondu.",
+      "labelNetTerm": "Betalingstermijn",
+      "netTermDays": "{days} dagen",
+      "labelCompany": "Bedrijf",
+      "noCompany": "De klant heeft geen bedrijfsnaam, die Mondu nodig heeft. Kies voor een eenmanszaak de rechtsvorm \"Eenmanszaak\": dan wordt de naam van de eigenaar als bedrijfsnaam verzonden.",
+      "noNetTerms": "Uw Mondu-account heeft geen betalingstermijn voor het land van de koper, daarom kan deze betaalmethode voor deze koper niet worden gebruikt.",
+      "labelNumberOfInstallments": "Aantal termijnen",
+      "labelIban": "IBAN",
+      "labelAccountHolder": "Rekeninghouder",
+      "labelRegistrationId": "Registratienummer",
+      "labelLegalFormCategory": "Rechtsvorm",
+      "labelOwnerFirstName": "Voornaam eigenaar",
+      "labelOwnerLastName": "Achternaam eigenaar",
+      "labelOwnerBirthDate": "Geboortedatum eigenaar",
+      "legalFormCategory": {
+        "einzelunternehmen": "Eenmanszaak",
+        "kapital_und_personen_gesellschaft": "Kapitaal- of personenvennootschap",
+        "offentliche_auftraggeber_einrichtung": "Overheidsinstantie of instelling",
+        "andere_gesellschaftsform": "Andere rechtsvorm"
+      },
+      "summaryPaymentTerm": "Mondu-betalingstermijn"
     }
   },
   "sw-mondu-config": {
@@ -56,5 +80,9 @@
       "apiConfigurationFailureMessage": "API Credentials zijn ongeldig.",
       "testApiConfiguration": "API-referenties testen"
     }
+  },
+  "mondu-net-term-select": {
+    "days": "dagen",
+    "notOffered": "niet aangeboden door Mondu"
   }
 }

@@ -1,5 +1,6 @@
 import './component';
 import './view';
+import './page';
 
 // Import locales/snippets for sw-order module
 import deDE from './snippet/de-DE.json';
