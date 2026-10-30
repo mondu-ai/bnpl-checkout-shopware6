@@ -1,0 +1,26 @@
+{
+    "Confirmed": "Bevestigd",
+    "Cancelled": "Geannuleerd",
+    "Pending": "In behandeling",
+    "Declined": "Afgewezen",
+    "Approved": "Goedgekeurd",
+    "sw-flow-custom-event": {
+        "flow-list": {
+            "Mondu Payments_order_Cancelled": "Mondu: Bestelling geannuleerd",
+            "Mondu Payments_order_Declined": "Mondu: Bestelling afgewezen",
+            "Mondu Payments_order_Pending": "Mondu: Bestelling in behandeling",
+            "Mondu Payments_order_Confirmed": "Mondu: Bestelling bevestigd"
+        }
+    },
+    "mondu": {
+        "account": {
+            "externalPaymentDeclined": "We hebben uw bestelling ontvangen, maar de betaling is afgewezen. Wijzig uw betaalmethode of probeer het opnieuw."
+        },
+        "checkout": {
+            "netTerm": {
+                "label": "Betalingstermijn",
+                "days": "%days% dagen"
+            }
+        }
+    }
+}
