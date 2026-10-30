@@ -936,7 +936,7 @@ test.describe.serial('PT-5129 — Mondu orders created in the admin (async API)'
     await expectRefused(page, buyer, /the IBAN is not valid/)
   })
 
-  test('a sole trader without a company is flagged but the order goes to Mondu', async ({ page }) => {
+  test('without a company the order is flagged and goes to Mondu with none', async ({ page }) => {
     test.setTimeout(240_000)
     const buyer = `ac.good.${Date.now()}@example.com`
     const customer = await createCustomer(a, buyer, 'DE', '')
@@ -945,7 +945,8 @@ test.describe.serial('PT-5129 — Mondu orders created in the admin (async API)'
     await startAdminOrder(page, customer.customerNumber, INVOICE)
     await addProduct(page, product)
 
-    // A hint only: a sole trader may have no company name.
+    // A hint only: the plugin does not block the order and sends company_name as null, as the
+    // hosted checkout does. Mondu's create_async currently refuses that.
     const card = page.locator('.mondu-async-order-fields')
     await expect(card.locator('.mondu-async-order-fields__no-company')).toBeVisible({ timeout: 20_000 })
     await expect(card.locator('.mondu-async-order-fields__company')).toHaveCount(0)
@@ -953,12 +954,8 @@ test.describe.serial('PT-5129 — Mondu orders created in the admin (async API)'
     await chooseOption(page, card.locator('.mondu-async-order-fields__legal-form-category'), /Einzelunternehmen|Sole trader|Sole proprietorship/i)
     await pickDate(page, card.locator('.mondu-async-order-fields__owner-birth-date'), '1980-05-17')
     await page.waitForTimeout(1_000)
-    await saveOrder(page)
 
-    const order = await findOrder(a, buyer)
-    expect(order, 'the order was created').toBeTruthy()
-    const data = await monduData(a, order.id)
-    expect((await getMonduOrder(a, data.referenceId)).payment_method).toBe('invoice')
+    await expectRefused(page, buyer, /Company name is required/)
   })
 
   test('with admin orders switched off the admin offers no Mondu method', async ({ page }) => {

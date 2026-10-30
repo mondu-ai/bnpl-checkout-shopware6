@@ -54,7 +54,7 @@
       "labelNetTerm": "Zahlungsziel",
       "netTermDays": "{days} Tage",
       "labelCompany": "Firma",
-      "noCompany": "Der Kunde hat keinen Firmennamen, den Mondu benötigt. Wählen Sie für Einzelunternehmer die Rechtsform \"Einzelunternehmen\": Dann wird der Name des Inhabers als Firmenname übermittelt.",
+      "noCompany": "Der Kunde hat keinen Firmennamen. Die Bestellung wird ohne Firmennamen an Mondu übermittelt; Mondu lehnt in der Administration erstellte Bestellungen ohne Firmennamen derzeit ab.",
       "noNetTerms": "Ihr Mondu-Konto hat kein Zahlungsziel für das Land des Käufers, daher kann diese Zahlungsart für diesen Käufer nicht verwendet werden.",
       "labelNumberOfInstallments": "Anzahl der Raten",
       "labelIban": "IBAN",

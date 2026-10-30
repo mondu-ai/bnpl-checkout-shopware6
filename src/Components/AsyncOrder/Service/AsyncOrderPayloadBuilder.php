@@ -122,7 +122,9 @@ class AsyncOrderPayloadBuilder
             'email' => $customer->getEmail(),
             'first_name' => $customer->getFirstName(),
             'last_name' => $customer->getLastName(),
-            'company_name' => $this->companyName($customer, $billingAddress, $fields),
+            // The same source as the hosted checkout (order customer company), the address as
+            // fallback. Without one it goes out as null, as the hosted checkout sends it.
+            'company_name' => AsyncOrderFields::companyName($customer->getCompany(), $billingAddress->getCompany()),
             'phone' => $billingAddress->getPhoneNumber(),
             'address_line1' => $addressLine1,
             'address_line2' => $addressLine2,
@@ -154,28 +156,6 @@ class AsyncOrderPayloadBuilder
         }
 
         return $buyer;
-    }
-
-    /**
-     * The company as the hosted checkout sends it, the billing address's as fallback. Mondu
-     * requires one, also for a sole trader, who may have none: a sole trader trades under
-     * their own name, so the owner's name goes out then.
-     *
-     * @param array<string, string> $fields
-     */
-    private function companyName(CustomerEntity $customer, CustomerAddressEntity $billingAddress, array $fields): ?string
-    {
-        $company = AsyncOrderFields::companyName($customer->getCompany(), $billingAddress->getCompany());
-        if ($company !== null
-            || ($fields[AsyncOrderFields::FIELD_LEGAL_FORM_CATEGORY] ?? null) !== AsyncOrderFields::LEGAL_FORM_CATEGORY_SOLE_TRADER
-        ) {
-            return $company;
-        }
-
-        $name = trim(($fields[AsyncOrderFields::FIELD_OWNER_FIRST_NAME] ?? $customer->getFirstName())
-            . ' ' . ($fields[AsyncOrderFields::FIELD_OWNER_LAST_NAME] ?? $customer->getLastName()));
-
-        return $name !== '' ? $name : null;
     }
 
     /**
