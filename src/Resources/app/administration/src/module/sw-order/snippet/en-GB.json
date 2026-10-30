@@ -62,7 +62,7 @@
       "labelNetTerm": "Net term",
       "netTermDays": "{days} days",
       "labelCompany": "Company",
-      "noCompany": "The customer has no company name, which Mondu requires. For a sole trader choose the legal form \"Sole trader\": the owner's name is then sent as the company name.",
+      "noCompany": "The customer has no company name. The order is sent to Mondu without one; Mondu currently refuses orders created in the admin without a company name.",
       "noNetTerms": "Your Mondu account holds no net term for the buyer's country, so this payment method cannot be used for this buyer.",
       "labelNumberOfInstallments": "Number of installments",
       "labelIban": "IBAN",
