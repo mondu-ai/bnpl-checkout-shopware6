@@ -121,8 +121,15 @@ class AsyncOrderPayloadBuilderTest extends TestCase
         ];
     }
 
-    public function testWithoutACompanyNoneIsMadeUp(): void
+    public function testASoleTraderWithoutACompanyGoesOutUnderTheOwnersName(): void
     {
+        $owner = [
+            'legal_form_category' => 'einzelunternehmen',
+            'owner_first_name' => 'Erika',
+            'owner_last_name' => 'Muster',
+            'owner_birth_date' => '1980-02-03',
+        ];
+
         $buyer = fn (array $fields, ?string $company) => $this->builder()->build(
             $this->convertedCart(),
             new Cart('token'),
@@ -132,11 +139,12 @@ class AsyncOrderPayloadBuilderTest extends TestCase
             ['net_term' => '30'] + $fields
         )['buyer'];
 
-        static::assertSame('Mondu GmbH', $buyer([], 'Mondu GmbH')['company_name']);
-        // Sent as null like the hosted checkout does, also for a sole trader.
-        static::assertArrayHasKey('company_name', $buyer([], null));
+        // Mondu requires a company name, a sole trader trades under their own name.
+        static::assertSame('Erika Muster', $buyer($owner, null)['company_name']);
+        // A company the customer has wins.
+        static::assertSame('Mondu GmbH', $buyer($owner, 'Mondu GmbH')['company_name']);
+        // Without the legal form nothing is made up: Mondu answers with what is missing.
         static::assertNull($buyer([], null)['company_name']);
-        static::assertNull($buyer(['legal_form_category' => 'einzelunternehmen', 'owner_birth_date' => '1980-02-03'], null)['company_name']);
     }
 
     private function salesChannelContext(?string $company = 'Mondu GmbH'): SalesChannelContext
