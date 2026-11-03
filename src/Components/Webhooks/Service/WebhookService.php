@@ -168,7 +168,7 @@ class WebhookService
             // goes out once more through update_external_info (no confirm call in this flow).
             $asyncOrderData = $this->findAsyncOrderData($monduId, $context);
             if ($asyncOrderData !== null) {
-                $this->confirmAsyncOrder($asyncOrderData, $monduId, $context);
+                $this->confirmAsyncOrder($asyncOrderData, $monduId, (int) ($params['net_term'] ?? 0), $context);
             }
 
             // Only transition order state if autoTransitionOrderState is enabled
@@ -360,7 +360,7 @@ class WebhookService
      *
      * A failed call fails the webhook, so Mondu retries it, the same as in the Magento module.
      */
-    private function confirmAsyncOrder(OrderDataEntity $orderData, string $monduId, Context $context): void
+    private function confirmAsyncOrder(OrderDataEntity $orderData, string $monduId, int $confirmedNetTerm, Context $context): void
     {
         $order = $orderData->getOrder();
         $response = $this->monduClient
@@ -375,7 +375,29 @@ class WebhookService
             OrderDataEntity::FIELD_ORDER_STATE => 'confirmed',
             OrderDataEntity::FIELD_IS_SUCCESSFUL => true,
             OrderDataEntity::FIELD_EXTERNAL_REFERENCE_ID => $order->getOrderNumber(),
-        ] + $this->readAuthorizedNetTerm($orderData, $monduId), $context);
+        ] + $this->readConfirmedNetTerm($orderData, $monduId, $confirmedNetTerm), $context);
+    }
+
+    /**
+     * The net term the buyer confirmed, which replaces the one stored at order/authorized.
+     *
+     * The buyer may pick another net term on the Mondu confirmation page, so the term
+     * stored at order/authorized is not final. The order/confirmed webhook carries the
+     * final one in net_term. Without it (state sync after the order is written), the
+     * term is read from the API.
+     *
+     * @return array<string, int>
+     */
+    private function readConfirmedNetTerm(OrderDataEntity $orderData, string $monduId, int $confirmedNetTerm): array
+    {
+        if ($confirmedNetTerm <= 0) {
+            $monduOrder = $this->monduClient
+                ->setSalesChannelId($orderData->getOrder()->getSalesChannelId())
+                ->getMonduOrder($monduId);
+            $confirmedNetTerm = (int) ($monduOrder['authorized_net_term'] ?? 0);
+        }
+
+        return $confirmedNetTerm > 0 ? [OrderDataEntity::FIELD_DURATION => $confirmedNetTerm] : [];
     }
 
     /**
