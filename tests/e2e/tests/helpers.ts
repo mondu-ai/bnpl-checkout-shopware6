@@ -131,7 +131,13 @@ function storeApiHeaders(key: string) {
   return { 'sw-access-key': key, Accept: 'application/json', 'Content-Type': 'application/json' }
 }
 
-export async function registerAndCheckout(page: Page, email: string, paymentMethodName: RegExp, countryIso: string = 'DE'): Promise<string> {
+export async function registerAndCheckout(
+  page: Page,
+  email: string,
+  paymentMethodName: RegExp,
+  countryIso: string = 'DE',
+  beforeSubmit?: (page: Page) => Promise<void>
+): Promise<string> {
   const apiKey = await getStoreApiKey()
   const ctx = await playwrightRequest.newContext()
 
@@ -321,6 +327,10 @@ export async function registerAndCheckout(page: Page, email: string, paymentMeth
   if (await cookieBtn2.isVisible({ timeout: 1_000 }).catch(() => false)) {
     await cookieBtn2.click()
     await page.waitForTimeout(500)
+  }
+
+  if (beforeSubmit) {
+    await beforeSubmit(page)
   }
 
   console.log(`Submitting order from: ${page.url()}`)

@@ -194,6 +194,20 @@
         </input-field>
 
         <input-field type="bool">
+            <name>backendOrdersEnabled</name>
+            <label>Enable orders created in the admin</label>
+            <label lang="de-DE">In der Administration erstellte Bestellungen aktivieren</label>
+            <label lang="nl-NL">In de beheeromgeving aangemaakte bestellingen inschakelen</label>
+            <label lang="fr-FR">Activer les commandes créées dans l'administration</label>
+
+            <defaultValue>0</defaultValue>
+            <helpText>Lets you pick a Mondu payment method when creating an order in the admin. Mondu assesses the order right away and asks the buyer to confirm it by email. Requires the async order source to be enabled for your Mondu account; if it is not, the methods stay hidden in the admin regardless of this setting.</helpText>
+            <helpText lang="de-DE">Ermöglicht die Auswahl einer Mondu-Zahlungsart beim Anlegen einer Bestellung in der Administration. Mondu prüft die Bestellung sofort und bittet den Käufer per E-Mail um Bestätigung. Dafür muss die Async-Bestellquelle in Ihrem Mondu-Konto aktiviert sein; andernfalls bleiben die Zahlungsarten in der Administration unabhängig von dieser Einstellung ausgeblendet.</helpText>
+            <helpText lang="nl-NL">Hiermee kunt u een Mondu-betaalmethode kiezen bij het aanmaken van een bestelling in de beheeromgeving. Mondu beoordeelt de bestelling direct en vraagt de koper deze per e-mail te bevestigen. Hiervoor moet de async-bestelbron in uw Mondu-account zijn ingeschakeld; anders blijven de betaalmethoden in de beheeromgeving verborgen, ongeacht deze instelling.</helpText>
+            <helpText lang="fr-FR">Permet de choisir un moyen de paiement Mondu lors de la création d'une commande dans l'administration. Mondu évalue la commande immédiatement et demande à l'acheteur de la confirmer par e-mail. La source de commande async doit être activée sur votre compte Mondu ; sinon, les moyens de paiement restent masqués dans l'administration quel que soit ce réglage.</helpText>
+        </input-field>
+
+        <input-field type="bool">
             <name>hideMonduForB2C</name>
             <label>Hide Mondu for B2C</label>
             <label lang="de-DE">Mondu für B2C ausblenden</label>
@@ -220,5 +234,51 @@
             <helpText lang="nl-NL">Wanneer ingeschakeld, worden alle informatieve logs opgenomen. Wanneer uitgeschakeld, worden alleen fouten gelogd.</helpText>
             <helpText lang="fr-FR">Lorsqu'elle est activée, tous les journaux d'information seront enregistrés. Lorsqu'elle est désactivée, seules les erreurs seront journalisées.</helpText>
         </input-field>
+    </card>
+
+    <card>
+        <title>Payment terms</title>
+        <title lang="de-DE">Zahlungsziele</title>
+        <title lang="nl-NL">Betalingstermijnen</title>
+        <title lang="fr-FR">Délais de paiement</title>
+
+        <component name="mondu-net-term-select">
+            <name>availableNetTermsInvoice</name>
+            <monduMethod>invoice</monduMethod>
+            <label>Payment terms for invoice purchase</label>
+            <label lang="de-DE">Zahlungsziele für Rechnungskauf</label>
+            <label lang="nl-NL">Betalingstermijnen voor factuur</label>
+            <label lang="fr-FR">Délais de paiement pour la facture</label>
+            <helpText>The terms the buyer may choose from in the checkout. Only the terms your Mondu account holds for the buyer's country are shown; when one remains it is shown as text, when several remain the buyer picks one. When none is selected, the checkout shows no term and Mondu applies your account default.</helpText>
+            <helpText lang="de-DE">Die Zahlungsziele, aus denen der Käufer im Checkout wählen kann. Angezeigt werden nur die Zahlungsziele, die Ihr Mondu-Konto für das Land des Käufers hat; bleibt eines übrig, wird es als Text angezeigt, bleiben mehrere, wählt der Käufer eines aus. Ist keines ausgewählt, zeigt der Checkout kein Zahlungsziel und Mondu verwendet den Standard Ihres Kontos.</helpText>
+            <helpText lang="nl-NL">De termijnen waaruit de koper in de checkout kan kiezen. Alleen de termijnen die uw Mondu-account voor het land van de koper heeft, worden getoond; blijft er één over, dan wordt die als tekst getoond, blijven er meerdere over, dan kiest de koper er één. Is er geen geselecteerd, dan toont de checkout geen termijn en past Mondu de standaard van uw account toe.</helpText>
+            <helpText lang="fr-FR">Les délais parmi lesquels l'acheteur peut choisir lors du paiement. Seuls les délais dont votre compte Mondu dispose pour le pays de l'acheteur sont affichés ; s'il en reste un, il est affiché en texte, s'il en reste plusieurs, l'acheteur en choisit un. Si aucun n'est sélectionné, le paiement n'affiche aucun délai et Mondu applique la valeur par défaut de votre compte.</helpText>
+        </component>
+
+        <component name="mondu-net-term-select">
+            <name>availableNetTermsDirectDebit</name>
+            <monduMethod>direct_debit</monduMethod>
+            <label>Payment terms for SEPA direct debit</label>
+            <label lang="de-DE">Zahlungsziele für SEPA-Lastschrift</label>
+            <label lang="nl-NL">Betalingstermijnen voor SEPA-incasso</label>
+            <label lang="fr-FR">Délais de paiement pour le prélèvement SEPA</label>
+            <helpText>The terms the buyer may choose from in the checkout. Only the terms your Mondu account holds for the buyer's country are shown; when one remains it is shown as text, when several remain the buyer picks one. When none is selected, the checkout shows no term and Mondu applies your account default.</helpText>
+            <helpText lang="de-DE">Die Zahlungsziele, aus denen der Käufer im Checkout wählen kann. Angezeigt werden nur die Zahlungsziele, die Ihr Mondu-Konto für das Land des Käufers hat; bleibt eines übrig, wird es als Text angezeigt, bleiben mehrere, wählt der Käufer eines aus. Ist keines ausgewählt, zeigt der Checkout kein Zahlungsziel und Mondu verwendet den Standard Ihres Kontos.</helpText>
+            <helpText lang="nl-NL">De termijnen waaruit de koper in de checkout kan kiezen. Alleen de termijnen die uw Mondu-account voor het land van de koper heeft, worden getoond; blijft er één over, dan wordt die als tekst getoond, blijven er meerdere over, dan kiest de koper er één. Is er geen geselecteerd, dan toont de checkout geen termijn en past Mondu de standaard van uw account toe.</helpText>
+            <helpText lang="fr-FR">Les délais parmi lesquels l'acheteur peut choisir lors du paiement. Seuls les délais dont votre compte Mondu dispose pour le pays de l'acheteur sont affichés ; s'il en reste un, il est affiché en texte, s'il en reste plusieurs, l'acheteur en choisit un. Si aucun n'est sélectionné, le paiement n'affiche aucun délai et Mondu applique la valeur par défaut de votre compte.</helpText>
+        </component>
+
+        <component name="mondu-net-term-select">
+            <name>availableNetTermsPayNow</name>
+            <monduMethod>pay_now</monduMethod>
+            <label>Payment terms for Instant Pay</label>
+            <label lang="de-DE">Zahlungsziele für Echtzeitüberweisung</label>
+            <label lang="nl-NL">Betalingstermijnen voor Instant Pay</label>
+            <label lang="fr-FR">Délais de paiement pour le virement instantané</label>
+            <helpText>The terms the buyer may choose from in the checkout. Only the terms your Mondu account holds for the buyer's country are shown; when one remains it is shown as text, when several remain the buyer picks one. When none is selected, the checkout shows no term and Mondu applies your account default.</helpText>
+            <helpText lang="de-DE">Die Zahlungsziele, aus denen der Käufer im Checkout wählen kann. Angezeigt werden nur die Zahlungsziele, die Ihr Mondu-Konto für das Land des Käufers hat; bleibt eines übrig, wird es als Text angezeigt, bleiben mehrere, wählt der Käufer eines aus. Ist keines ausgewählt, zeigt der Checkout kein Zahlungsziel und Mondu verwendet den Standard Ihres Kontos.</helpText>
+            <helpText lang="nl-NL">De termijnen waaruit de koper in de checkout kan kiezen. Alleen de termijnen die uw Mondu-account voor het land van de koper heeft, worden getoond; blijft er één over, dan wordt die als tekst getoond, blijven er meerdere over, dan kiest de koper er één. Is er geen geselecteerd, dan toont de checkout geen termijn en past Mondu de standaard van uw account toe.</helpText>
+            <helpText lang="fr-FR">Les délais parmi lesquels l'acheteur peut choisir lors du paiement. Seuls les délais dont votre compte Mondu dispose pour le pays de l'acheteur sont affichés ; s'il en reste un, il est affiché en texte, s'il en reste plusieurs, l'acheteur en choisit un. Si aucun n'est sélectionné, le paiement n'affiche aucun délai et Mondu applique la valeur par défaut de votre compte.</helpText>
+        </component>
     </card>
 </config>

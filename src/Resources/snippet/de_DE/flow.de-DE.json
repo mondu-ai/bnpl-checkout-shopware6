@@ -11,5 +11,13 @@
             "Mondu Payments_order_Pending": "Mondu: Bestellung ausstehend",
             "Mondu Payments_order_Confirmed": "Mondu: Bestellung bestätigt"
         }
+    },
+    "mondu": {
+        "checkout": {
+            "netTerm": {
+                "label": "Zahlungsziel",
+                "days": "%days% Tage"
+            }
+        }
     }
 }
