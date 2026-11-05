@@ -78,10 +78,10 @@ final class AsyncOrderStates
             'fr-FR' => 'Vérification du paiement (Mondu)',
         ],
         self::STATE_PENDING_BUYER_CONFIRMATION => [
-            'en-GB' => 'Pending buyer confirmation (Mondu)',
-            'de-DE' => 'Wartet auf Käuferbestätigung (Mondu)',
-            'nl-NL' => 'Wacht op bevestiging koper (Mondu)',
-            'fr-FR' => 'En attente de confirmation de l\'acheteur (Mondu)',
+            'en-GB' => 'Pending buyer confirmation',
+            'de-DE' => 'Wartet auf Käuferbestätigung',
+            'nl-NL' => 'Wacht op bevestiging koper',
+            'fr-FR' => 'En attente de confirmation de l\'acheteur',
         ],
     ];
 

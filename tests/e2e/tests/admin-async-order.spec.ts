@@ -534,7 +534,7 @@ test.describe.serial('PT-5129 — Mondu orders created in the admin (async API)'
       .toBe('mondu_pending_buyer_confirmation')
 
     await openOrder(page, orderId)
-    await expect(page.getByText(/Wartet auf Käuferbestätigung \(Mondu\)|Pending buyer confirmation \(Mondu\)/).first()).toBeVisible({ timeout: 30_000 })
+    await expect(page.getByText(/Wartet auf Käuferbestätigung|Pending buyer confirmation/).first()).toBeVisible({ timeout: 30_000 })
     await expect(page.locator('body')).toContainText(/Mondu-Zahlungsziel|Mondu payment term/)
   })
 
