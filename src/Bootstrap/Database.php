@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Mondu\MonduPayment\Bootstrap;
 
+use Mondu\MonduPayment\Components\AsyncOrder\AsyncOrderStates;
 use Mondu\MonduPayment\Util\MigrationHelper;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DBALException;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
@@ -51,6 +53,7 @@ class Database extends AbstractBootstrap
         }
 
         $method = MigrationHelper::getExecuteStatementMethod();
+        $this->removeAsyncOrderStates();
         $this->connection->{$method}('DROP TABLE IF EXISTS `mondu_order_data`');
         $this->connection->{$method}('DROP TABLE IF EXISTS `mondu_invoice_data`');
 
@@ -74,6 +77,45 @@ class Database extends AbstractBootstrap
             return ['id' => $id];
         }, $idSearchResult->getIds());
         $systemConfigRepository->delete($ids, $this->context);
+    }
+
+    /**
+     * Removes the payment states added for orders created in the admin, with their
+     * transitions. A state some order transaction or its history still points to stays,
+     * so that no order loses its state.
+     */
+    private function removeAsyncOrderStates(): void
+    {
+        $states = $this->connection->fetchFirstColumn(
+            'SELECT state.id FROM state_machine_state state
+             JOIN state_machine machine ON machine.id = state.state_machine_id
+             WHERE machine.technical_name = :machine AND state.technical_name IN (:states)',
+            ['machine' => 'order_transaction.state', 'states' => AsyncOrderStates::STATES],
+            ['states' => ArrayParameterType::STRING]
+        );
+
+        foreach ($states as $stateId) {
+            $inUse = $this->connection->fetchOne(
+                'SELECT 1 FROM order_transaction WHERE state_id = :id
+                 UNION SELECT 1 FROM state_machine_history WHERE from_state_id = :id OR to_state_id = :id
+                 LIMIT 1',
+                ['id' => $stateId]
+            );
+
+            if ($inUse) {
+                continue;
+            }
+
+            $this->connection->executeStatement(
+                'DELETE FROM state_machine_transition WHERE from_state_id = :id OR to_state_id = :id',
+                ['id' => $stateId]
+            );
+            $this->connection->executeStatement(
+                'DELETE FROM state_machine_state_translation WHERE state_machine_state_id = :id',
+                ['id' => $stateId]
+            );
+            $this->connection->executeStatement('DELETE FROM state_machine_state WHERE id = :id', ['id' => $stateId]);
+        }
     }
 
     /**

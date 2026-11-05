@@ -28,24 +28,24 @@ class PaymentMethods extends AbstractBootstrap
         MonduHandler::class => [
             'handlerIdentifier' => MonduHandler::class,
             'technicalName' => 'mondu_payment',
-            'name' => 'Rechnungskauf (30 Tage)',
+            'name' => 'Rechnungskauf',
             'description' => '',
             'afterOrderEnabled' => true,
             'translations' => [
                 'de-DE' => [
-                    'name' => 'Rechnungskauf (30 Tage)',
+                    'name' => 'Rechnungskauf',
                     'description' => '',
                 ],
                 'en-GB' => [
-                    'name' => 'Business net 30',
+                    'name' => 'Invoice',
                     'description' => '',
                 ],
                 'nl-NL' => [
-                    'name' => 'Factuur (30 dagen)',
+                    'name' => 'Factuur',
                     'description' => '',
                 ],
                 'fr-FR' => [
-                    'name' => 'Facture (30 jours)',
+                    'name' => 'Facture',
                     'description' => '',
                 ]
             ],
@@ -53,24 +53,24 @@ class PaymentMethods extends AbstractBootstrap
         MonduSepaHandler::class => [
             'handlerIdentifier' => MonduSepaHandler::class,
             'technicalName' => 'mondu_sepa_payment',
-            'name' => 'SEPA-Lastschrift (30 Tage)',
+            'name' => 'SEPA-Lastschrift',
             'description' => '',
             'afterOrderEnabled' => true,
             'translations' => [
                 'de-DE' => [
-                    'name' => 'SEPA-Lastschrift (30 Tage)',
+                    'name' => 'SEPA-Lastschrift',
                     'description' => '',
                 ],
                 'en-GB' => [
-                    'name' => 'SEPA direct debit (30 days)',
+                    'name' => 'SEPA direct debit',
                     'description' => '',
                 ],
                 'nl-NL' => [
-                    'name' => 'SEPA automatische incasso (30 dagen)',
+                    'name' => 'SEPA automatische incasso',
                     'description' => '',
                 ],
                 'fr-FR' => [
-                    'name' => 'Prélèvement automatique SEPA (30 jours)',
+                    'name' => 'Prélèvement automatique SEPA',
                     'description' => '',
                 ]
             ],

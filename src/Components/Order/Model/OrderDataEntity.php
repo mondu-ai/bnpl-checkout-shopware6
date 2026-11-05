@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mondu\MonduPayment\Components\Order\Model;
 
+use Mondu\MonduPayment\Components\AsyncOrder\AsyncOrderStates;
 use Shopware\Core\Checkout\Order\OrderEntity;
 use Shopware\Core\Framework\DataAbstractionLayer\Entity;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityIdTrait;
@@ -36,6 +37,8 @@ class OrderDataEntity extends Entity
 
     public const FIELD_EXTERNAL_REFERENCE_ID = 'externalReferenceId';
 
+    public const FIELD_ORDER_FLOW = 'orderFlow';
+
     /**
      * @var string
      */
@@ -55,6 +58,11 @@ class OrderDataEntity extends Entity
      * @var string
      */
     protected string $orderState;
+
+    /**
+     * @var string
+     */
+    protected string $orderFlow = AsyncOrderStates::FLOW_AUTHORIZATION;
 
     /**
      * @var string
@@ -129,6 +137,16 @@ class OrderDataEntity extends Entity
     public function getOrderState(): string
     {
         return $this->orderState;
+    }
+
+    public function getOrderFlow(): string
+    {
+        return $this->orderFlow;
+    }
+
+    public function isAsyncFlow(): bool
+    {
+        return $this->orderFlow === AsyncOrderStates::FLOW_ASYNC;
     }
 
     public function getReferenceId(): string
