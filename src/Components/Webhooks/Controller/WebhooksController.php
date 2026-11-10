@@ -102,6 +102,9 @@ class WebhooksController extends StorefrontController
             case 'order/pending':
                 [$resBody, $resStatus] = $this->webhookService->handlePending($params, $context);
                 break;
+            case 'order/authorized':
+                [$resBody, $resStatus] = $this->webhookService->handleAuthorized($params, $context);
+                break;
             case 'order/declined':
             case 'order/canceled':
             case 'order/cancelled':
@@ -116,6 +119,9 @@ class WebhooksController extends StorefrontController
                         break;
                     case 'pending':
                         [$resBody, $resStatus] = $this->webhookService->handlePending($params, $context);
+                        break;
+                    case 'authorized':
+                        [$resBody, $resStatus] = $this->webhookService->handleAuthorized($params, $context);
                         break;
                     case 'declined':
                     case 'canceled':

@@ -11,4 +11,13 @@ export default class MonduConfigService extends Shopware.Classes.ApiService {
         })
       .then(response => response.data)
   }
+
+  getNetTermOptions(paymentMethod, salesChannelId = null) {
+    return this.httpClient
+      .get('/mondu/config/net-terms', {
+        params: { paymentMethod, salesChannelId },
+        headers: this.getBasicHeaders()
+      })
+      .then(response => response.data)
+  }
 }

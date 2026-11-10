@@ -98,7 +98,13 @@ class StateMachineRegistryDecorator extends StateMachineRegistry // we must exte
             throw new MonduException('Corrupt order');
         }
 
-        if ($monduData->getOrderState() === 'pending') {
+        // An order created in the admin can only ship once the buyer confirmed it by email:
+        // before that Mondu refuses the invoice. Any state short of that is re-read from Mondu
+        // first, in case a webhook went missing.
+        $awaitsMondu = $monduData->getOrderState() === 'pending'
+            || ($monduData->isAsyncFlow() && in_array($monduData->getOrderState(), ['processing', 'authorized'], true));
+
+        if ($awaitsMondu) {
             $newState = $this->monduOperationService->syncOrder($monduData, $context, $salesChannelId);
             if ($newState !=='partially_shipped' && $newState !== 'confirmed') {
                 throw new MonduException('Mondu Order state must be confirmed or partially_shipped');

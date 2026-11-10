@@ -1,0 +1,35 @@
+<?xml version="1.0" ?>
+<container xmlns="http://symfony.com/schema/dic/services"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+    <services>
+        <defaults autowire="true"/>
+
+        <service id="Mondu\MonduPayment\Components\AsyncOrder\Service\BackendOrdersService">
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
+            <argument key="$monduClient" type="service" id="mondu.mondu_api"/>
+            <argument key="$cache" type="service" id="cache.object"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\AsyncOrder\Service\PaymentTermsService">
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
+            <argument key="$monduClient" type="service" id="mondu.mondu_api"/>
+            <argument key="$cache" type="service" id="cache.object"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\AsyncOrder\Service\AsyncOrderFieldStorage">
+            <argument key="$connection" type="service" id="Doctrine\DBAL\Connection"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\AsyncOrder\Service\AsyncOrderPayloadBuilder">
+            <argument key="$orderLinesService" type="service" id="Mondu\MonduPayment\Services\OrderServices\AbstractOrderLinesService"/>
+            <argument key="$configService" type="service" id="mondu.mondu_config"/>
+        </service>
+
+        <service id="Mondu\MonduPayment\Components\AsyncOrder\Service\AsyncOrderStateSync">
+            <argument key="$monduClient" type="service" id="mondu.mondu_api"/>
+            <argument key="$webhookService" type="service" id="mondu.webhook_service"/>
+            <argument key="$logger" type="service" id="monolog.logger.mondu"/>
+        </service>
+    </services>
+</container>

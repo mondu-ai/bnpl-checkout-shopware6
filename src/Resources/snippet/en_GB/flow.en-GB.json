@@ -11,5 +11,13 @@
             "Mondu Payments_order_Pending": "Mondu: Order Pending",
             "Mondu Payments_order_Confirmed": "Mondu: Order Confirmed"
         }
+    },
+    "mondu": {
+        "checkout": {
+            "netTerm": {
+                "label": "Payment term",
+                "days": "%days% days"
+            }
+        }
     }
 }

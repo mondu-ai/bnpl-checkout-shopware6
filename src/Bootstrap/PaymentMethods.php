@@ -27,39 +27,39 @@ class PaymentMethods extends AbstractBootstrap
     public const PAYMENT_METHODS = [
         MonduHandler::class => [
             'handlerIdentifier' => MonduHandler::class,
-            'name' => 'Rechnungskauf (30 Tage)',
+            'name' => 'Rechnungskauf',
             'afterOrderEnabled' => true,
             'translations' => [
                 'de-DE' => [
-                    'name' => 'Rechnungskauf (30 Tage)'
+                    'name' => 'Rechnungskauf'
                 ],
                 'en-GB' => [
-                    'name' => 'Business net 30'
+                    'name' => 'Invoice'
                 ],
                 'nl-NL' => [
-                    'name' => 'Factuur (30 dagen)'
+                    'name' => 'Factuur'
                 ],
                 'fr-FR' => [
-                    'name' => 'Facture (30 jours)'
+                    'name' => 'Facture'
                 ]
             ],
         ],
         MonduSepaHandler::class => [
             'handlerIdentifier' => MonduSepaHandler::class,
-            'name' => 'SEPA-Lastschrift (30 Tage)',
+            'name' => 'SEPA-Lastschrift',
             'afterOrderEnabled' => true,
             'translations' => [
                 'de-DE' => [
-                    'name' => 'SEPA-Lastschrift (30 Tage)'
+                    'name' => 'SEPA-Lastschrift'
                 ],
                 'en-GB' => [
-                    'name' => 'SEPA direct debit (30 days)'
+                    'name' => 'SEPA direct debit'
                 ],
                 'nl-NL' => [
-                    'name' => 'SEPA automatische incasso (30 dagen)'
+                    'name' => 'SEPA automatische incasso'
                 ],
                 'fr-FR' => [
-                    'name' => 'Prélèvement automatique SEPA (30 jours)'
+                    'name' => 'Prélèvement automatique SEPA'
                 ]
             ],
         ],
