@@ -8,5 +8,8 @@
         <testsuite name="CodeReviewFixes">
             <directory>./CodeReviewFixes</directory>
         </testsuite>
+        <testsuite name="AsyncOrder">
+            <directory>./AsyncOrder</directory>
+        </testsuite>
     </testsuites>
 </phpunit>

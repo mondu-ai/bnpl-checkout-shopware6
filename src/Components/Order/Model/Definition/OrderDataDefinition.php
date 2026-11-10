@@ -73,6 +73,11 @@ class OrderDataDefinition extends EntityDefinition
                 OrderDataEntity::FIELD_ORDER_STATE
             ))->addFlags(new Required()),
 
+            new StringField(
+                'order_flow',
+                OrderDataEntity::FIELD_ORDER_FLOW
+            ),
+
             (new StringField(
                 'reference_id',
                 OrderDataEntity::FIELD_REFERENCE_ID

@@ -55,6 +55,30 @@
     },
     "summary": {
       "monduAmountLabel": "Claim at Mondu"
+    },
+    "asyncOrder": {
+      "title": "Mondu",
+      "description": "Mondu assesses the order when you save it and asks the buyer to confirm it by email. The payment status follows Mondu's decision.",
+      "labelNetTerm": "Net term",
+      "netTermDays": "{days} days",
+      "labelCompany": "Company",
+      "noCompany": "The customer has no company name, which Mondu requires. For a sole trader choose the legal form \"Sole trader\": the owner's name is then sent as the company name.",
+      "noNetTerms": "Your Mondu account holds no net term for the buyer's country, so this payment method cannot be used for this buyer.",
+      "labelNumberOfInstallments": "Number of installments",
+      "labelIban": "IBAN",
+      "labelAccountHolder": "Account holder",
+      "labelRegistrationId": "Registration ID",
+      "labelLegalFormCategory": "Legal form",
+      "labelOwnerFirstName": "Owner first name",
+      "labelOwnerLastName": "Owner last name",
+      "labelOwnerBirthDate": "Owner date of birth",
+      "legalFormCategory": {
+        "einzelunternehmen": "Sole trader",
+        "kapital_und_personen_gesellschaft": "Corporation or partnership",
+        "offentliche_auftraggeber_einrichtung": "Public authority or institution",
+        "andere_gesellschaftsform": "Other legal form"
+      },
+      "summaryPaymentTerm": "Mondu payment term"
     }
   },
   "sw-mondu-config": {
@@ -67,5 +91,9 @@
       "apiConfigurationFailureMessage": "API Credentials are invalid.",
       "testApiConfiguration": "Test API Credentials"
     }
+  },
+  "mondu-net-term-select": {
+    "days": "days",
+    "notOffered": "not offered by Mondu"
   }
 }

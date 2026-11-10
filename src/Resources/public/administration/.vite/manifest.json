@@ -1,8 +1,8 @@
 {
-  "main.ts": {
+  "src/main.ts": {
     "file": "assets/mond1-s-w6.js",
     "name": "mond1-s-w6",
-    "src": "main.ts",
+    "src": "src/main.ts",
     "isEntry": true
   }
 }

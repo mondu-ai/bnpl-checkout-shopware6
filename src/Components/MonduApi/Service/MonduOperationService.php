@@ -21,6 +21,12 @@ class MonduOperationService
     public function syncOrder(OrderDataEntity $orderData, Context $context, $salesChannelId = null)
     {
         $order = $this->monduClient->setSalesChannelId($salesChannelId)->getMonduOrder($orderData->getReferenceId());
+
+        // Mondu did not answer: keep the state we know rather than writing an empty one.
+        if (!isset($order['state'])) {
+            return $orderData->getOrderState();
+        }
+
         $this->orderDataRepository->update([
             [
                 OrderDataEntity::FIELD_ID => $orderData->getId(),
